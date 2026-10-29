@@ -29,13 +29,13 @@ export default function ScannerPage() {
             handleScanSuccess(decodedText);
           },
           (errorMessage) => {
-            // bỏ qua các frame chưa nhận diện
+            // bỏ qua frame chưa nhận dạng
           }
         );
         setCameraActive(true);
       } catch (err) {
         console.warn("Camera init:", err);
-        setErrorMsg("Không thể mở Camera thiết bị (do chưa cấp quyền hoặc không có webcam). Bạn có thể dùng tính năng Tải ảnh QR hoặc chọn Mã Demo bên dưới.");
+        setErrorMsg("Không thể mở Camera thiết bị (do chưa cấp quyền hoặc không có webcam). Bạn có thể dùng tính năng Tải ảnh QR hoặc chọn Mã Mẫu bên dưới.");
         setCameraActive(false);
       }
     };
@@ -50,7 +50,6 @@ export default function ScannerPage() {
   }, []);
 
   const handleScanSuccess = (text) => {
-    // Trích xuất mã chứng chỉ nếu URL dạng ...?code=CERT-...
     let certCode = text;
     try {
       if (text.includes("code=")) {
@@ -67,7 +66,6 @@ export default function ScannerPage() {
       scannerRef.current.stop().catch(() => {});
     }
 
-    // Chuyển hướng sang trang thẩm định sau 800ms
     setTimeout(() => {
       navigate(`/verify?code=${encodeURIComponent(certCode)}`);
     }, 800);
@@ -90,10 +88,10 @@ export default function ScannerPage() {
 
   return (
     <div style={{ padding: "40px 0 80px" }}>
-      <div className="container" style={{ maxWidth: "600px" }}>
+      <div className="container" style={{ maxWidth: "620px" }}>
         
         <div style={{ marginBottom: "20px" }}>
-          <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--text-muted)", fontSize: "14px" }}>
+          <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--text-muted)", fontSize: "14px", fontWeight: 500 }}>
             <ArrowLeft size={16} /> Quay lại trang chủ
           </Link>
         </div>
@@ -112,11 +110,11 @@ export default function ScannerPage() {
           }}>
             <QrCode size={30} color="#04121e" />
           </div>
-          <h1 style={{ fontSize: "28px", fontWeight: 800, marginBottom: "8px" }}>
+          <h1 style={{ fontSize: "28px", fontWeight: 800, marginBottom: "8px", color: "var(--text-primary)" }}>
             Quét Mã QR Xác Thực
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
-            Hướng camera vào mã QR in trên bằng giấy để giải mã và kiểm tra tính hợp pháp tức thì trên chuỗi.
+            Hướng camera vào mã QR in trên bằng giấy để đối soát trực tiếp tính hợp lệ với Smart Contract.
           </p>
         </div>
 
@@ -129,10 +127,10 @@ export default function ScannerPage() {
             maxWidth: "360px",
             height: "360px",
             margin: "0 auto",
-            background: "#000",
+            background: "#050811",
             borderRadius: "16px",
             overflow: "hidden",
-            border: "2px solid rgba(56, 189, 248, 0.4)",
+            border: "2px solid var(--border-subtle)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center"
@@ -149,7 +147,7 @@ export default function ScannerPage() {
               <div style={{
                 position: "absolute",
                 inset: 0,
-                background: "rgba(16, 185, 129, 0.9)",
+                background: "rgba(16, 185, 129, 0.95)",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
@@ -157,9 +155,9 @@ export default function ScannerPage() {
                 color: "#ffffff",
                 zIndex: 20
               }}>
-                <CheckCircle2 size={60} />
-                <div style={{ fontWeight: 800, fontSize: "18px", marginTop: "12px" }}>ĐÃ NHẬN DIỆN MÃ QR!</div>
-                <div style={{ fontSize: "13px", marginTop: "4px" }}>Đang chuyển đến kết quả on-chain: {scanResult}</div>
+                <CheckCircle2 size={56} />
+                <div style={{ fontWeight: 800, fontSize: "17px", marginTop: "12px" }}>ĐÃ NHẬN DIỆN MÃ QR!</div>
+                <div style={{ fontSize: "13px", marginTop: "4px" }}>Đang chuyển đến kết quả: {scanResult}</div>
               </div>
             )}
           </div>
@@ -174,14 +172,14 @@ export default function ScannerPage() {
           </div>
 
           {/* Quick Demo Test Trigger */}
-          <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid var(--border-light)", textAlign: "center" }}>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Hoặc quét nhanh mã mẫu:</span>
-            <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginTop: "8px", flexWrap: "wrap" }}>
+          <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid var(--border-subtle)", textAlign: "center" }}>
+            <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600 }}>Hoặc quét nhanh mã demo kiểm thử:</span>
+            <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginTop: "10px", flexWrap: "wrap" }}>
               <button
                 type="button"
                 onClick={() => handleScanSuccess("CERT-IELTS-2026-001")}
                 className="btn btn-primary"
-                style={{ fontSize: "12px", padding: "6px 12px" }}
+                style={{ fontSize: "12px", padding: "6px 14px" }}
               >
                 Mã Mẫu IELTS (8.0)
               </button>
@@ -189,7 +187,7 @@ export default function ScannerPage() {
                 type="button"
                 onClick={() => handleScanSuccess("CERT-VSTEP-2026-012")}
                 className="btn btn-danger"
-                style={{ fontSize: "12px", padding: "6px 12px" }}
+                style={{ fontSize: "12px", padding: "6px 14px" }}
               >
                 Mã Mẫu Bị Thu Hồi
               </button>
@@ -201,9 +199,9 @@ export default function ScannerPage() {
         {errorMsg && (
           <div style={{
             marginTop: "20px",
-            background: "rgba(245, 158, 11, 0.12)",
+            background: "var(--warning-bg)",
             border: "1px solid rgba(245, 158, 11, 0.3)",
-            color: "#fde68a",
+            color: "var(--warning-text)",
             padding: "12px 16px",
             borderRadius: "var(--radius-md)",
             fontSize: "13px",

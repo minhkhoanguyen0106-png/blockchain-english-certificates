@@ -34,7 +34,7 @@ export default function LoginPage({ setUser }) {
     setUser(userData);
     localStorage.setItem("certchain_user", JSON.stringify(userData));
 
-    // Phân quyền điều hướng theo role:
+    // Redirect based on role
     if (role === "STUDENT") {
       navigate("/verify?code=CERT-IELTS-2026-001");
     } else {
@@ -44,10 +44,10 @@ export default function LoginPage({ setUser }) {
 
   return (
     <div style={{ minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
-      <div className="glass-panel" style={{ width: "100%", maxWidth: "480px", padding: "40px 32px" }}>
+      <div className="glass-panel" style={{ width: "100%", maxWidth: "480px", padding: "36px 32px" }}>
         
         <div style={{ marginBottom: "20px" }}>
-          <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--text-muted)", fontSize: "13px" }}>
+          <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--text-muted)", fontSize: "13px", fontWeight: 500 }}>
             <ArrowLeft size={14} /> Về trang chủ
           </Link>
         </div>
@@ -66,9 +66,9 @@ export default function LoginPage({ setUser }) {
           }}>
             <ShieldCheck size={28} color="#04121e" />
           </div>
-          <h2 style={{ fontSize: "24px", fontWeight: 800 }}>Đăng Nhập Phân Quyền Hệ Thống</h2>
+          <h2 style={{ fontSize: "24px", fontWeight: 800, color: "var(--text-primary)" }}>Đăng Nhập Hệ Thống</h2>
           <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "4px" }}>
-            Hỗ trợ kiểm tra ma trận phân quyền 3 cấp độ thực tế
+            Hỗ trợ kiểm tra phân quyền 3 cấp độ (Admin - Staff - Student)
           </p>
         </div>
 
@@ -76,39 +76,39 @@ export default function LoginPage({ setUser }) {
           
           {/* 3 Role Selection Tabs */}
           <div className="form-group">
-            <label className="form-label">Chọn vai trò muốn đăng nhập thử nghiệm:</label>
+            <label className="form-label">Chọn vai trò muốn đăng nhập kiểm thử:</label>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
               <button
                 type="button"
                 onClick={() => handleRoleChange("ADMIN")}
                 className={`btn ${role === "ADMIN" ? "btn-primary" : "btn-outline"}`}
-                style={{ fontSize: "11px", padding: "8px 4px", flexDirection: "column", gap: "4px" }}
+                style={{ fontSize: "11px", padding: "10px 4px", flexDirection: "column", gap: "4px" }}
               >
                 <ShieldCheck size={16} />
                 <strong>ADMIN</strong>
-                <span style={{ fontSize: "9px", opacity: 0.8 }}>Toàn quyền & Ký</span>
+                <span style={{ fontSize: "9px", opacity: 0.85 }}>Ký ví on-chain</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleRoleChange("STAFF")}
                 className={`btn ${role === "STAFF" ? "btn-primary" : "btn-outline"}`}
-                style={{ fontSize: "11px", padding: "8px 4px", flexDirection: "column", gap: "4px" }}
+                style={{ fontSize: "11px", padding: "10px 4px", flexDirection: "column", gap: "4px" }}
               >
                 <Briefcase size={16} />
                 <strong>STAFF</strong>
-                <span style={{ fontSize: "9px", opacity: 0.8 }}>Chỉ soạn nháp</span>
+                <span style={{ fontSize: "9px", opacity: 0.85 }}>Soạn bản nháp</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleRoleChange("STUDENT")}
                 className={`btn ${role === "STUDENT" ? "btn-primary" : "btn-outline"}`}
-                style={{ fontSize: "11px", padding: "8px 4px", flexDirection: "column", gap: "4px" }}
+                style={{ fontSize: "11px", padding: "10px 4px", flexDirection: "column", gap: "4px" }}
               >
                 <GraduationCap size={16} />
                 <strong>STUDENT</strong>
-                <span style={{ fontSize: "9px", opacity: 0.8 }}>Chỉ xem bằng</span>
+                <span style={{ fontSize: "9px", opacity: 0.85 }}>Chỉ xem bằng</span>
               </button>
             </div>
           </div>
@@ -145,32 +145,32 @@ export default function LoginPage({ setUser }) {
 
           {/* Role Permission Alert Note */}
           <div style={{
-            background: "rgba(255, 255, 255, 0.04)",
-            border: "1px solid var(--border-light)",
-            borderRadius: "8px",
-            padding: "10px 14px",
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border-subtle)",
+            borderRadius: "var(--radius-sm)",
+            padding: "12px 14px",
             fontSize: "12px",
             color: "var(--text-secondary)",
             marginBottom: "20px"
           }}>
             {role === "ADMIN" && (
-              <span style={{ color: "#38bdf8" }}>
-                🛡️ <strong>Admin:</strong> Có quyền truy cập mọi trang quản trị, ký đúc Soulbound Token on-chain và ký thu hồi bằng (Revoke).
+              <span style={{ color: "var(--primary)" }}>
+                🛡️ <strong>Admin:</strong> Có quyền truy cập toàn bộ menu quản trị, ký đúc Soulbound Token on-chain và ký thu hồi bằng (Revoke).
               </span>
             )}
             {role === "STAFF" && (
-              <span style={{ color: "#fbbf24" }}>
+              <span style={{ color: "var(--warning-text)" }}>
                 💼 <strong>Staff:</strong> Có quyền quản lý hồ sơ và soạn thảo bản nháp (Draft). <em>Bị khóa nút Ký đúc On-Chain và Thu hồi bằng</em>.
               </span>
             )}
             {role === "STUDENT" && (
-              <span style={{ color: "#f87171" }}>
-                🎓 <strong>Student:</strong> <em>Bị chặn 100% không thể vào các trang Quản trị</em> (sẽ bị lỗi 403 Forbidden nếu cố tình truy cập URL).
+              <span style={{ color: "var(--danger-text)" }}>
+                🎓 <strong>Student:</strong> <em>Bị chặn truy cập các trang Quản trị</em> (sẽ bị lỗi 403 Forbidden nếu cố tình truy cập URL trực tiếp).
               </span>
             )}
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: "12px", fontSize: "15px" }}>
+          <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: "13px", fontSize: "15px" }}>
             Xác Nhận Đăng Nhập
           </button>
         </form>

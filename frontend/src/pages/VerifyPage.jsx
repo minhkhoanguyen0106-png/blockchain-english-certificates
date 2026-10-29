@@ -22,7 +22,6 @@ export default function VerifyPage() {
     setSearchParams({ code });
 
     try {
-      // Giả lập độ trễ truy vấn Blockchain 600ms
       await new Promise(r => setTimeout(r, 600));
       const cert = await getCertificateByCode(code);
       setResult(cert);
@@ -43,27 +42,27 @@ export default function VerifyPage() {
 
   return (
     <div style={{ padding: "40px 0 80px" }}>
-      <div className="container" style={{ maxWidth: "850px" }}>
+      <div className="container" style={{ maxWidth: "860px" }}>
         
         {/* Back navigation */}
         <div style={{ marginBottom: "20px" }}>
-          <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--text-muted)", fontSize: "14px" }}>
+          <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--text-muted)", fontSize: "14px", fontWeight: 500 }}>
             <ArrowLeft size={16} /> Quay lại trang chủ
           </Link>
         </div>
 
         {/* Page Title */}
         <div style={{ textAlign: "center", marginBottom: "36px" }}>
-          <h1 style={{ fontSize: "32px", fontWeight: 800, marginBottom: "8px" }}>
+          <h1 style={{ fontSize: "32px", fontWeight: 800, marginBottom: "8px", color: "var(--text-primary)" }}>
             Tra Cứu & Xác Thực <span className="text-gradient">On-Chain</span>
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "15px" }}>
-            Kiểm tra tính toàn vẹn của chứng chỉ tiếng Anh trực tiếp từ hợp đồng thông minh trên Blockchain.
+            Kiểm tra tính toàn vẹn và thẩm quyền cấp bằng trực tiếp từ Smart Contract trên sổ cái Blockchain.
           </p>
         </div>
 
         {/* Search Input Box */}
-        <div className="glass-panel" style={{ padding: "16px 20px", marginBottom: "32px" }}>
+        <div className="glass-panel" style={{ padding: "20px 24px", marginBottom: "32px" }}>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -103,26 +102,53 @@ export default function VerifyPage() {
           </form>
 
           {/* Quick sample chips */}
-          <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", fontSize: "12px" }}>
-            <span style={{ color: "var(--text-muted)" }}>Thử nhanh:</span>
+          <div style={{ marginTop: "14px", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", fontSize: "12px" }}>
+            <span style={{ color: "var(--text-muted)", fontWeight: 600 }}>Thử nhanh mã mẫu:</span>
             <button
               type="button"
               onClick={() => { setInputCode("CERT-IELTS-2026-001"); handleSearch("CERT-IELTS-2026-001"); }}
-              style={{ background: "rgba(56, 189, 248, 0.1)", border: "1px solid rgba(56, 189, 248, 0.3)", color: "var(--primary)", padding: "2px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}
+              style={{
+                background: "var(--primary-bg)",
+                border: "1px solid var(--border-subtle)",
+                color: "var(--primary)",
+                padding: "3px 10px",
+                borderRadius: "var(--radius-full)",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: 600
+              }}
             >
-              CERT-IELTS-2026-001 (IELTS 8.0)
+              CERT-IELTS-2026-001 (IELTS 8.0 Hợp lệ)
             </button>
             <button
               type="button"
               onClick={() => { setInputCode("CERT-TOEIC-2026-088"); handleSearch("CERT-TOEIC-2026-088"); }}
-              style={{ background: "rgba(245, 158, 11, 0.1)", border: "1px solid rgba(245, 158, 11, 0.3)", color: "var(--accent-gold)", padding: "2px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}
+              style={{
+                background: "var(--accent-gold-bg)",
+                border: "1px solid var(--border-subtle)",
+                color: "var(--accent-gold)",
+                padding: "3px 10px",
+                borderRadius: "var(--radius-full)",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: 600
+              }}
             >
               CERT-TOEIC-2026-088 (TOEIC 920)
             </button>
             <button
               type="button"
               onClick={() => { setInputCode("CERT-VSTEP-2026-012"); handleSearch("CERT-VSTEP-2026-012"); }}
-              style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#f87171", padding: "2px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}
+              style={{
+                background: "var(--danger-bg)",
+                border: "1px solid var(--border-subtle)",
+                color: "var(--danger-text)",
+                padding: "3px 10px",
+                borderRadius: "var(--radius-full)",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: 600
+              }}
             >
               CERT-VSTEP-2026-012 (Bị thu hồi)
             </button>
@@ -131,10 +157,10 @@ export default function VerifyPage() {
 
         {/* Verification Result Showcase */}
         {loading && (
-          <div className="glass-panel" style={{ padding: "40px", textAlign: "center" }}>
-            <div style={{ width: "48px", height: "48px", border: "4px solid rgba(56, 189, 248, 0.2)", borderTopColor: "var(--primary)", borderRadius: "50%", margin: "0 auto 16px", animation: "spin 1s linear infinite" }} />
-            <h3 style={{ fontSize: "18px", fontWeight: 700 }}>Đang kiểm tra sổ cái Blockchain...</h3>
-            <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>Đối soát Smart Contract Soulbound Token và CID trên mạng IPFS</p>
+          <div className="glass-panel" style={{ padding: "44px 20px", textAlign: "center" }}>
+            <div style={{ width: "48px", height: "48px", border: "4px solid var(--border-subtle)", borderTopColor: "var(--primary)", borderRadius: "50%", margin: "0 auto 16px", animation: "spinSlow 1s linear infinite" }} />
+            <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-primary)" }}>Đang đối soát sổ cái Blockchain...</h3>
+            <p style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "4px" }}>Xác thực chữ ký Smart Contract Soulbound Token và CID phân tán trên IPFS</p>
           </div>
         )}
 
@@ -143,21 +169,21 @@ export default function VerifyPage() {
             {/* Status Alert Banner */}
             {result.status === "ISSUED_ON_CHAIN" && (
               <div style={{
-                background: "rgba(16, 185, 129, 0.15)",
+                background: "var(--success-bg)",
                 border: "1px solid rgba(16, 185, 129, 0.4)",
                 borderRadius: "var(--radius-md)",
                 padding: "16px 20px",
                 marginBottom: "24px",
                 display: "flex",
                 alignItems: "center",
-                gap: "12px"
+                gap: "14px"
               }}>
-                <div style={{ background: "#10b981", borderRadius: "50%", padding: "6px", display: "flex" }}>
+                <div style={{ background: "var(--success-color)", borderRadius: "50%", padding: "6px", display: "flex", color: "#04121e" }}>
                   <ShieldCheck size={24} color="#04121e" />
                 </div>
                 <div>
-                  <h4 style={{ color: "#34d399", fontWeight: 700, fontSize: "16px" }}>CHỨNG CHỈ HỢP LỆ (ON-CHAIN VERIFIED)</h4>
-                  <p style={{ color: "var(--text-secondary)", fontSize: "13px" }}>
+                  <h4 style={{ color: "var(--success-text)", fontWeight: 800, fontSize: "16px" }}>CHỨNG CHỈ HỢP LỆ (ON-CHAIN VERIFIED)</h4>
+                  <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "2px" }}>
                     Chứng chỉ đã được xác nhận chữ ký số của Giám đốc trung tâm và đúc thành công trên Blockchain.
                   </p>
                 </div>
@@ -166,25 +192,25 @@ export default function VerifyPage() {
 
             {result.status === "REVOKED" && (
               <div style={{
-                background: "rgba(239, 68, 68, 0.15)",
+                background: "var(--danger-bg)",
                 border: "1px solid rgba(239, 68, 68, 0.4)",
                 borderRadius: "var(--radius-md)",
                 padding: "16px 20px",
                 marginBottom: "24px",
                 display: "flex",
                 alignItems: "flex-start",
-                gap: "12px"
+                gap: "14px"
               }}>
-                <div style={{ background: "#ef4444", borderRadius: "50%", padding: "6px", display: "flex", marginTop: "2px" }}>
+                <div style={{ background: "var(--danger-color)", borderRadius: "50%", padding: "6px", display: "flex", marginTop: "2px", color: "#ffffff" }}>
                   <XCircle size={24} color="#ffffff" />
                 </div>
                 <div>
-                  <h4 style={{ color: "#f87171", fontWeight: 700, fontSize: "16px" }}>CHỨNG CHỈ ĐÃ BỊ THU HỒI (REVOKED)</h4>
-                  <p style={{ color: "#fca5a5", fontSize: "13px", marginTop: "2px" }}>
-                    Lý do thu hồi: <strong>{result.revoked_reason || "Vi phạm quy chế khảo thí"}</strong>
+                  <h4 style={{ color: "var(--danger-text)", fontWeight: 800, fontSize: "16px" }}>CHỨNG CHỈ ĐÃ BỊ THU HỒI (REVOKED)</h4>
+                  <p style={{ color: "var(--danger-text)", fontSize: "13px", marginTop: "2px", fontWeight: 600 }}>
+                    Lý do thu hồi: {result.revoked_reason || "Vi phạm quy chế thi cử"}
                   </p>
                   <p style={{ color: "var(--text-muted)", fontSize: "12px", marginTop: "4px" }}>
-                    Ngày ghi nhận thu hồi on-chain: {result.revoked_at}
+                    Thời điểm ghi nhận thu hồi on-chain: {result.revoked_at}
                   </p>
                 </div>
               </div>
@@ -194,7 +220,7 @@ export default function VerifyPage() {
             <CertificateCard cert={result} />
 
             {/* Action Buttons */}
-            <div style={{ display: "flex", justifyContent: "center", gap: "16px", marginTop: "30px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: "16px", marginTop: "32px", flexWrap: "wrap" }}>
               <button
                 type="button"
                 onClick={() => alert(`Đang tải file PDF chứng chỉ: ${result.certificate_code}.pdf`)}
@@ -229,12 +255,12 @@ export default function VerifyPage() {
 
         {!loading && hasSearched && !result && (
           <div className="glass-panel" style={{ padding: "40px", textAlign: "center" }}>
-            <div style={{ width: "54px", height: "54px", borderRadius: "50%", background: "rgba(245, 158, 11, 0.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-              <AlertTriangle size={28} color="var(--accent-gold)" />
+            <div style={{ width: "54px", height: "54px", borderRadius: "50%", background: "var(--warning-bg)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <AlertTriangle size={28} color="var(--warning-text)" />
             </div>
-            <h3 style={{ fontSize: "20px", fontWeight: 700, color: "#fef3c7" }}>Không Tìm Thấy Chứng Chỉ Này</h3>
+            <h3 style={{ fontSize: "20px", fontWeight: 800, color: "var(--warning-text)" }}>Không Tìm Thấy Chứng Chỉ Này</h3>
             <p style={{ color: "var(--text-secondary)", fontSize: "14px", maxWidth: "500px", margin: "8px auto 20px" }}>
-              Mã chứng chỉ <strong>"{inputCode}"</strong> chưa từng được phát hành hoặc không tồn tại trên hợp đồng thông minh. Cẩn trọng với các bằng cấp giả mạo!
+              Mã chứng chỉ <strong>"{inputCode}"</strong> chưa từng được cấp phát hoặc không tồn tại trên hợp đồng thông minh. Cẩn trọng với các bằng cấp giả mạo!
             </p>
           </div>
         )}

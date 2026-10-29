@@ -1,14 +1,23 @@
 import React from "react";
+import { useLocation } from "react-router-dom";
 import { ShieldCheck, Globe, ExternalLink } from "lucide-react";
 
 export default function Footer() {
+  const location = useLocation();
+
+  // Hide global footer in admin workspace to maximize data table screen height
+  if (location.pathname.startsWith("/admin")) {
+    return null;
+  }
+
   return (
     <footer style={{
-      borderTop: "1px solid var(--border-light)",
-      background: "rgba(4, 7, 13, 0.95)",
+      borderTop: "1px solid var(--border-subtle)",
+      background: "var(--bg-surface)",
       padding: "36px 0 28px",
       fontSize: "13px",
-      color: "var(--text-muted)"
+      color: "var(--text-muted)",
+      transition: "background var(--transition-normal), border-color var(--transition-normal)"
     }}>
       <div className="container">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px", marginBottom: "20px" }}>
@@ -43,9 +52,9 @@ export default function Footer() {
 
         </div>
 
-        <div style={{ textAlign: "center", paddingTop: "18px", borderTop: "1px solid rgba(255, 255, 255, 0.04)", fontSize: "12px" }}>
+        <div style={{ textAlign: "center", paddingTop: "18px", borderTop: "1px solid var(--border-subtle)", fontSize: "12px", color: "var(--text-muted)" }}>
           Đề tài môn học: <strong>Blockchain & Ứng Dụng</strong> • 
-          Phân hệ: <em>Frontend & Web3 UI (Nhánh <code>dev-tv3</code>)</em>
+          Hệ Thống Quản Lý & Xác Thực Bằng Tiếng Anh Bằng SBT (Soulbound Token)
         </div>
       </div>
     </footer>

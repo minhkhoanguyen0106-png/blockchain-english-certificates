@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import AdminLayout from "./components/AdminLayout";
 import HomePage from "./pages/HomePage";
 import VerifyPage from "./pages/VerifyPage";
 import ScannerPage from "./pages/ScannerPage";
@@ -11,14 +12,13 @@ import IssueCertPage from "./pages/IssueCertPage";
 import CertificatesListPage from "./pages/CertificatesListPage";
 import DataManagementPage from "./pages/DataManagementPage";
 import { initStorage } from "./services/web3Service";
-
 import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
   const [wallet, setWallet] = useState(null);
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem("certchain_user");
-    return saved ? JSON.parse(saved) : null; // Mặc định chưa đăng nhập để đảm bảo an toàn
+    return saved ? JSON.parse(saved) : null;
   });
 
   useEffect(() => {
@@ -29,24 +29,26 @@ export default function App() {
     <BrowserRouter>
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
         
-        {/* Global Navigation Bar */}
+        {/* Global Public Navigation Bar (Automatically hides inside /admin) */}
         <Navbar wallet={wallet} setWallet={setWallet} user={user} setUser={setUser} />
 
         {/* Main Content Area */}
-        <main style={{ flex: 1 }}>
+        <main style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           <Routes>
-            {/* Public Routes - Ai cũng có thể truy cập */}
+            {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
             <Route path="/verify" element={<VerifyPage />} />
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/login" element={<LoginPage setUser={setUser} />} />
 
-            {/* Admin & Staff Protected Routes - Yêu cầu xác thực & đúng vai trò */}
+            {/* Admin & Staff Protected Routes with Enterprise AdminLayout */}
             <Route
               path="/admin/dashboard"
               element={
                 <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
-                  <DashboardPage wallet={wallet} setWallet={setWallet} user={user} />
+                  <AdminLayout wallet={wallet} setWallet={setWallet} user={user} setUser={setUser}>
+                    <DashboardPage wallet={wallet} setWallet={setWallet} user={user} />
+                  </AdminLayout>
                 </ProtectedRoute>
               }
             />
@@ -54,7 +56,9 @@ export default function App() {
               path="/admin/certificates/issue"
               element={
                 <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
-                  <IssueCertPage wallet={wallet} setWallet={setWallet} user={user} />
+                  <AdminLayout wallet={wallet} setWallet={setWallet} user={user} setUser={setUser}>
+                    <IssueCertPage wallet={wallet} setWallet={setWallet} user={user} />
+                  </AdminLayout>
                 </ProtectedRoute>
               }
             />
@@ -62,7 +66,9 @@ export default function App() {
               path="/admin/certificates"
               element={
                 <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
-                  <CertificatesListPage wallet={wallet} user={user} />
+                  <AdminLayout wallet={wallet} setWallet={setWallet} user={user} setUser={setUser}>
+                    <CertificatesListPage wallet={wallet} user={user} />
+                  </AdminLayout>
                 </ProtectedRoute>
               }
             />
@@ -70,7 +76,9 @@ export default function App() {
               path="/admin/data-management"
               element={
                 <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
-                  <DataManagementPage />
+                  <AdminLayout wallet={wallet} setWallet={setWallet} user={user} setUser={setUser}>
+                    <DataManagementPage />
+                  </AdminLayout>
                 </ProtectedRoute>
               }
             />
@@ -80,7 +88,7 @@ export default function App() {
           </Routes>
         </main>
 
-        {/* Global Footer */}
+        {/* Global Footer (Automatically hides inside /admin) */}
         <Footer />
 
       </div>

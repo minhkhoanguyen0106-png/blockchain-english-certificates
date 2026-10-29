@@ -8,25 +8,32 @@ export default function ProtectedRoute({ user, allowedRoles, children }) {
     return <Navigate to="/login" replace />;
   }
 
-  // 2. Đã đăng nhập nhưng không đủ quyền (Role không nằm trong danh sách cho phép)
+  // 2. Đã đăng nhập nhưng không đủ quyền
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     return (
-      <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
-        <div className="glass-panel" style={{ maxWidth: "520px", width: "100%", padding: "40px 32px", textAlign: "center", borderColor: "rgba(239, 68, 68, 0.4)" }}>
+      <div style={{ minHeight: "75vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
+        <div className="glass-panel" style={{
+          maxWidth: "520px",
+          width: "100%",
+          padding: "40px 32px",
+          textAlign: "center",
+          borderColor: "rgba(239, 68, 68, 0.4)",
+          background: "var(--bg-surface-elevated)"
+        }}>
           <div style={{
             width: "60px",
             height: "60px",
             borderRadius: "50%",
-            background: "rgba(239, 68, 68, 0.15)",
+            background: "var(--danger-bg)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
             marginBottom: "16px"
           }}>
-            <ShieldAlert size={32} color="#ef4444" />
+            <ShieldAlert size={32} color="var(--danger-text)" />
           </div>
 
-          <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#f87171", marginBottom: "8px" }}>
+          <h2 style={{ fontSize: "22px", fontWeight: 800, color: "var(--danger-text)", marginBottom: "8px" }}>
             403 - Quyền Truy Cập Bị Từ Chối
           </h2>
 
@@ -50,6 +57,6 @@ export default function ProtectedRoute({ user, allowedRoles, children }) {
     );
   }
 
-  // 3. Đầy đủ quyền hạn -> Hiển thị trang
+  // 3. Đầy đủ quyền hạn
   return children;
 }

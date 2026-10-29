@@ -91,7 +91,7 @@ export default function Navbar({ wallet, setWallet, user, setUser }) {
             Quét Mã QR
           </Link>
 
-          {user ? (
+          {user && (user.role === "ADMIN" || user.role === "STAFF") && (
             <Link to="/admin/dashboard" className="btn btn-outline" style={{
               border: "none",
               color: location.pathname.startsWith("/admin") ? "var(--primary)" : "var(--text-secondary)",
@@ -100,7 +100,17 @@ export default function Navbar({ wallet, setWallet, user, setUser }) {
               <LayoutDashboard size={16} />
               Quản Trị
             </Link>
-          ) : null}
+          )}
+
+          {user && user.role === "STUDENT" && (
+            <Link to="/verify?code=CERT-IELTS-2026-001" className="btn btn-outline" style={{
+              border: "none",
+              color: "var(--accent-gold)",
+              background: "rgba(245, 158, 11, 0.1)"
+            }}>
+              Chứng Chỉ Của Tôi
+            </Link>
+          )}
         </nav>
 
         {/* Web3 Wallet & User Actions */}
@@ -134,19 +144,35 @@ export default function Navbar({ wallet, setWallet, user, setUser }) {
             </button>
           )}
 
-          {/* Admin / Login Button */}
+          {/* User Profile Pill & Logout */}
           {user ? (
-            <button
-              onClick={handleLogout}
-              className="btn btn-outline"
-              title="Đăng xuất"
-              style={{ padding: "8px 12px" }}
-            >
-              <LogOut size={16} />
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "6px 12px",
+                background: "rgba(255, 255, 255, 0.05)",
+                borderRadius: "8px",
+                fontSize: "12px"
+              }}>
+                <span style={{ fontWeight: 600 }}>{user.username}</span>
+                <span className={`badge ${user.role === "ADMIN" ? "badge-success" : user.role === "STAFF" ? "badge-warning" : "badge-info"}`} style={{ fontSize: "10px", padding: "2px 8px" }}>
+                  {user.role}
+                </span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="btn btn-outline"
+                title="Đăng xuất"
+                style={{ padding: "8px 10px" }}
+              >
+                <LogOut size={15} />
+              </button>
+            </div>
           ) : (
             <Link to="/login" className="btn btn-outline" style={{ fontSize: "13px", padding: "8px 14px" }}>
-              Cán Bộ Đăng Nhập
+              Đăng Nhập
             </Link>
           )}
 

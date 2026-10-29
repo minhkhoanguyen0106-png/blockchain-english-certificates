@@ -26,6 +26,10 @@ export default function CertificatesListPage({ wallet, user }) {
 
   const handleConfirmRevoke = async () => {
     if (!revokeTarget) return;
+    if (user?.role !== "ADMIN") {
+      alert("LỖI PHÂN QUYỀN (403): Chỉ Quản trị viên (ADMIN) mới có thẩm quyền thu hồi chứng chỉ trên Blockchain!");
+      return;
+    }
     if (!revokeReason.trim()) {
       alert("Vui lòng nhập lý do thu hồi chứng chỉ!");
       return;
@@ -171,13 +175,13 @@ export default function CertificatesListPage({ wallet, user }) {
                           Xem
                         </Link>
 
-                        {c.status === "ISSUED_ON_CHAIN" && (
+                        {c.status === "ISSUED_ON_CHAIN" && user?.role === "ADMIN" && (
                           <button
                             type="button"
                             onClick={() => setRevokeTarget(c)}
                             className="btn btn-danger"
                             style={{ padding: "6px 10px", fontSize: "12px" }}
-                            title="Thu hồi chứng chỉ on-chain"
+                            title="Thu hồi chứng chỉ on-chain (Chỉ Admin)"
                           >
                             <AlertOctagon size={14} />
                             Thu Hồi

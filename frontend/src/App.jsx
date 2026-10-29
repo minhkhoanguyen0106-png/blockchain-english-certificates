@@ -12,11 +12,13 @@ import CertificatesListPage from "./pages/CertificatesListPage";
 import DataManagementPage from "./pages/DataManagementPage";
 import { initStorage } from "./services/web3Service";
 
+import ProtectedRoute from "./components/ProtectedRoute";
+
 export default function App() {
   const [wallet, setWallet] = useState(null);
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem("certchain_user");
-    return saved ? JSON.parse(saved) : { username: "admin", full_name: "Nguyễn Văn Giám Đốc", role: "ADMIN" };
+    return saved ? JSON.parse(saved) : null; // Mặc định chưa đăng nhập để đảm bảo an toàn
   });
 
   useEffect(() => {
@@ -33,28 +35,44 @@ export default function App() {
         {/* Main Content Area */}
         <main style={{ flex: 1 }}>
           <Routes>
-            {/* Public Routes */}
+            {/* Public Routes - Ai cũng có thể truy cập */}
             <Route path="/" element={<HomePage />} />
             <Route path="/verify" element={<VerifyPage />} />
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/login" element={<LoginPage setUser={setUser} />} />
 
-            {/* Admin Protected Routes */}
+            {/* Admin & Staff Protected Routes - Yêu cầu xác thực & đúng vai trò */}
             <Route
               path="/admin/dashboard"
-              element={<DashboardPage wallet={wallet} setWallet={setWallet} user={user} />}
+              element={
+                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
+                  <DashboardPage wallet={wallet} setWallet={setWallet} user={user} />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="/admin/certificates/issue"
-              element={<IssueCertPage wallet={wallet} setWallet={setWallet} user={user} />}
+              element={
+                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
+                  <IssueCertPage wallet={wallet} setWallet={setWallet} user={user} />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="/admin/certificates"
-              element={<CertificatesListPage wallet={wallet} user={user} />}
+              element={
+                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
+                  <CertificatesListPage wallet={wallet} user={user} />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="/admin/data-management"
-              element={<DataManagementPage />}
+              element={
+                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
+                  <DataManagementPage />
+                </ProtectedRoute>
+              }
             />
 
             {/* Fallback */}

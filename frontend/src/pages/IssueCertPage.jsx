@@ -59,26 +59,39 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     setLoading(true);
 
     try {
-      // 1. Nếu chưa có ví MetaMask, yêu cầu kết nối
+      if (user?.role === "STAFF") {
+        // Cán bộ chỉ được tạo bản nháp (PENDING)
+        await new Promise(r => setTimeout(r, 600));
+        const draftCert = {
+          ...formData,
+          status: "PENDING",
+          token_id: null,
+          tx_hash: null,
+          ipfs_hash: null
+        };
+        const saved = await issueCertificateOnChain(draftCert);
+        alert(`Lưu bản nháp thành công cho học viên ${saved.student_name}! Trạng thái: PENDING.`);
+        navigate("/admin/certificates");
+        return;
+      }
+
+      // ADMIN: Đúc On-Chain với MetaMask
       if (!wallet) {
         const acc = await connectMetaMask();
         setWallet(acc);
       }
 
-      // Giả lập độ trễ ký ví MetaMask & chờ block đào
       await new Promise(r => setTimeout(r, 1200));
-
       const newCert = await issueCertificateOnChain(formData);
       setSuccessCert(newCert);
 
-      // Bắn pháo hoa ăn mừng khi đúc on-chain thành công
       confetti({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 }
       });
     } catch (err) {
-      alert("Lỗi khi cấp bằng: " + (err.message || err));
+      alert("Lỗi khi xử lý: " + (err.message || err));
     } finally {
       setLoading(false);
     }
@@ -224,24 +237,50 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn btn-gold"
-                style={{ width: "100%", padding: "14px", fontSize: "15px", marginTop: "10px" }}
-              >
-                {loading ? (
-                  <>
-                    <RefreshCw size={18} className="animate-spin" />
-                    Đang gửi transaction lên Blockchain...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={18} />
-                    Ký MetaMask & Cấp Bằng On-Chain
-                  </>
-                )}
-              </button>
+              {/* Role-based Action Buttons */}
+              {user?.role === "STAFF" ? (
+                <div>
+                  <div style={{
+                    background: "rgba(245, 158, 11, 0.12)",
+                    border: "1px solid rgba(245, 158, 11, 0.3)",
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    color: "#fde68a",
+                    marginBottom: "14px"
+                  }}>
+                    ⚠️ <strong>Giới hạn quyền Cán bộ (STAFF):</strong> Bạn chỉ có quyền tạo bản nháp (Draft). Quản trị viên (ADMIN) sẽ là người duyệt và ký ví MetaMask để đúc On-Chain.
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn btn-primary"
+                    style={{ width: "100%", padding: "14px", fontSize: "15px" }}
+                  >
+                    {loading ? "Đang lưu..." : "Lưu Bản Nháp (Chờ Admin Ký On-Chain)"}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn btn-gold"
+                  style={{ width: "100%", padding: "14px", fontSize: "15px", marginTop: "10px" }}
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw size={18} className="animate-spin" />
+                      Đang gửi transaction lên Blockchain...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={18} />
+                      Ký MetaMask & Cấp Bằng On-Chain
+                    </>
+                  )}
+                </button>
+              )}
 
             </form>
           </div>

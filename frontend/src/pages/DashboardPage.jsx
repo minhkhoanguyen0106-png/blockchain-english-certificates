@@ -24,14 +24,18 @@ export default function DashboardPage({ wallet, setWallet, user }) {
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: "12px" }}>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
             <Link to="/admin/certificates/issue" className="btn btn-primary">
               <FilePlus size={16} />
-              Cấp Chứng Chỉ Mới
+              Cấp Bằng Mới
             </Link>
             <Link to="/admin/certificates" className="btn btn-outline">
               <ListFilter size={16} />
               Danh Sách Bằng
+            </Link>
+            <Link to="/admin/data-management" className="btn btn-outline">
+              <Users size={16} />
+              Học Viên & Khóa Học
             </Link>
           </div>
         </div>

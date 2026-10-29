@@ -9,6 +9,7 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import IssueCertPage from "./pages/IssueCertPage";
 import CertificatesListPage from "./pages/CertificatesListPage";
+import DataManagementPage from "./pages/DataManagementPage";
 import { initStorage } from "./services/web3Service";
 
 export default function App() {
@@ -50,6 +51,10 @@ export default function App() {
             <Route
               path="/admin/certificates"
               element={<CertificatesListPage wallet={wallet} user={user} />}
+            />
+            <Route
+              path="/admin/data-management"
+              element={<DataManagementPage />}
             />
 
             {/* Fallback */}

@@ -4,10 +4,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '../../.env'), override: true });
 
 async function runSeed() {
   console.log('🔄 Đang khởi tạo CSDL và nạp dữ liệu mẫu (Seed Data)...');

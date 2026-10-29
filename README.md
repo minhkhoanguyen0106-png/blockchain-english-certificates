@@ -31,7 +31,7 @@
 ### 👤 Thành viên 2: Backend API & Dịch Vụ Chứng Chỉ
 * **Mục tiêu**: Xây dựng hệ thống quản lý học viên, khóa học và cầu nối xử lý dữ liệu trước khi đẩy lên Blockchain.
 * **Các công việc cụ thể**:
-  - [ ] Xây dựng RESTful API (Node.js/Express hoặc Python FastAPI) kết nối CSDL (MongoDB/PostgreSQL).
+  - [ ] Xây dựng RESTful API (Node.js/Express hoặc Python FastAPI) kết nối CSDL quan hệ **MySQL** (sử dụng ORM: Prisma hoặc Sequelize).
   - [ ] Xây dựng hệ thống phân quyền (Auth JWT): Admin trung tâm, Cán bộ đào tạo, Học viên.
   - [ ] Module quản lý danh sách học viên, lớp học, điểm thi và yêu cầu cấp chứng chỉ.
   - [ ] Dịch vụ sinh **file PDF chứng chỉ tự động** từ dữ liệu học viên.

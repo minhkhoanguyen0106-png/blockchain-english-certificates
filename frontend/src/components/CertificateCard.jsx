@@ -5,8 +5,9 @@ import { shortenAddress } from "../services/web3Service";
 export default function CertificateCard({ cert, isPreview = false }) {
   if (!cert) return null;
 
-  const isValid = cert.status === "ISSUED_ON_CHAIN";
   const isRevoked = cert.status === "REVOKED";
+  const isExpired = cert.expiry_date && new Date(cert.expiry_date) < new Date();
+  const isValidActive = cert.status === "ISSUED_ON_CHAIN" && !isExpired && !isRevoked;
 
   return (
     <div style={{
@@ -134,11 +135,11 @@ export default function CertificateCard({ cert, isPreview = false }) {
         
         {/* Verification Status Badge */}
         <div>
-          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>TRẠNG THÁI ON-CHAIN</div>
-          {isValid && (
+          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>TRẠNG THÁI HIỆU LỰC ON-CHAIN</div>
+          {isValidActive && (
             <div className="badge badge-success" style={{ fontSize: "12px", padding: "6px 14px" }}>
               <CheckCircle2 size={15} />
-              HỢP LỆ VĨNH VIỄN (VERIFIED)
+              HỢP LỆ & CÒN HIỆU LỰC (ACTIVE)
             </div>
           )}
           {isRevoked && (
@@ -147,8 +148,14 @@ export default function CertificateCard({ cert, isPreview = false }) {
               ĐÃ BỊ THU HỒI (REVOKED)
             </div>
           )}
-          {cert.status === "PENDING" && (
+          {!isRevoked && isExpired && (
             <div className="badge badge-warning" style={{ fontSize: "12px", padding: "6px 14px" }}>
+              <Calendar size={15} />
+              HẾT HẠN HIỆU LỰC 2 NĂM (EXPIRED)
+            </div>
+          )}
+          {cert.status === "PENDING" && (
+            <div className="badge badge-info" style={{ fontSize: "12px", padding: "6px 14px" }}>
               ĐANG CHỜ KÝ (PENDING DRAFT)
             </div>
           )}

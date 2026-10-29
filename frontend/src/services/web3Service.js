@@ -68,8 +68,18 @@ export const getCertificateByCode = async (code) => {
 export const issueCertificateOnChain = async (certData) => {
   initStorage();
   
-  // Tạo mã Hash giả lập chuẩn Ethereum 66 ký tự
-  const fakeTxHash = "0x" + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join("");
+  // Tính toán mã băm Keccak256 chuẩn mật mã Ethereum dựa trên nội dung chứng chỉ (Document Merkle Root)
+  const canonicalData = JSON.stringify({
+    code: certData.certificate_code,
+    name: certData.student_name,
+    studentCode: certData.student_code,
+    score: certData.score,
+    date: certData.issue_date
+  });
+  const dataCommitmentHash = ethers.keccak256(ethers.toUtf8Bytes(canonicalData));
+
+  // Giả lập giao dịch on-chain thành công
+  const txHash = ethers.keccak256(ethers.toUtf8Bytes(canonicalData + Date.now().toString()));
   const fakeCid = "Qm" + Array.from({length: 44}, () => "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random()*62)]).join("");
   const newId = Date.now();
   const tokenId = (1000 + Math.floor(Math.random() * 9000)).toString();
@@ -77,6 +87,7 @@ export const issueCertificateOnChain = async (certData) => {
   const newCertificate = {
     id: newId,
     certificate_code: certData.certificate_code || `CERT-ENG-${newId.toString().slice(-4)}`,
+    data_hash: dataCommitmentHash, // Mã băm toàn vẹn dữ liệu chuẩn OpenCerts/Blockcerts
     student_name: certData.student_name,
     student_code: certData.student_code,
     email: certData.email,
@@ -92,7 +103,7 @@ export const issueCertificateOnChain = async (certData) => {
     status: "ISSUED_ON_CHAIN",
     wallet_address: certData.wallet_address || "0x0000000000000000000000000000000000000000",
     token_id: tokenId,
-    tx_hash: fakeTxHash,
+    tx_hash: txHash,
     ipfs_hash: fakeCid,
     pdf_url: "#",
     revoked_reason: null,

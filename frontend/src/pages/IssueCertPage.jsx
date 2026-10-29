@@ -28,6 +28,49 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   const [loading, setLoading] = useState(false);
   const [successCert, setSuccessCert] = useState(null);
 
+  // Quy chuẩn làm tròn điểm IELTS quốc tế (British Council / IDP / Cambridge)
+  const calculateIeltsOverall = (l, r, w, s) => {
+    const nums = [parseFloat(l), parseFloat(r), parseFloat(w), parseFloat(s)];
+    if (nums.some(isNaN)) return formData.score;
+    const avg = nums.reduce((a, b) => a + b, 0) / 4;
+    const dec = avg - Math.floor(avg);
+    let rounded;
+    if (dec < 0.25) rounded = Math.floor(avg);
+    else if (dec < 0.75) rounded = Math.floor(avg) + 0.5;
+    else rounded = Math.floor(avg) + 1.0;
+    return `${rounded.toFixed(1)} Overall`;
+  };
+
+  const handleSubScoreChange = (field, val) => {
+    const updated = { ...formData, [field]: val };
+    if (formData.course_code.includes("IELTS")) {
+      const overall = calculateIeltsOverall(
+        field === "listening" ? val : formData.listening,
+        field === "reading" ? val : formData.reading,
+        field === "writing" ? val : formData.writing,
+        field === "speaking" ? val : formData.speaking
+      );
+      updated.score = overall;
+    } else if (formData.course_code.includes("TOEIC")) {
+      const l = parseInt(field === "listening" ? val : formData.listening) || 0;
+      const r = parseInt(field === "reading" ? val : formData.reading) || 0;
+      updated.score = `${l + r}/990`;
+    }
+    setFormData(updated);
+  };
+
+  const handleDateChange = (issueDate) => {
+    const d = new Date(issueDate);
+    if (!isNaN(d.getTime())) {
+      d.setFullYear(d.getFullYear() + 2); // Chuẩn hiệu lực 2 năm quốc tế
+      setFormData({
+        ...formData,
+        issue_date: issueDate,
+        expiry_date: d.toISOString().slice(0, 10)
+      });
+    }
+  };
+
   const handleStudentSelect = (e) => {
     const studentId = Number(e.target.value);
     const found = INITIAL_STUDENTS.find(s => s.id === studentId);
@@ -182,14 +225,14 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 />
               </div>
 
-              {/* Sub-scores 4 skills */}
+              {/* Sub-scores 4 skills with auto-calculated overall */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "20px" }}>
                 <div>
                   <label style={{ fontSize: "11px", color: "var(--text-muted)" }}>Listening</label>
                   <input
                     type="text"
                     value={formData.listening}
-                    onChange={(e) => setFormData({ ...formData, listening: e.target.value })}
+                    onChange={(e) => handleSubScoreChange("listening", e.target.value)}
                     className="form-input"
                     style={{ padding: "8px" }}
                   />
@@ -199,7 +242,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   <input
                     type="text"
                     value={formData.reading}
-                    onChange={(e) => setFormData({ ...formData, reading: e.target.value })}
+                    onChange={(e) => handleSubScoreChange("reading", e.target.value)}
                     className="form-input"
                     style={{ padding: "8px" }}
                   />
@@ -209,7 +252,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   <input
                     type="text"
                     value={formData.writing}
-                    onChange={(e) => setFormData({ ...formData, writing: e.target.value })}
+                    onChange={(e) => handleSubScoreChange("writing", e.target.value)}
                     className="form-input"
                     style={{ padding: "8px" }}
                   />
@@ -219,9 +262,32 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   <input
                     type="text"
                     value={formData.speaking}
-                    onChange={(e) => setFormData({ ...formData, speaking: e.target.value })}
+                    onChange={(e) => handleSubScoreChange("speaking", e.target.value)}
                     className="form-input"
                     style={{ padding: "8px" }}
+                  />
+                </div>
+              </div>
+
+              {/* Date pickers with 2-year auto validity */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+                <div>
+                  <label className="form-label" style={{ fontSize: "12px" }}>Ngày thi / cấp bằng</label>
+                  <input
+                    type="date"
+                    value={formData.issue_date}
+                    onChange={(e) => handleDateChange(e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontSize: "12px" }}>Hạn hiệu lực (Chuẩn 2 năm)</label>
+                  <input
+                    type="date"
+                    readOnly
+                    value={formData.expiry_date}
+                    className="form-input"
+                    style={{ opacity: 0.8, background: "rgba(0,0,0,0.3)" }}
                   />
                 </div>
               </div>

@@ -18,14 +18,15 @@ Thư mục chứa:
 - `role`: ENUM('ADMIN', 'STAFF', 'STUDENT') DEFAULT 'STUDENT'
 - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
-### 2. Bảng `students` (Hồ sơ học viên)
+### 2. Bảng `students` (Hồ sơ học viên - Holder)
 - `id`: INT AUTO_INCREMENT PRIMARY KEY
 - `student_code`: VARCHAR(20) UNIQUE NOT NULL (Mã học viên)
+- `citizen_id`: VARCHAR(20) UNIQUE NOT NULL (Số CCCD để tra cứu)
 - `full_name`: VARCHAR(100) NOT NULL
 - `email`: VARCHAR(100) UNIQUE NOT NULL
 - `date_of_birth`: DATE NOT NULL
 - `phone`: VARCHAR(15)
-- `wallet_address`: VARCHAR(42) (Địa chỉ ví MetaMask của học viên nếu có)
+- `wallet_address`: VARCHAR(42) (Địa chỉ ví MetaMask của học viên nhận SBT)
 
 ### 3. Bảng `courses` (Khóa học / Kỳ thi tiếng Anh)
 - `id`: INT AUTO_INCREMENT PRIMARY KEY

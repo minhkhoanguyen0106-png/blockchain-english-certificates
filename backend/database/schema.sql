@@ -18,16 +18,18 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- 2. Bảng students: Thông tin học viên
+-- 2. Bảng students: Thông tin học viên (Holder)
 CREATE TABLE IF NOT EXISTS students (
     id INT AUTO_INCREMENT PRIMARY KEY,
     student_code VARCHAR(20) NOT NULL UNIQUE,
+    citizen_id VARCHAR(20) NOT NULL UNIQUE COMMENT 'Số CCCD để tra cứu chứng chỉ',
     full_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     date_of_birth DATE NOT NULL,
     phone VARCHAR(15),
-    wallet_address VARCHAR(42) DEFAULT NULL COMMENT 'Địa chỉ ví MetaMask của học viên',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    wallet_address VARCHAR(42) DEFAULT NULL COMMENT 'Địa chỉ ví MetaMask của học viên nhận SBT',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_citizen_email (citizen_id, email)
 );
 
 -- 3. Bảng courses: Khóa học / Kỳ thi (IELTS, TOEIC, TOEFL, VSTEP)

@@ -74,7 +74,8 @@ export async function downloadCertificatePdf(req, res) {
     const filePath = path.join(__dirname, '../../uploads/certificates', `${cert.certificate_code}.pdf`);
 
     // Tự động sinh PDF nếu file chưa có trên server
-    if (!fs.existsSync(filePath)) {
+    // Tu dong sinh PDF neu chua co hoac neu file cu chua co font Unicode
+    if (!fs.existsSync(filePath) || fs.statSync(filePath).size < 10000) {
       await generateCertificatePdf(cert);
     }
 

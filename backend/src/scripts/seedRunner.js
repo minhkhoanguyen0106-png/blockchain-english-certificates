@@ -35,7 +35,7 @@ async function runSeed() {
 
     console.log('3️⃣ Đang sinh file PDF chứng chỉ mẫu có nhúng QR Code thực tế...');
     const [rows] = await connection.query(`
-      SELECT c.*, s.student_code, s.full_name AS student_name, co.course_code, co.course_name
+      SELECT c.*, s.student_code, s.full_name AS student_name, s.citizen_id, co.course_code, co.course_name
       FROM english_cert_blockchain.certificates c
       JOIN english_cert_blockchain.students s ON c.student_id = s.id
       JOIN english_cert_blockchain.courses co ON c.course_id = co.id

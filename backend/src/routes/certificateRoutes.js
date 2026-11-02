@@ -15,12 +15,15 @@ const router = Router();
 
 // ==========================================
 // PUBLIC ROUTES (PAGE-002 & PAGE-003)
+// Hỗ trợ cả 2 định dạng: /public/verify/:code và /verify/:code
 // ==========================================
 // Tra cứu theo mã bằng hoặc CCCD hoặc Token ID (F02-01, F02-02, F03-04)
 router.get('/public/verify/:code', publicVerifyCertificate);
+router.get('/verify/:code', publicVerifyCertificate);
 
-// Tải phôi PDF công khai (F02-06)
+// Tải / xem phôi PDF công khai (F02-06)
 router.get('/public/pdf/:code', downloadCertificatePdf);
+router.get('/pdf/:code', downloadCertificatePdf);
 
 // ==========================================
 // ADMIN & STAFF ROUTES (PAGE-006 & PAGE-007)

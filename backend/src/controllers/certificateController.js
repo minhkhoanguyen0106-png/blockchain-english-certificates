@@ -53,15 +53,18 @@ export async function publicVerifyCertificate(req, res) {
   }
 }
 
-// F02-06: Tải hoặc xem phôi file PDF chứng chỉ
+// F02-06: Tải hoặc xem phôi file PDF chứng chỉ (Hỗ trợ xem trực tiếp trên tab trình duyệt)
 export async function downloadCertificatePdf(req, res) {
   try {
     const { code } = req.params;
 
-    const [rows] = await pool.query(
-      'SELECT certificate_code, pdf_url FROM certificates WHERE certificate_code = ?',
-      [code]
-    );
+    const [rows] = await pool.query(`
+      SELECT c.*, s.student_code, s.full_name AS student_name, s.citizen_id, co.course_code, co.course_name
+      FROM certificates c
+      JOIN students s ON c.student_id = s.id
+      JOIN courses co ON c.course_id = co.id
+      WHERE c.certificate_code = ? OR c.token_id = ?
+    `, [code, code]);
 
     if (rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Chứng chỉ không tồn tại.' });
@@ -70,12 +73,20 @@ export async function downloadCertificatePdf(req, res) {
     const cert = rows[0];
     const filePath = path.join(__dirname, '../../uploads/certificates', `${cert.certificate_code}.pdf`);
 
+    // Tự động sinh PDF nếu file chưa có trên server
+    if (!fs.existsSync(filePath)) {
+      await generateCertificatePdf(cert);
+    }
+
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ success: false, message: 'File PDF chứng chỉ chưa được khởi tạo trên server.' });
     }
 
-    return res.download(filePath, `${cert.certificate_code}.pdf`);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${cert.certificate_code}.pdf"`);
+    return res.sendFile(filePath);
   } catch (error) {
+    console.error('Lỗi downloadCertificatePdf:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 }

@@ -141,14 +141,16 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         return;
       }
 
-      // ADMIN: Đúc On-Chain với MetaMask & Lưu MySQL
+      // ADMIN: Đúc On-Chain với MetaMask & Lưu MySQL (Tự động kết nối ví thật hoặc kích hoạt ví demo)
       let activeWallet = wallet;
-      if (!activeWallet && isMetaMaskInstalled()) {
+      if (!activeWallet) {
         try {
           activeWallet = await connectMetaMask();
-          setWallet(activeWallet);
-        } catch {
-          // tiếp tục nếu không kết nối được
+          if (activeWallet && setWallet) {
+            setWallet(activeWallet);
+          }
+        } catch (walletErr) {
+          console.warn("Wallet connect fallback:", walletErr);
         }
       }
 

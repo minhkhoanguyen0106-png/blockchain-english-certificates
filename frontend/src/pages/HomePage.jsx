@@ -1,12 +1,26 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ShieldCheck, Search, QrCode, Lock, Globe, Award, ArrowRight, CheckCircle2, Sparkles, Layers } from "lucide-react";
 import { getAllCertificates } from "../services/web3Service";
+import { dashboardApi } from "../services/apiService";
 
 export default function HomePage() {
-  const certs = getAllCertificates();
-  const totalCerts = certs.length;
-  const issuedCerts = certs.filter(c => c.status === "ISSUED_ON_CHAIN").length;
+  const [certs] = useState(() => getAllCertificates());
+  const [overviewStats, setOverviewStats] = useState(null);
+
+  useEffect(() => {
+    dashboardApi.getOverviewStats()
+      .then(res => {
+        if (res.success && res.data) {
+          setOverviewStats(res.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const totalCerts = overviewStats ? overviewStats.totalCertificates : certs.length;
+  const issuedCerts = overviewStats ? overviewStats.totalOnchain : certs.filter(c => c.status === "ISSUED_ON_CHAIN").length;
+  const totalCourses = overviewStats ? `${overviewStats.totalCourses}+` : "4+";
 
   return (
     <div>
@@ -59,32 +73,26 @@ export default function HomePage() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", flexWrap: "wrap" }}>
             <Link to="/verify" className="btn btn-primary" style={{ padding: "14px 28px", fontSize: "16px" }}>
               <Search size={18} />
-              Tra Cứu Chứng Chỉ Ngay
+              Tra Cứu Bằng Ngay
             </Link>
+
             <Link to="/scanner" className="btn btn-outline" style={{ padding: "14px 28px", fontSize: "16px" }}>
               <QrCode size={18} />
-              Quét Mã QR Bằng Camera
+              Quét Mã QR Xác Thực
             </Link>
-          </div>
 
-          {/* Fast Trial Tags */}
-          <div style={{ marginTop: "24px", fontSize: "13px", color: "var(--text-muted)" }}>
-            Thử tra cứu nhanh mã mẫu:{" "}
-            <Link to="/verify?code=CERT-IELTS-2026-001" style={{ color: "var(--primary)", fontWeight: 600, textDecoration: "underline", margin: "0 6px" }}>
-              CERT-IELTS-2026-001 (Hợp lệ)
-            </Link>
-            {" • "}
-            <Link to="/verify?code=CERT-VSTEP-2026-012" style={{ color: "var(--danger-text)", fontWeight: 600, textDecoration: "underline", margin: "0 6px" }}>
-              CERT-VSTEP-2026-012 (Đã thu hồi)
+            <Link to="/login" className="btn btn-outline" style={{ padding: "14px 24px", fontSize: "15px" }}>
+              <Lock size={16} />
+              Cổng Quản Trị Trung Tâm
             </Link>
           </div>
 
         </div>
       </section>
 
-      {/* Stats Counter Section */}
-      <section style={{ padding: "20px 0 40px" }}>
-        <div className="container">
+      {/* Metrics Banner */}
+      <section style={{ padding: "20px 0 50px" }}>
+        <div className="container" style={{ maxWidth: "1000px" }}>
           <div style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
@@ -92,11 +100,11 @@ export default function HomePage() {
           }}>
             <div className="glass-panel" style={{ padding: "24px", textAlign: "center" }}>
               <div style={{ fontSize: "36px", fontWeight: 800, color: "var(--primary)" }}>{issuedCerts}</div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>Chứng chỉ On-Chain</div>
+              <div style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>Chứng chỉ On-Chain (MySQL)</div>
             </div>
             <div className="glass-panel" style={{ padding: "24px", textAlign: "center" }}>
-              <div style={{ fontSize: "36px", fontWeight: 800, color: "var(--accent-gold)" }}>4+</div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>Kỳ thi hỗ trợ (IELTS, TOEIC...)</div>
+              <div style={{ fontSize: "36px", fontWeight: 800, color: "var(--accent-gold)" }}>{totalCourses}</div>
+              <div style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>Kỳ thi hỗ trợ (IELTS, TOEIC, VSTEP)</div>
             </div>
             <div className="glass-panel" style={{ padding: "24px", textAlign: "center" }}>
               <div style={{ fontSize: "36px", fontWeight: 800, color: "var(--success-text)" }}>100%</div>
@@ -170,7 +178,7 @@ export default function HomePage() {
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px" }}>
             {[
-              { step: "01", title: "Khảo Thí & Nhập Điểm", desc: "Học viên hoàn thành bài thi IELTS/TOEIC, hội đồng khảo thí nhập kết quả vào hệ thống." },
+              { step: "01", title: "Khảo Thí & Nhập Điểm", desc: "Học viên hoàn thành bài thi IELTS/TOEIC, hội đồng khảo thí nhập kết quả vào hệ thống MySQL." },
               { step: "02", title: "Tự Động Sinh PDF & QR", desc: "Hệ thống tự động kết xuất phôi bằng PDF chuẩn in ấn có nhúng mã QR định danh độc bản." },
               { step: "03", title: "Ký & Đúc SBT On-Chain", desc: "Quản trị viên ký giao dịch qua MetaMask để ghi nhận chứng chỉ vĩnh viễn vào Blockchain & IPFS." },
               { step: "04", title: "Xác Thực Công Khai", desc: "Bất kỳ ai cũng có thể quét QR hoặc tra mã on-chain để kiểm tra tính hợp pháp 100%." }

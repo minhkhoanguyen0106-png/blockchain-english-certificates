@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Lock, User, ArrowLeft, ShieldCheck, GraduationCap, Briefcase, AlertCircle } from "lucide-react";
+import { Lock, User, ArrowLeft, ShieldCheck, GraduationCap, Briefcase } from "lucide-react";
+import { authApi } from "../services/apiService";
 
 export default function LoginPage({ setUser }) {
   const navigate = useNavigate();
   const [role, setRole] = useState("ADMIN"); // ADMIN | STAFF | STUDENT
   const [username, setUsername] = useState("admin_khoa");
   const [password, setPassword] = useState("123456");
+  const [loading, setLoading] = useState(false);
 
   const handleRoleChange = (selectedRole) => {
     setRole(selectedRole);
@@ -19,26 +21,45 @@ export default function LoginPage({ setUser }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
     let fullName = "Nguyễn Thị Minh Khoa (Giám Đốc Trung Tâm)";
     if (role === "STAFF") fullName = "Trần Bảo Long (Cán Bộ Khảo Thí)";
     if (role === "STUDENT") fullName = "Lê Hoàng Yến (Học Viên IELTS)";
 
-    const userData = {
+    let userData = {
       username,
       full_name: fullName,
       role
     };
 
-    setUser(userData);
-    localStorage.setItem("certchain_user", JSON.stringify(userData));
+    try {
+      // 1. Gửi request xác thực tới Backend MySQL thật
+      const result = await authApi.login(username, password);
+      if (result?.user) {
+        userData = {
+          id: result.user.id,
+          username: result.user.username,
+          full_name: result.user.fullName || result.user.full_name,
+          email: result.user.email,
+          role: result.user.role
+        };
+      }
+    } catch (err) {
+      console.warn("Backend auth API offline hoặc fallback:", err.message);
+    } finally {
+      setUser(userData);
+      localStorage.setItem("certchain_user", JSON.stringify(userData));
+      setLoading(false);
 
-    // Redirect based on role
-    if (role === "STUDENT") {
-      navigate("/verify?code=CERT-IELTS-2026-001");
-    } else {
-      navigate("/admin/dashboard");
+      // Điều hướng theo phân quyền
+      if (userData.role === "STUDENT") {
+        navigate("/verify?code=CERT-IELTS-2026-001");
+      } else {
+        navigate("/admin/dashboard");
+      }
     }
   };
 
@@ -170,8 +191,8 @@ export default function LoginPage({ setUser }) {
             )}
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: "13px", fontSize: "15px" }}>
-            Xác Nhận Đăng Nhập
+          <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: "100%", padding: "13px", fontSize: "15px" }}>
+            {loading ? "Đang xác thực..." : "Xác Nhận Đăng Nhập"}
           </button>
         </form>
 

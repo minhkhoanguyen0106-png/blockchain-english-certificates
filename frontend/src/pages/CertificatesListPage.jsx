@@ -1,21 +1,61 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ListFilter, Search, ShieldAlert, ExternalLink, Eye, AlertOctagon, RefreshCw, Plus, Filter } from "lucide-react";
+import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download } from "lucide-react";
 import { getAllCertificates, revokeCertificateOnChain, shortenAddress } from "../services/web3Service";
+import { certificateApi } from "../services/apiService";
 
 export default function CertificatesListPage({ wallet, user }) {
   const [searchParams] = useSearchParams();
   const initialStatus = searchParams.get("status") || "ALL";
 
-  const [certs, setCerts] = useState(getAllCertificates());
+  const [certs, setCerts] = useState(() => getAllCertificates());
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [courseFilter, setCourseFilter] = useState("ALL");
+  const [loading, setLoading] = useState(true);
 
   // Revoke Modal state
   const [revokeTarget, setRevokeTarget] = useState(null);
   const [revokeReason, setRevokeReason] = useState("");
   const [revoking, setRevoking] = useState(false);
+
+  const loadCerts = async () => {
+    setLoading(true);
+    try {
+      const res = await certificateApi.getCertificates({
+        limit: 100,
+        status: statusFilter,
+        search: searchTerm
+      });
+      if (res.success && Array.isArray(res.data)) {
+        const mapped = res.data.map(d => ({
+          id: d.id,
+          certificate_code: d.certificate_code,
+          student_name: d.student_name,
+          student_code: d.student_code,
+          course_name: d.course_name,
+          course_code: d.course_code,
+          score: d.score_overall,
+          issue_date: d.issue_date ? d.issue_date.slice(0, 10) : "",
+          status: d.status,
+          token_id: d.token_id,
+          tx_hash: d.tx_hash,
+          pdf_url: `http://localhost:5000/api/public/pdf/${d.certificate_code}`
+        }));
+        setCerts(mapped);
+        return;
+      }
+    } catch {
+      // offline fallback sang LocalStorage
+    } finally {
+      setLoading(false);
+    }
+    setCerts(getAllCertificates());
+  };
+
+  useEffect(() => {
+    loadCerts();
+  }, [statusFilter]);
 
   const filteredCerts = certs.filter(c => {
     const matchSearch =
@@ -40,12 +80,17 @@ export default function CertificatesListPage({ wallet, user }) {
 
     setRevoking(true);
     try {
-      await new Promise(r => setTimeout(r, 900));
-      await revokeCertificateOnChain(revokeTarget.certificate_code, revokeReason);
-      setCerts(getAllCertificates());
+      await revokeCertificateOnChain(
+        revokeTarget.certificate_code,
+        revokeReason,
+        revokeTarget.id,
+        revokeTarget.token_id,
+        wallet
+      );
+      await loadCerts();
       setRevokeTarget(null);
       setRevokeReason("");
-      alert("Đã ghi nhận thu hồi chứng chỉ thành công trên Smart Contract!");
+      alert(`Đã ghi nhận thu hồi thành công chứng chỉ [${revokeTarget.certificate_code}] trên Smart Contract và MySQL!`);
     } catch (err) {
       alert("Lỗi khi thu hồi: " + (err.message || err));
     } finally {
@@ -74,7 +119,7 @@ export default function CertificatesListPage({ wallet, user }) {
 
       {/* Filter and Search Bar */}
       <div className="glass-panel" style={{ padding: "16px 20px", marginBottom: "24px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "12px", alignItems: "center" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto auto", gap: "12px", alignItems: "center" }}>
           
           <div style={{ position: "relative" }}>
             <input
@@ -82,6 +127,7 @@ export default function CertificatesListPage({ wallet, user }) {
               placeholder="Tìm theo mã bằng, tên học viên, mã học viên..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') loadCerts(); }}
               className="form-input"
               style={{ paddingLeft: "38px" }}
             />
@@ -100,7 +146,12 @@ export default function CertificatesListPage({ wallet, user }) {
             <option value="IELTS-ACAD">IELTS Academic</option>
             <option value="TOEIC-INT">TOEIC 4 Kỹ Năng</option>
             <option value="VSTEP-C1">VSTEP B2-C1</option>
+            <option value="CAMBRIDGE-CAE">Cambridge CAE</option>
           </select>
+
+          <button type="button" onClick={loadCerts} className="btn btn-outline" title="Làm mới dữ liệu từ CSDL">
+            <RefreshCw size={15} />
+          </button>
 
         </div>
       </div>
@@ -175,6 +226,16 @@ export default function CertificatesListPage({ wallet, user }) {
                           Xem
                         </Link>
 
+                        <button
+                          type="button"
+                          onClick={() => window.open(`http://localhost:5000/api/public/pdf/${c.certificate_code}`, "_blank")}
+                          className="btn btn-outline"
+                          style={{ padding: "6px 10px", fontSize: "12px" }}
+                          title="Tải phôi bằng PDF có mã QR thật"
+                        >
+                          <Download size={14} />
+                        </button>
+
                         {c.status === "ISSUED_ON_CHAIN" && (
                           user?.role === "ADMIN" ? (
                             <button
@@ -237,7 +298,7 @@ export default function CertificatesListPage({ wallet, user }) {
             </div>
 
             <p style={{ color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.5, marginBottom: "16px" }}>
-              Hành động này sẽ thực thi giao dịch gọi hàm <code>revokeCertificate()</code> trên Smart Contract và chuyển trạng thái của bằng <strong>{revokeTarget.certificate_code}</strong> ({revokeTarget.student_name}) sang <strong>REVOKED</strong> vĩnh viễn trên sổ cái Blockchain.
+              Hành động này sẽ thực thi giao dịch gọi hàm <code>revokeCertificate()</code> trên Smart Contract và chuyển trạng thái của bằng <strong>{revokeTarget.certificate_code}</strong> ({revokeTarget.student_name}) sang <strong>REVOKED</strong> vĩnh viễn trên sổ cái Blockchain và MySQL.
             </p>
 
             <div className="form-group">

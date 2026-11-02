@@ -1,13 +1,62 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Award, FilePlus, ListFilter, Users, CheckCircle2, XCircle, Clock, ShieldAlert, ArrowUpRight, Wallet, Sparkles, Layers } from "lucide-react";
 import { getAllCertificates, shortenAddress, connectMetaMask } from "../services/web3Service";
+import { dashboardApi, certificateApi } from "../services/apiService";
 
 export default function DashboardPage({ wallet, setWallet, user }) {
-  const certs = getAllCertificates();
-  const issuedCount = certs.filter(c => c.status === "ISSUED_ON_CHAIN").length;
-  const revokedCount = certs.filter(c => c.status === "REVOKED").length;
-  const pendingCount = certs.filter(c => c.status === "PENDING").length;
+  const [certs, setCerts] = useState(() => getAllCertificates());
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDashboardData() {
+      try {
+        const [statsRes, certsRes] = await Promise.allSettled([
+          dashboardApi.getDashboardStats(),
+          certificateApi.getCertificates({ limit: 6 })
+        ]);
+
+        if (!isMounted) return;
+
+        if (statsRes.status === "fulfilled" && statsRes.value?.success) {
+          setStats(statsRes.value.data);
+        }
+
+        if (certsRes.status === "fulfilled" && certsRes.value?.success && Array.isArray(certsRes.value.data)) {
+          const mapped = certsRes.value.data.map(d => ({
+            id: d.id,
+            certificate_code: d.certificate_code,
+            student_name: d.student_name,
+            student_code: d.student_code,
+            course_name: d.course_name,
+            course_code: d.course_code,
+            score: d.score_overall,
+            issue_date: d.issue_date ? d.issue_date.slice(0, 10) : "",
+            status: d.status
+          }));
+          setCerts(mapped);
+        }
+      } catch (err) {
+        console.warn("Backend dashboard offline fallback:", err.message);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    loadDashboardData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const totalCount = stats ? stats.totalCertificates : certs.length;
+  const issuedCount = stats ? Number(stats.issuedCount) : certs.filter(c => c.status === "ISSUED_ON_CHAIN").length;
+  const revokedCount = stats ? Number(stats.revokedCount) : certs.filter(c => c.status === "REVOKED").length;
+  const pendingCount = stats ? Number(stats.pendingCount) : certs.filter(c => c.status === "PENDING").length;
 
   return (
     <div>
@@ -50,59 +99,62 @@ export default function DashboardPage({ wallet, setWallet, user }) {
         alignItems: "center",
         flexWrap: "wrap",
         gap: "16px",
-        borderLeft: wallet ? "4px solid var(--success-color)" : "4px solid var(--warning-color)"
+        borderColor: wallet ? "rgba(16, 185, 129, 0.3)" : "rgba(245, 158, 11, 0.3)"
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
           <div style={{
-            width: "42px",
-            height: "42px",
-            borderRadius: "10px",
             background: wallet ? "var(--success-bg)" : "var(--warning-bg)",
+            borderRadius: "50%",
+            padding: "10px",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
+            color: wallet ? "var(--success-text)" : "var(--warning-text)"
           }}>
-            <Wallet size={20} color={wallet ? "var(--success-text)" : "var(--warning-text)"} />
+            <Wallet size={20} />
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>
-              {wallet ? "Ví Quản Trị On-Chain Đã Sẵn Sàng Ký Hợp Đồng" : "Chưa Kết Nối Ví MetaMask Của Quản Trị Viên"}
+              {wallet ? `Ví Quản Trị Đã Kết Nối: ${shortenAddress(wallet.address)}` : "Chưa Kết Nối Ví MetaMask (Admin Signer)"}
             </div>
-            <div style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "2px" }}>
-              {wallet
-                ? `Địa chỉ ví: ${wallet.address} • Số dư: ${wallet.balance} ETH (Chain ID: ${wallet.chainId})`
-                : "Cần kết nối ví để ký phát hành Soulbound Token (SBT) hoặc thực thi thu hồi chứng chỉ khi có vi phạm."}
+            <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "2px" }}>
+              {wallet ? `Mạng: Hardhat / Testnet (ChainID: ${wallet.chainId}) • Số dư: ${wallet.balance} ETH` : "Vui lòng kết nối ví để ký đúc Soulbound NFT hoặc thu hồi bằng on-chain."}
             </div>
           </div>
         </div>
 
-        {!wallet && (
+        {!wallet ? (
           <button
+            type="button"
             onClick={async () => {
-              const acc = await connectMetaMask();
-              setWallet(acc);
+              try {
+                const acc = await connectMetaMask();
+                setWallet(acc);
+              } catch (e) {
+                alert(e.message);
+              }
             }}
-            className="btn btn-gold"
-            style={{ fontSize: "13px", padding: "8px 16px" }}
+            className="btn btn-primary"
+            style={{ fontSize: "13px" }}
           >
-            Kết Nối MetaMask Ngay
+            <Sparkles size={15} /> Kết Nối Ví MetaMask
           </button>
+        ) : (
+          <span className="badge badge-success">Sẵn sàng ký on-chain</span>
         )}
       </div>
 
-      {/* 4 Stats Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "20px", marginBottom: "32px" }}>
+      {/* 4 Overview Metric Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "18px", marginBottom: "28px" }}>
         
         <Link to="/admin/certificates" className="glass-panel" style={{ padding: "22px", display: "block" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
             <span style={{ fontSize: "13px", color: "var(--text-secondary)", fontWeight: 600 }}>TỔNG CHỨNG CHỈ</span>
             <Award size={18} color="var(--primary)" />
           </div>
-          <div style={{ fontSize: "32px", fontWeight: 800, color: "var(--text-primary)" }}>{certs.length}</div>
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Toàn bộ hồ sơ trên hệ thống</div>
+          <div style={{ fontSize: "32px", fontWeight: 800, color: "var(--text-primary)" }}>{totalCount}</div>
+          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Toàn bộ hồ sơ trên hệ thống MySQL</div>
         </Link>
 
-        <Link to="/admin/certificates" className="glass-panel" style={{ padding: "22px", display: "block" }}>
+        <Link to="/admin/certificates?status=ISSUED_ON_CHAIN" className="glass-panel" style={{ padding: "22px", display: "block" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
             <span style={{ fontSize: "13px", color: "var(--success-text)", fontWeight: 600 }}>ĐÃ ĐÚC ON-CHAIN</span>
             <CheckCircle2 size={18} color="var(--success-color)" />
@@ -111,7 +163,7 @@ export default function DashboardPage({ wallet, setWallet, user }) {
           <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Hợp lệ vĩnh viễn trên sổ cái</div>
         </Link>
 
-        <Link to="/admin/certificates" className="glass-panel" style={{ padding: "22px", display: "block" }}>
+        <Link to="/admin/certificates?status=REVOKED" className="glass-panel" style={{ padding: "22px", display: "block" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
             <span style={{ fontSize: "13px", color: "var(--danger-text)", fontWeight: 600 }}>ĐÃ THU HỒI (REVOKED)</span>
             <XCircle size={18} color="var(--danger-color)" />
@@ -120,7 +172,7 @@ export default function DashboardPage({ wallet, setWallet, user }) {
           <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Ghi nhận hủy hiệu lực</div>
         </Link>
 
-        <Link to="/admin/certificates" className="glass-panel" style={{ padding: "22px", display: "block" }}>
+        <Link to="/admin/certificates?status=PENDING" className="glass-panel" style={{ padding: "22px", display: "block" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
             <span style={{ fontSize: "13px", color: "var(--warning-text)", fontWeight: 600 }}>BẢN NHÁP (DRAFT)</span>
             <Clock size={18} color="var(--warning-color)" />
@@ -136,7 +188,7 @@ export default function DashboardPage({ wallet, setWallet, user }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
           <div>
             <h3 style={{ fontSize: "17px", fontWeight: 700, color: "var(--text-primary)" }}>Chứng Chỉ Gần Đây</h3>
-            <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>Các hồ sơ cấp bằng hoặc dự thảo vừa được khởi tạo</p>
+            <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>Các hồ sơ cấp bằng hoặc dự thảo vừa được khởi tạo từ MySQL</p>
           </div>
           <Link to="/admin/certificates" style={{ color: "var(--primary)", fontSize: "13px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px" }}>
             Xem toàn bộ danh sách <ArrowUpRight size={15} />

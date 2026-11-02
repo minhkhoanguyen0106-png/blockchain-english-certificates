@@ -179,11 +179,21 @@ export async function getCertificateById(req, res) {
 // F06-04: Lưu bản nháp (Draft) chứng chỉ
 export async function createDraftCertificate(req, res) {
   try {
-    const {
-      student_id, course_id, certificate_code,
+    let {
+      student_id, course_id, student_code, course_code, certificate_code,
       score_overall, score_listening, score_reading, score_writing, score_speaking,
       issue_date, expiry_date
     } = req.body;
+
+    if (!student_id && student_code) {
+      const [[foundStudent]] = await pool.query('SELECT id FROM students WHERE student_code = ?', [student_code]);
+      if (foundStudent) student_id = foundStudent.id;
+    }
+
+    if (!course_id && course_code) {
+      const [[foundCourse]] = await pool.query('SELECT id FROM courses WHERE course_code = ?', [course_code]);
+      if (foundCourse) course_id = foundCourse.id;
+    }
 
     if (!student_id || !course_id || !certificate_code || !score_overall || !issue_date) {
       return res.status(400).json({

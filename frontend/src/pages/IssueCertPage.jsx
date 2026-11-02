@@ -1,12 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Award, FileCheck, Sparkles, Wallet, CheckCircle2, RefreshCw, Eye } from "lucide-react";
+import { FileCheck, Sparkles, CheckCircle2, RefreshCw, Download, ExternalLink } from "lucide-react";
 import confetti from "canvas-confetti";
 import { issueCertificateOnChain, INITIAL_STUDENTS, INITIAL_COURSES, connectMetaMask } from "../services/web3Service";
+import { studentApi, courseApi } from "../services/apiService";
 import CertificateCard from "../components/CertificateCard";
 
 export default function IssueCertPage({ wallet, setWallet, user }) {
   const navigate = useNavigate();
+  const [studentsList, setStudentsList] = useState(INITIAL_STUDENTS);
+  const [coursesList, setCoursesList] = useState(INITIAL_COURSES);
+
   const [formData, setFormData] = useState({
     certificate_code: `CERT-IELTS-2026-${Math.floor(100 + Math.random() * 900)}`,
     student_name: "Phạm Quốc Hưng",
@@ -27,6 +31,27 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
   const [loading, setLoading] = useState(false);
   const [successCert, setSuccessCert] = useState(null);
+
+  // Load students and courses from MySQL
+  useEffect(() => {
+    async function loadOptions() {
+      try {
+        const [stuRes, crsRes] = await Promise.allSettled([
+          studentApi.getStudents(),
+          courseApi.getCourses()
+        ]);
+        if (stuRes.status === "fulfilled" && stuRes.value?.success && Array.isArray(stuRes.value.data) && stuRes.value.data.length > 0) {
+          setStudentsList(stuRes.value.data);
+        }
+        if (crsRes.status === "fulfilled" && crsRes.value?.success && Array.isArray(crsRes.value.data) && crsRes.value.data.length > 0) {
+          setCoursesList(crsRes.value.data);
+        }
+      } catch {
+        // fallback to initial
+      }
+    }
+    loadOptions();
+  }, []);
 
   // Quy chuẩn làm tròn điểm IELTS quốc tế (British Council / IDP / Cambridge)
   const calculateIeltsOverall = (l, r, w, s) => {
@@ -73,21 +98,21 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
   const handleStudentSelect = (e) => {
     const studentId = Number(e.target.value);
-    const found = INITIAL_STUDENTS.find(s => s.id === studentId);
+    const found = studentsList.find(s => s.id === studentId);
     if (found) {
       setFormData(prev => ({
         ...prev,
         student_name: found.full_name,
         student_code: found.student_code,
         email: found.email,
-        wallet_address: found.wallet_address
+        wallet_address: found.wallet_address || prev.wallet_address
       }));
     }
   };
 
   const handleCourseSelect = (e) => {
     const courseCode = e.target.value;
-    const found = INITIAL_COURSES.find(c => c.course_code === courseCode);
+    const found = coursesList.find(c => c.course_code === courseCode);
     if (found) {
       setFormData(prev => ({
         ...prev,
@@ -103,7 +128,6 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
     try {
       if (user?.role === "STAFF") {
-        await new Promise(r => setTimeout(r, 600));
         const draftCert = {
           ...formData,
           status: "PENDING",
@@ -111,20 +135,24 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
           tx_hash: null,
           ipfs_hash: null
         };
-        const saved = await issueCertificateOnChain(draftCert);
+        const saved = await issueCertificateOnChain(draftCert, wallet);
         alert(`Lưu bản nháp thành công cho học viên ${saved.student_name}! Trạng thái: PENDING (Chờ Quản trị viên ký đúc On-Chain).`);
         navigate("/admin/certificates");
         return;
       }
 
-      // ADMIN: Đúc On-Chain với MetaMask
-      if (!wallet) {
-        const acc = await connectMetaMask();
-        setWallet(acc);
+      // ADMIN: Đúc On-Chain với MetaMask & Lưu MySQL
+      let activeWallet = wallet;
+      if (!activeWallet && isMetaMaskInstalled()) {
+        try {
+          activeWallet = await connectMetaMask();
+          setWallet(activeWallet);
+        } catch {
+          // tiếp tục nếu không kết nối được
+        }
       }
 
-      await new Promise(r => setTimeout(r, 1100));
-      const newCert = await issueCertificateOnChain(formData);
+      const newCert = await issueCertificateOnChain(formData, activeWallet);
       setSuccessCert(newCert);
 
       confetti({
@@ -158,16 +186,16 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         <div className="glass-panel" style={{ padding: "26px" }}>
           <h3 style={{ fontSize: "17px", fontWeight: 700, marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px", color: "var(--text-primary)" }}>
             <FileCheck size={19} color="var(--primary)" />
-            Thông Tin Khảo Thí & Học Viên
+            Thông Tin Khảo Thí & Học Viên (MySQL & Blockchain)
           </h3>
 
           <form onSubmit={handleIssue}>
             
             <div className="form-group">
-              <label className="form-label">Chọn học viên mẫu (Hoặc tự nhập bên dưới)</label>
+              <label className="form-label">Chọn học viên từ CSDL</label>
               <select onChange={handleStudentSelect} className="form-select">
                 <option value="">-- Chọn học viên có sẵn --</option>
-                {INITIAL_STUDENTS.map(s => (
+                {studentsList.map(s => (
                   <option key={s.id} value={s.id}>{s.full_name} ({s.student_code})</option>
                 ))}
               </select>
@@ -199,7 +227,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
             <div className="form-group">
               <label className="form-label">Khóa học / Kỳ thi tiếng Anh</label>
               <select value={formData.course_code} onChange={handleCourseSelect} className="form-select">
-                {INITIAL_COURSES.map(c => (
+                {coursesList.map(c => (
                   <option key={c.course_code} value={c.course_code}>{c.course_name}</option>
                 ))}
               </select>
@@ -316,7 +344,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   className="btn btn-primary"
                   style={{ width: "100%", padding: "14px", fontSize: "15px" }}
                 >
-                  {loading ? "Đang lưu..." : "Lưu Bản Nháp (Chờ Admin Ký On-Chain)"}
+                  {loading ? "Đang lưu vào MySQL..." : "Lưu Bản Nháp (Chờ Admin Ký On-Chain)"}
                 </button>
               </div>
             ) : (
@@ -329,7 +357,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 {loading ? (
                   <>
                     <RefreshCw size={18} className="animate-spin" />
-                    Đang gửi transaction lên Blockchain...
+                    Đang đúc Smart Contract & Lưu MySQL...
                   </>
                 ) : (
                   <>
@@ -394,24 +422,32 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
               Đúc Chứng Chỉ On-Chain Thành Công!
             </h3>
             <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "20px" }}>
-              Chứng chỉ <strong>{successCert.certificate_code}</strong> đã được ghi vĩnh viễn vào Smart Contract với Token ID <strong>#{successCert.token_id}</strong>.
+              Chứng chỉ <strong>{successCert.certificate_code}</strong> đã được ghi vĩnh viễn vào Smart Contract và cơ sở dữ liệu MySQL.
             </p>
 
             <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", padding: "14px", borderRadius: "var(--radius-md)", fontSize: "12px", textAlign: "left", marginBottom: "24px" }}>
               <div><strong>Tx Hash:</strong> <span style={{ color: "var(--primary)" }}>{successCert.tx_hash}</span></div>
+              <div style={{ marginTop: "4px" }}><strong>Token ID:</strong> <span style={{ color: "var(--accent-gold)" }}>#{successCert.token_id}</span></div>
               <div style={{ marginTop: "4px" }}><strong>IPFS CID:</strong> <span style={{ color: "var(--accent-gold)" }}>{successCert.ipfs_hash}</span></div>
             </div>
 
-            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
               <Link to={`/verify?code=${successCert.certificate_code}`} className="btn btn-primary">
                 Xem Cổng Thẩm Định
               </Link>
               <button
                 type="button"
+                onClick={() => window.open(`http://localhost:5000/api/public/pdf/${successCert.certificate_code}`, "_blank")}
+                className="btn btn-gold"
+              >
+                <Download size={15} /> Tải PDF Thật
+              </button>
+              <button
+                type="button"
                 onClick={() => { setSuccessCert(null); navigate("/admin/certificates"); }}
                 className="btn btn-outline"
               >
-                Về Danh Sách Bằng
+                Về Danh Sách
               </button>
             </div>
           </div>

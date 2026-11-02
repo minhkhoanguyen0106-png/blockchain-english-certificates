@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FileCheck, Sparkles, CheckCircle2, RefreshCw, Download, ExternalLink } from "lucide-react";
 import confetti from "canvas-confetti";
-import { issueCertificateOnChain, INITIAL_STUDENTS, INITIAL_COURSES, connectMetaMask } from "../services/web3Service";
+import { issueCertificateOnChain, INITIAL_STUDENTS, INITIAL_COURSES, connectMetaMask, isMetaMaskInstalled } from "../services/web3Service";
 import { studentApi, courseApi } from "../services/apiService";
 import CertificateCard from "../components/CertificateCard";
 

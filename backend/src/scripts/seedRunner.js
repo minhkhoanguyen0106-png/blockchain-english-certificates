@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { generateCertificatePdf } from '../services/pdfService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,7 +33,22 @@ async function runSeed() {
     await connection.query(seedSql);
     console.log('   ✅ Đã nạp dữ liệu mẫu thành công!');
 
-    console.log('🎉 Hoàn tất! Bạn có thể khởi động backend bằng lệnh: npm run dev');
+    console.log('3️⃣ Đang sinh file PDF chứng chỉ mẫu có nhúng QR Code thực tế...');
+    const [rows] = await connection.query(`
+      SELECT c.*, s.student_code, s.full_name AS student_name, co.course_code, co.course_name
+      FROM english_cert_blockchain.certificates c
+      JOIN english_cert_blockchain.students s ON c.student_id = s.id
+      JOIN english_cert_blockchain.courses co ON c.course_id = co.id
+      WHERE c.status != 'PENDING'
+    `);
+
+    for (const cert of rows) {
+      await generateCertificatePdf(cert);
+      console.log(`   📄 Đã tạo file PDF cho chứng chỉ: ${cert.certificate_code}`);
+    }
+
+    console.log('🎉 Hoàn tất toàn bộ CSDL và file chứng chỉ PDF!');
+    console.log('👉 Bạn có thể khởi động backend bằng lệnh: npm run dev');
   } catch (error) {
     console.error('❌ Lỗi khi chạy seed:', error.message);
   } finally {

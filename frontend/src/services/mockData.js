@@ -21,7 +21,7 @@ export const INITIAL_CERTIFICATES = [
     token_id: "1001",
     tx_hash: "0x3a9f8b72c91823ef4512c890123456789abcdef0123456789abcdef012345678",
     ipfs_hash: "QmZtmD2qt8fJv32FNbdZUEbx4epPrq7iCPcNo1XauQBhMx",
-    pdf_url: "#",
+    pdf_url: "http://localhost:5000/api/public/pdf/CERT-IELTS-2026-001",
     revoked_reason: null,
     revoked_at: null
   },
@@ -45,7 +45,7 @@ export const INITIAL_CERTIFICATES = [
     token_id: "1002",
     tx_hash: "0x89ab12cd34ef5678901234567890abcdef1234567890abcdef1234567890abcd",
     ipfs_hash: "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco",
-    pdf_url: "#",
+    pdf_url: "http://localhost:5000/api/public/pdf/CERT-TOEIC-2026-088",
     revoked_reason: null,
     revoked_at: null
   },
@@ -69,7 +69,7 @@ export const INITIAL_CERTIFICATES = [
     token_id: "1003",
     tx_hash: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
     ipfs_hash: "QmPZ9gcCEpqKTo6aq61g2nXGUhM49wbdukVaTe7nTMZao7",
-    pdf_url: "#",
+    pdf_url: "http://localhost:5000/api/public/pdf/CERT-VSTEP-2026-012",
     revoked_reason: "Phát hiện gian lận mang thiết bị thu phát sóng trong phòng thi ngày 10/08",
     revoked_at: "2026-08-12"
   }

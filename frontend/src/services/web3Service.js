@@ -2,7 +2,6 @@ import { ethers } from "ethers";
 import { INITIAL_CERTIFICATES, INITIAL_STUDENTS, INITIAL_COURSES } from "./mockData";
 
 const STORAGE_KEY_CERTS = "certchain_certificates";
-const STORAGE_KEY_LOGS = "certchain_logs";
 
 // Khởi tạo LocalStorage nếu chưa có
 export const initStorage = () => {
@@ -47,19 +46,92 @@ export const shortenAddress = (addr) => {
   return `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}`;
 };
 
-// 4. Lấy toàn bộ danh sách chứng chỉ
+// 4. Lấy toàn bộ danh sách chứng chỉ (Đọc từ cache LocalStorage hoặc MockData)
 export const getAllCertificates = () => {
   initStorage();
   const raw = localStorage.getItem(STORAGE_KEY_CERTS);
   return raw ? JSON.parse(raw) : INITIAL_CERTIFICATES;
 };
 
-// 5. Tra cứu chứng chỉ theo mã (On-chain / Local)
+// 4b. Đồng bộ danh sách từ CSDL MySQL Backend thật (nếu server đang chạy)
+export const syncCertificatesFromBackend = async () => {
+  try {
+    const res = await fetch("http://localhost:5000/api/certificates?limit=100");
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        const mapped = json.data.map(d => ({
+          id: d.id,
+          certificate_code: d.certificate_code,
+          student_name: d.student_name,
+          student_code: d.student_code,
+          course_name: d.course_name,
+          course_code: d.course_code,
+          score: d.score_overall,
+          issue_date: d.issue_date ? d.issue_date.slice(0, 10) : "",
+          expiry_date: d.expiry_date ? d.expiry_date.slice(0, 10) : null,
+          status: d.status,
+          token_id: d.token_id,
+          tx_hash: d.tx_hash,
+          pdf_url: `http://localhost:5000/api/public/pdf/${d.certificate_code}`
+        }));
+        localStorage.setItem(STORAGE_KEY_CERTS, JSON.stringify(mapped));
+        return mapped;
+      }
+    }
+  } catch {
+    // Backend chưa chạy, tiếp tục dùng cache
+  }
+  return getAllCertificates();
+};
+
+// 5. Tra cứu chứng chỉ theo mã (Ưu tiên Database thật -> fallback LocalStorage)
 export const getCertificateByCode = async (code) => {
+  if (!code) return null;
+  const cleanCode = code.trim().toUpperCase();
+
+  // Thử tra cứu từ CSDL thật qua API backend
+  try {
+    const res = await fetch(`http://localhost:5000/api/public/verify/${encodeURIComponent(cleanCode)}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && json.data) {
+        const d = json.data;
+        return {
+          id: d.id,
+          certificate_code: d.certificate_code,
+          student_name: d.student_name,
+          student_code: d.student_code,
+          email: d.student_email || d.email || "",
+          citizen_id: d.citizen_id,
+          course_name: d.course_name,
+          course_code: d.course_code,
+          score: d.score_overall,
+          listening: d.score_listening || "-",
+          reading: d.score_reading || "-",
+          writing: d.score_writing || "-",
+          speaking: d.score_speaking || "-",
+          issue_date: d.issue_date ? d.issue_date.slice(0, 10) : "",
+          expiry_date: d.expiry_date ? d.expiry_date.slice(0, 10) : null,
+          status: d.status,
+          wallet_address: d.student_wallet || "0x71C...4e8B",
+          token_id: d.token_id,
+          tx_hash: d.tx_hash,
+          ipfs_hash: d.ipfs_hash || "QmZtmD2qt8fJv32FNbdZUEbx4epPrq7iCPcNo1XauQBhMx",
+          pdf_url: `http://localhost:5000/api/public/pdf/${d.certificate_code}`,
+          revoked_reason: d.revoke_reason,
+          revoked_at: d.revoked_at ? d.revoked_at.slice(0, 10) : null
+        };
+      }
+    }
+  } catch {
+    // Backend offline, fallback sang local data
+  }
+
   initStorage();
   const list = getAllCertificates();
   const found = list.find(
-    (c) => c.certificate_code.trim().toUpperCase() === code.trim().toUpperCase()
+    (c) => c.certificate_code.trim().toUpperCase() === cleanCode
   );
   return found || null;
 };
@@ -87,7 +159,7 @@ export const issueCertificateOnChain = async (certData) => {
   const newCertificate = {
     id: newId,
     certificate_code: certData.certificate_code || `CERT-ENG-${newId.toString().slice(-4)}`,
-    data_hash: dataCommitmentHash, // Mã băm toàn vẹn dữ liệu chuẩn OpenCerts/Blockcerts
+    data_hash: dataCommitmentHash,
     student_name: certData.student_name,
     student_code: certData.student_code,
     email: certData.email,
@@ -105,7 +177,7 @@ export const issueCertificateOnChain = async (certData) => {
     token_id: tokenId,
     tx_hash: txHash,
     ipfs_hash: fakeCid,
-    pdf_url: "#",
+    pdf_url: `http://localhost:5000/api/public/pdf/${certData.certificate_code}`,
     revoked_reason: null,
     revoked_at: null
   };

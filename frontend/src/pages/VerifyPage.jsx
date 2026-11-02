@@ -223,7 +223,13 @@ export default function VerifyPage() {
             <div style={{ display: "flex", justifyContent: "center", gap: "16px", marginTop: "32px", flexWrap: "wrap" }}>
               <button
                 type="button"
-                onClick={() => alert(`Đang tải file PDF chứng chỉ: ${result.certificate_code}.pdf`)}
+                onClick={() => {
+                  if (result.pdf_url && result.pdf_url !== "#") {
+                    window.open(result.pdf_url, "_blank");
+                  } else {
+                    window.open(`http://localhost:5000/api/public/pdf/${result.certificate_code}`, "_blank");
+                  }
+                }}
                 className="btn btn-primary"
               >
                 <Download size={16} />

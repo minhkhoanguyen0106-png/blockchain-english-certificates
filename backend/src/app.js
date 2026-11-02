@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -14,14 +16,30 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Middlewares
+// 1. Bảo vệ HTTP Headers bằng Helmet
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// 2. Cấu hình CORS
 app.use(cors({
-  origin: '*', // Hỗ trợ kết nối từ frontend Next.js/React
+  origin: '*', // Hỗ trợ frontend kết nối
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.json());
+// 3. Rate limiting chống Brute-force & Spam requests
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  message: {
+    success: false,
+    message: 'Phát hiện quá nhiều yêu cầu từ IP của bạn. Vui lòng thử lại sau 15 phút.'
+  }
+});
+app.use('/api/', apiLimiter);
+
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Phục vụ file tĩnh (PDF chứng chỉ xuất ra)

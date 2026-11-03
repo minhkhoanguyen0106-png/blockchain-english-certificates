@@ -115,6 +115,12 @@ export const certificateApi = {
       method: "POST",
       body: JSON.stringify({ reason })
     });
+  },
+  // Xóa bản nháp chứng chỉ
+  deleteCertificate: async (id) => {
+    return await apiRequest(`/certificates/${id}`, {
+      method: "DELETE"
+    });
   }
 };
 

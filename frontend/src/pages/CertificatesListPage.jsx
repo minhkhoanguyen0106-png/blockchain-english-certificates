@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download } from "lucide-react";
+import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2 } from "lucide-react";
 import { getAllCertificates, revokeCertificateOnChain, shortenAddress } from "../services/web3Service";
 import { certificateApi } from "../services/apiService";
 
@@ -57,7 +57,24 @@ export default function CertificatesListPage({ wallet, user }) {
     loadCerts();
   }, [statusFilter]);
 
-  const filteredCerts = certs.filter(c => {
+  // Tự động bỏ bản nháp (Draft / PENDING) cũ khi học viên đã có chứng chỉ HỢP LỆ (ISSUED_ON_CHAIN)
+  const validCertKeys = new Set(
+    certs
+      .filter(c => c.status === "ISSUED_ON_CHAIN")
+      .map(c => `${c.student_code || c.student_name}_${c.course_code || c.course_name}`)
+  );
+
+  const cleanCerts = certs.filter(c => {
+    if (c.status === "PENDING") {
+      const key = `${c.student_code || c.student_name}_${c.course_code || c.course_name}`;
+      if (validCertKeys.has(key)) {
+        return false; // Đã hợp lệ rồi thì tự động bỏ cái bản nháp kia
+      }
+    }
+    return true;
+  });
+
+  const filteredCerts = cleanCerts.filter(c => {
     const matchSearch =
       c.certificate_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -66,6 +83,29 @@ export default function CertificatesListPage({ wallet, user }) {
     const matchCourse = courseFilter === "ALL" || c.course_code === courseFilter;
     return matchSearch && matchStatus && matchCourse;
   });
+
+  
+  const handleDeleteDraft = async (cert) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn bỏ bản nháp [${cert.certificate_code}] của học viên ${cert.student_name}?`)) {
+      return;
+    }
+    try {
+      if (cert.id) {
+        await certificateApi.deleteCertificate(cert.id);
+      }
+      setCerts(prev => prev.filter(c => c.certificate_code !== cert.certificate_code));
+      try {
+        const raw = localStorage.getItem("certchain_certificates");
+        if (raw) {
+          const list = JSON.parse(raw).filter(c => c.certificate_code !== cert.certificate_code);
+          localStorage.setItem("certchain_certificates", JSON.stringify(list));
+        }
+      } catch (e) {}
+      alert(`Đã xóa bỏ bản nháp [${cert.certificate_code}] thành công!`);
+    } catch (err) {
+      alert("Lỗi khi xóa bản nháp: " + (err.message || err));
+    }
+  };
 
   const handleConfirmRevoke = async () => {
     if (!revokeTarget) return;
@@ -235,6 +275,27 @@ export default function CertificatesListPage({ wallet, user }) {
                         >
                           <Download size={14} />
                         </button>
+
+                        {c.status === "PENDING" && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDraft(c)}
+                            className="btn btn-outline"
+                            style={{
+                              padding: "6px 12px",
+                              fontSize: "12px",
+                              color: "var(--danger-text)",
+                              borderColor: "rgba(239, 68, 68, 0.4)",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px"
+                            }}
+                            title="Xóa bỏ bản nháp này"
+                          >
+                            <Trash2 size={13} />
+                            Bỏ Nháp
+                          </button>
+                        )}
 
                         {c.status === "ISSUED_ON_CHAIN" && (
                           user?.role === "ADMIN" ? (

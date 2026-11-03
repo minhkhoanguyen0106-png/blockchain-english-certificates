@@ -7,7 +7,8 @@ import {
   createDraftCertificate,
   prepareMintCertificate,
   confirmMintCertificate,
-  revokeCertificate
+  revokeCertificate,
+  deleteCertificate
 } from '../controllers/certificateController.js';
 import { verifyToken, requireRole } from '../middleware/authMiddleware.js';
 
@@ -45,5 +46,8 @@ router.post('/confirm-mint', verifyToken, requireRole('ADMIN', 'STAFF'), confirm
 
 // Thu hồi chứng chỉ (F07-04, F07-05)
 router.post('/:id/revoke', verifyToken, requireRole('ADMIN'), revokeCertificate);
+
+// Xóa bản nháp chứng chỉ hoặc hủy bản ghi (F07-06)
+router.delete('/:id', verifyToken, requireRole('ADMIN', 'STAFF'), deleteCertificate);
 
 export default router;

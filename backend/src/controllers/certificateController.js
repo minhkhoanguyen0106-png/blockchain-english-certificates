@@ -362,6 +362,15 @@ export async function confirmMintCertificate(req, res) {
       WHERE id = ?
     `, [tx_hash, token_id || '1', certificate_id]);
 
+    // Khi chứng chỉ đã hợp lệ trên chuỗi, tự động dọn dẹp các bản nháp (Draft / PENDING) cũ của cùng học viên và khóa học
+    const [[currentCert]] = await pool.query('SELECT student_id, course_id FROM certificates WHERE id = ?', [certificate_id]);
+    if (currentCert) {
+      await pool.query(
+        "DELETE FROM certificates WHERE student_id = ? AND course_id = ? AND status = 'PENDING' AND id != ?",
+        [currentCert.student_id, currentCert.course_id, certificate_id]
+      );
+    }
+
     // Ghi log
     await pool.query(`
       INSERT INTO issue_logs (certificate_id, action_by, action, action_detail, note)
@@ -439,6 +448,34 @@ export async function revokeCertificate(req, res) {
     });
   } catch (error) {
     console.error('Lỗi revokeCertificate:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+
+// F07-06: Xóa chứng chỉ (Xóa bản nháp PENDING hoặc xóa chứng chỉ)
+export async function deleteCertificate(req, res) {
+  try {
+    const { id } = req.params;
+    const [[cert]] = await pool.query('SELECT * FROM certificates WHERE id = ?', [id]);
+    if (!cert) {
+      return res.status(404).json({ success: false, message: 'Chứng chỉ không tồn tại.' });
+    }
+
+    if (cert.status === 'ISSUED_ON_CHAIN' && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Chỉ Quản trị viên mới có quyền xóa chứng chỉ đã cấp.' });
+    }
+
+    const filePath = path.join(__dirname, '../../uploads/certificates', `${cert.certificate_code}.pdf`);
+    if (fs.existsSync(filePath)) {
+      try { fs.unlinkSync(filePath); } catch (e) {}
+    }
+
+    await pool.query('DELETE FROM certificates WHERE id = ?', [id]);
+
+    return res.json({ success: true, message: 'Đã xóa chứng chỉ thành công.' });
+  } catch (error) {
+    console.error('Lỗi deleteCertificate:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 }

@@ -304,7 +304,12 @@ export const issueCertificateOnChain = async (certData, walletSigner) => {
     revoked_at: null
   };
 
-  const list = getAllCertificates();
+  // Khi đã đúc hợp lệ on-chain, tự động dọn bỏ bản nháp (PENDING) cũ của cùng học viên và khóa học
+  const list = getAllCertificates().filter(c => !(
+    c.status === "PENDING" &&
+    (c.student_code === certData.student_code || c.student_name === certData.student_name) &&
+    c.course_code === certData.course_code
+  ));
   list.unshift(newCertificate);
   localStorage.setItem(STORAGE_KEY_CERTS, JSON.stringify(list));
 

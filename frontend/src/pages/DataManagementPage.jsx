@@ -8,8 +8,9 @@ import { studentApi, courseApi } from "../services/apiService";
 const STORAGE_KEY_STUDENTS = "certchain_students";
 const STORAGE_KEY_COURSES = "certchain_courses";
 
-export default function DataManagementPage() {
+export default function DataManagementPage({ user }) {
   const [activeTab, setActiveTab] = useState("STUDENTS"); // STUDENTS | COURSES
+  const canManageCourses = user?.role === "ADMIN";
   
   // State for students
   const [students, setStudents] = useState(() => {
@@ -86,19 +87,12 @@ export default function DataManagementPage() {
     }
 
     try {
-      // Gửi vào MySQL thật
       await studentApi.createStudent(newStudent);
       alert("Đã lưu hồ sơ học viên thành công vào CSDL MySQL!");
       await loadData();
     } catch (err) {
-      console.warn("Backend student create fallback:", err.message);
-      const updated = [
-        ...students,
-        { id: Date.now(), ...newStudent }
-      ];
-      setStudents(updated);
-      localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(updated));
-      alert("Đã lưu hồ sơ học viên thành công!");
+      alert(`Không thể lưu học viên vào hệ thống: ${err.message || err}`);
+      return;
     }
 
     setShowAddStudentModal(false);
@@ -116,25 +110,22 @@ export default function DataManagementPage() {
   // Handle Add Course
   const handleAddCourse = async (e) => {
     e.preventDefault();
+    if (!canManageCourses) {
+      alert("Chỉ Quản trị viên (ADMIN) được thêm khóa học.");
+      return;
+    }
     if (!newCourse.course_code || !newCourse.course_name) {
       alert("Vui lòng điền đủ mã và tên khóa học!");
       return;
     }
 
     try {
-      // Gửi vào MySQL thật
       await courseApi.createCourse(newCourse);
       alert("Đã lưu khóa học thành công vào CSDL MySQL!");
       await loadData();
     } catch (err) {
-      console.warn("Backend course create fallback:", err.message);
-      const updated = [
-        ...courses,
-        { id: Date.now(), ...newCourse }
-      ];
-      setCourses(updated);
-      localStorage.setItem(STORAGE_KEY_COURSES, JSON.stringify(updated));
-      alert("Đã lưu khóa học mới thành công!");
+      alert(`Không thể lưu khóa học: ${err.message || err}`);
+      return;
     }
 
     setShowAddCourseModal(false);
@@ -181,11 +172,11 @@ export default function DataManagementPage() {
             <button onClick={() => setShowAddStudentModal(true)} className="btn btn-primary">
               <UserPlus size={16} /> Thêm Học Viên Mới
             </button>
-          ) : (
+          ) : canManageCourses ? (
             <button onClick={() => setShowAddCourseModal(true)} className="btn btn-gold">
               <BookPlus size={16} /> Thêm Khóa Học Mới
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 

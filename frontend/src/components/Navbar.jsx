@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ShieldCheck, QrCode, Search, LayoutDashboard, Wallet, LogOut, AlertCircle, Award } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { connectMetaMask, shortenAddress } from "../services/web3Service";
+import { authApi } from "../services/apiService";
 
 export default function Navbar({ wallet, setWallet, user, setUser }) {
   const location = useLocation();
@@ -24,7 +25,7 @@ export default function Navbar({ wallet, setWallet, user, setUser }) {
 
   const handleLogout = () => {
     setUser(null);
-    localStorage.removeItem("certchain_user");
+    authApi.logout();
   };
 
   const isActive = (path) => location.pathname === path;
@@ -159,7 +160,7 @@ export default function Navbar({ wallet, setWallet, user, setUser }) {
           {/* Student Specific Link: Elegant text link */}
           {user && user.role === "STUDENT" && (
             <Link
-              to="/verify?code=CERT-IELTS-2026-001"
+              to="/verify"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -172,7 +173,7 @@ export default function Navbar({ wallet, setWallet, user, setUser }) {
               }}
             >
               <Award size={15} />
-              Chứng Chỉ Của Tôi
+              Tra Cứu Chứng Chỉ
             </Link>
           )}
 

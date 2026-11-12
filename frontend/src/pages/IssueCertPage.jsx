@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { FileCheck, Sparkles, CheckCircle2, RefreshCw, Download, ExternalLink } from "lucide-react";
 import confetti from "canvas-confetti";
 import { issueCertificateOnChain, INITIAL_STUDENTS, INITIAL_COURSES, connectMetaMask, isMetaMaskInstalled } from "../services/web3Service";
-import { studentApi, courseApi } from "../services/apiService";
+import { certificateApi, studentApi, courseApi } from "../services/apiService";
 import CertificateCard from "../components/CertificateCard";
 
 export default function IssueCertPage({ wallet, setWallet, user }) {
@@ -128,30 +128,44 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
     try {
       if (user?.role === "STAFF") {
-        const draftCert = {
-          ...formData,
-          status: "PENDING",
-          token_id: null,
-          tx_hash: null,
-          ipfs_hash: null
-        };
-        const saved = await issueCertificateOnChain(draftCert, wallet);
-        alert(`Lưu bản nháp thành công cho học viên ${saved.student_name}! Trạng thái: PENDING (Chờ Quản trị viên ký đúc On-Chain).`);
+        const result = await certificateApi.createDraft({
+          certificate_code: formData.certificate_code,
+          student_code: formData.student_code,
+          course_code: formData.course_code,
+          score_overall: formData.score,
+          score_listening: formData.listening || null,
+          score_reading: formData.reading || null,
+          score_writing: formData.writing || null,
+          score_speaking: formData.speaking || null,
+          issue_date: formData.issue_date,
+          expiry_date: formData.expiry_date || null
+        });
+        if (!result?.success || !result.data?.id) {
+          throw new Error(result?.message || "Máy chủ chưa xác nhận lưu bản nháp.");
+        }
+        alert(`Đã lưu bản nháp ${formData.certificate_code}. Chứng chỉ đang chờ ADMIN phát hành.`);
         navigate("/admin/certificates");
         return;
       }
 
-      // ADMIN: Đúc On-Chain với MetaMask & Lưu MySQL (Tự động kết nối ví thật hoặc kích hoạt ví demo)
+      if (user?.role !== "ADMIN") {
+        throw new Error("Tài khoản hiện tại không có quyền phát hành chứng chỉ.");
+      }
+
+      if (!isMetaMaskInstalled()) {
+        throw new Error("Hãy cài MetaMask trước khi phát hành on-chain.");
+      }
+
+      // Chỉ tiếp tục với ví MetaMask có signer thật; không dùng ví demo để phát hành.
       let activeWallet = wallet;
-      if (!activeWallet) {
-        try {
-          activeWallet = await connectMetaMask();
-          if (activeWallet && setWallet) {
-            setWallet(activeWallet);
-          }
-        } catch (walletErr) {
-          console.warn("Wallet connect fallback:", walletErr);
-        }
+      if (!activeWallet?.signer) {
+        activeWallet = await connectMetaMask();
+      }
+      if (!activeWallet?.signer) {
+        throw new Error("Không lấy được signer từ MetaMask. Hãy kết nối ví rồi thử lại.");
+      }
+      if (activeWallet && setWallet) {
+        setWallet(activeWallet);
       }
 
       const newCert = await issueCertificateOnChain(formData, activeWallet);

@@ -13,16 +13,38 @@ import CertificatesListPage from "./pages/CertificatesListPage";
 import DataManagementPage from "./pages/DataManagementPage";
 import { initStorage } from "./services/web3Service";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { authApi } from "./services/apiService";
 
 export default function App() {
   const [wallet, setWallet] = useState(null);
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem("certchain_user");
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [user, setUser] = useState(null);
+  const [authChecking, setAuthChecking] = useState(() => Boolean(localStorage.getItem("certchain_token")));
 
   useEffect(() => {
     initStorage();
+
+    if (!localStorage.getItem("certchain_token")) {
+      localStorage.removeItem("certchain_user");
+      setAuthChecking(false);
+      return;
+    }
+
+    authApi.getProfile()
+      .then((result) => {
+        const profile = result?.data;
+        if (!result?.success || !profile?.role) throw new Error("Phiên đăng nhập không hợp lệ.");
+        const normalizedUser = {
+          ...profile,
+          full_name: profile.full_name || profile.fullName
+        };
+        setUser(normalizedUser);
+        localStorage.setItem("certchain_user", JSON.stringify(normalizedUser));
+      })
+      .catch(() => {
+        authApi.logout();
+        setUser(null);
+      })
+      .finally(() => setAuthChecking(false));
   }, []);
 
   return (
@@ -45,7 +67,7 @@ export default function App() {
             <Route
               path="/admin/dashboard"
               element={
-                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
+                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]} isLoading={authChecking}>
                   <AdminLayout wallet={wallet} setWallet={setWallet} user={user} setUser={setUser}>
                     <DashboardPage wallet={wallet} setWallet={setWallet} user={user} />
                   </AdminLayout>
@@ -55,7 +77,7 @@ export default function App() {
             <Route
               path="/admin/certificates/issue"
               element={
-                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
+                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]} isLoading={authChecking}>
                   <AdminLayout wallet={wallet} setWallet={setWallet} user={user} setUser={setUser}>
                     <IssueCertPage wallet={wallet} setWallet={setWallet} user={user} />
                   </AdminLayout>
@@ -65,7 +87,7 @@ export default function App() {
             <Route
               path="/admin/certificates"
               element={
-                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
+                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]} isLoading={authChecking}>
                   <AdminLayout wallet={wallet} setWallet={setWallet} user={user} setUser={setUser}>
                     <CertificatesListPage wallet={wallet} user={user} />
                   </AdminLayout>
@@ -75,9 +97,9 @@ export default function App() {
             <Route
               path="/admin/data-management"
               element={
-                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
+                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]} isLoading={authChecking}>
                   <AdminLayout wallet={wallet} setWallet={setWallet} user={user} setUser={setUser}>
-                    <DataManagementPage />
+                    <DataManagementPage user={user} />
                   </AdminLayout>
                 </ProtectedRoute>
               }

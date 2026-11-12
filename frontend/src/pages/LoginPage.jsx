@@ -1,65 +1,49 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Lock, User, ArrowLeft, ShieldCheck, GraduationCap, Briefcase } from "lucide-react";
+import { Lock, User, ArrowLeft, ShieldCheck, AlertCircle } from "lucide-react";
 import { authApi } from "../services/apiService";
 
 export default function LoginPage({ setUser }) {
   const navigate = useNavigate();
-  const [role, setRole] = useState("ADMIN"); // ADMIN | STAFF | STUDENT
-  const [username, setUsername] = useState("admin_khoa");
-  const [password, setPassword] = useState("123456");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const handleRoleChange = (selectedRole) => {
-    setRole(selectedRole);
-    if (selectedRole === "ADMIN") {
-      setUsername("admin_khoa");
-    } else if (selectedRole === "STAFF") {
-      setUsername("staff_long");
-    } else {
-      setUsername("student_yen");
-    }
-  };
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    let fullName = "Nguyễn Thị Minh Khoa (Giám Đốc Trung Tâm)";
-    if (role === "STAFF") fullName = "Trần Bảo Long (Cán Bộ Khảo Thí)";
-    if (role === "STUDENT") fullName = "Lê Hoàng Yến (Học Viên IELTS)";
-
-    let userData = {
-      username,
-      full_name: fullName,
-      role
-    };
+    setErrorMessage("");
 
     try {
-      // 1. Gửi request xác thực tới Backend MySQL thật
       const result = await authApi.login(username, password);
-      if (result?.user) {
-        userData = {
-          id: result.user.id,
-          username: result.user.username,
-          full_name: result.user.fullName || result.user.full_name,
-          email: result.user.email,
-          role: result.user.role
-        };
-      }
-    } catch (err) {
-      console.warn("Backend auth API offline hoặc fallback:", err.message);
-    } finally {
+      if (!result?.user?.role) throw new Error("Máy chủ không trả về thông tin tài khoản hợp lệ.");
+
+      const userData = {
+        id: result.user.id,
+        username: result.user.username,
+        full_name: result.user.fullName || result.user.full_name,
+        email: result.user.email,
+        role: result.user.role
+      };
       setUser(userData);
       localStorage.setItem("certchain_user", JSON.stringify(userData));
-      setLoading(false);
 
-      // Điều hướng theo phân quyền
       if (userData.role === "STUDENT") {
-        navigate("/verify?code=CERT-IELTS-2026-001");
-      } else {
+        navigate("/verify");
+      } else if (["ADMIN", "STAFF"].includes(userData.role)) {
         navigate("/admin/dashboard");
+      } else {
+        authApi.logout();
+        setUser(null);
+        setErrorMessage("Vai trò tài khoản không được hỗ trợ.");
       }
+    } catch (err) {
+      authApi.logout();
+      setUser(null);
+      setErrorMessage(err.message || "Không thể đăng nhập. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -89,51 +73,12 @@ export default function LoginPage({ setUser }) {
           </div>
           <h2 style={{ fontSize: "24px", fontWeight: 800, color: "var(--text-primary)" }}>Đăng Nhập Hệ Thống</h2>
           <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "4px" }}>
-            Hỗ trợ kiểm tra phân quyền 3 cấp độ (Admin - Staff - Student)
+            Vai trò được xác định từ tài khoản đã được cấp bởi hệ thống.
           </p>
         </div>
 
         <form onSubmit={handleSubmit}>
           
-          {/* 3 Role Selection Tabs */}
-          <div className="form-group">
-            <label className="form-label">Chọn vai trò muốn đăng nhập kiểm thử:</label>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
-              <button
-                type="button"
-                onClick={() => handleRoleChange("ADMIN")}
-                className={`btn ${role === "ADMIN" ? "btn-primary" : "btn-outline"}`}
-                style={{ fontSize: "11px", padding: "10px 4px", flexDirection: "column", gap: "4px" }}
-              >
-                <ShieldCheck size={16} />
-                <strong>ADMIN</strong>
-                <span style={{ fontSize: "9px", opacity: 0.85 }}>Ký ví on-chain</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleRoleChange("STAFF")}
-                className={`btn ${role === "STAFF" ? "btn-primary" : "btn-outline"}`}
-                style={{ fontSize: "11px", padding: "10px 4px", flexDirection: "column", gap: "4px" }}
-              >
-                <Briefcase size={16} />
-                <strong>STAFF</strong>
-                <span style={{ fontSize: "9px", opacity: 0.85 }}>Soạn bản nháp</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleRoleChange("STUDENT")}
-                className={`btn ${role === "STUDENT" ? "btn-primary" : "btn-outline"}`}
-                style={{ fontSize: "11px", padding: "10px 4px", flexDirection: "column", gap: "4px" }}
-              >
-                <GraduationCap size={16} />
-                <strong>STUDENT</strong>
-                <span style={{ fontSize: "9px", opacity: 0.85 }}>Chỉ xem bằng</span>
-              </button>
-            </div>
-          </div>
-
           <div className="form-group">
             <label className="form-label">Tài khoản</label>
             <div style={{ position: "relative" }}>
@@ -164,7 +109,12 @@ export default function LoginPage({ setUser }) {
             </div>
           </div>
 
-          {/* Role Permission Alert Note */}
+          {errorMessage && (
+            <div role="alert" style={{ background: "var(--danger-bg)", color: "var(--danger-text)", padding: "12px 14px", borderRadius: "var(--radius-sm)", marginBottom: "16px", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <AlertCircle size={16} /> {errorMessage}
+            </div>
+          )}
+
           <div style={{
             background: "var(--bg-surface)",
             border: "1px solid var(--border-subtle)",
@@ -174,21 +124,9 @@ export default function LoginPage({ setUser }) {
             color: "var(--text-secondary)",
             marginBottom: "20px"
           }}>
-            {role === "ADMIN" && (
-              <span style={{ color: "var(--primary)" }}>
-                🛡️ <strong>Admin:</strong> Có quyền truy cập toàn bộ menu quản trị, ký đúc Soulbound Token on-chain và ký thu hồi bằng (Revoke).
-              </span>
-            )}
-            {role === "STAFF" && (
-              <span style={{ color: "var(--warning-text)" }}>
-                💼 <strong>Staff:</strong> Có quyền quản lý hồ sơ và soạn thảo bản nháp (Draft). <em>Bị khóa nút Ký đúc On-Chain và Thu hồi bằng</em>.
-              </span>
-            )}
-            {role === "STUDENT" && (
-              <span style={{ color: "var(--danger-text)" }}>
-                🎓 <strong>Student:</strong> <em>Bị chặn truy cập các trang Quản trị</em> (sẽ bị lỗi 403 Forbidden nếu cố tình truy cập URL trực tiếp).
-              </span>
-            )}
+            <span style={{ color: "var(--text-secondary)" }}>
+              Sau khi xác thực, hệ thống sẽ mở các chức năng tương ứng với quyền của tài khoản.
+            </span>
           </div>
 
           <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: "100%", padding: "13px", fontSize: "15px" }}>

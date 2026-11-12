@@ -179,11 +179,17 @@ export const getCertificateByCode = async (code) => {
 
 // 7. Cấp chứng chỉ mới (Tích hợp: Backend MySQL Draft -> Smart Contract Soulbound -> Backend Confirm)
 export const issueCertificateOnChain = async (certData, walletSigner) => {
-  initStorage();
+  if (!walletSigner?.signer) throw new Error("Hãy kết nối MetaMask trước khi phát hành.");
+  if (!certData.wallet_address || !ethers.isAddress(certData.wallet_address)) {
+    throw new Error("Địa chỉ ví của học viên không hợp lệ.");
+  }
 
-  const recipientAddress = certData.wallet_address && ethers.isAddress(certData.wallet_address)
-    ? certData.wallet_address
-    : (walletSigner?.address || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
+  const network = await walletSigner.signer.provider.getNetwork();
+  if (contractJson.chainId && Number(network.chainId) !== Number(contractJson.chainId)) {
+    throw new Error(`MetaMask đang ở chain ${network.chainId}; hãy chuyển sang chain ${contractJson.chainId} của contract.`);
+  }
+
+  const recipientAddress = certData.wallet_address;
 
   // B1: Tính toán mã băm Keccak256 chuẩn mật mã toàn vẹn dữ liệu
   const canonicalData = JSON.stringify({
@@ -195,91 +201,85 @@ export const issueCertificateOnChain = async (certData, walletSigner) => {
   });
   const dataCommitmentHash = ethers.keccak256(ethers.toUtf8Bytes(canonicalData));
 
-  let dbCertId = null;
-  let ipfsHash = "Qm" + Array.from({length: 44}, () => "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random()*62)]).join("");
-  let tokenId = (1000 + Math.floor(Math.random() * 9000)).toString();
-  let txHash = ethers.keccak256(ethers.toUtf8Bytes(canonicalData + Date.now().toString()));
-
-  // B2: Gọi Backend lưu bản ghi và chuẩn bị đúc (nếu backend đang chạy)
-  try {
-    const draftPayload = {
-      certificate_code: certData.certificate_code,
-      student_code: certData.student_code,
-      course_code: certData.course_code,
-      score_overall: certData.score,
-      score_listening: certData.listening || null,
-      score_reading: certData.reading || null,
-      score_writing: certData.writing || null,
-      score_speaking: certData.speaking || null,
-      issue_date: certData.issue_date,
-      expiry_date: certData.expiry_date || null
-    };
-
-    const draftRes = await certificateApi.createDraft(draftPayload);
-    if (draftRes.success && draftRes.data?.id) {
-      dbCertId = draftRes.data.id;
-      const prepRes = await certificateApi.prepareMint(dbCertId);
-      if (prepRes.success && prepRes.data?.ipfs_hash) {
-        ipfsHash = prepRes.data.ipfs_hash;
-      }
-    }
-  } catch (backendErr) {
-    console.warn("Backend draft/prepare fallback sang offline:", backendErr.message);
-  }
-
-  // B3: Thực thi giao dịch Smart Contract (SBT) qua ví MetaMask nếu có signer
-  if (walletSigner?.signer) {
-    try {
-      const contract = getCertificateContract(walletSigner.signer);
-      const expiryTimestamp = certData.expiry_date
-        ? Math.floor(new Date(certData.expiry_date).getTime() / 1000)
-        : 0;
-
-      const tokenURI = `data:application/json;utf8,${encodeURIComponent(JSON.stringify({
-        name: `${certData.course_name} - ${certData.student_name}`,
-        code: certData.certificate_code,
-        score: certData.score,
-        ipfs: ipfsHash
-      }))}`;
-
-      console.log("🚀 Đang gửi giao dịch issueCertificate lên Smart Contract...");
-      const tx = await contract.issueCertificate(
-        recipientAddress,
-        certData.certificate_code,
-        certData.student_name,
-        certData.student_code,
-        certData.course_code,
-        certData.course_name,
-        certData.score,
-        expiryTimestamp,
-        ipfsHash,
-        dataCommitmentHash,
-        tokenURI
-      );
-      const receipt = await tx.wait();
-      txHash = receipt.hash || txHash;
-      console.log("✅ Giao dịch on-chain thành công:", txHash);
-    } catch (contractErr) {
-      console.warn("Thực thi Smart Contract fallback (do mạng testnet khác hoặc hủy ký):", contractErr.message);
-    }
-  }
-
-  // B4: Gọi Backend xác nhận đã đúc on-chain thành công
-  if (dbCertId) {
-    try {
-      await certificateApi.confirmMint({
-        certificate_id: dbCertId,
-        tx_hash: txHash,
-        token_id: tokenId
+  const pendingRes = await certificateApi.getCertificates({
+    limit: 100,
+    status: "PENDING",
+    search: certData.certificate_code
+  });
+  const existingDraft = pendingRes?.data?.find(
+    (item) => item.certificate_code === certData.certificate_code
+  );
+  const draftRes = existingDraft
+    ? { success: true, data: existingDraft }
+    : await certificateApi.createDraft({
+        certificate_code: certData.certificate_code,
+        student_code: certData.student_code,
+        course_code: certData.course_code,
+        score_overall: certData.score,
+        score_listening: certData.listening || null,
+        score_reading: certData.reading || null,
+        score_writing: certData.writing || null,
+        score_speaking: certData.speaking || null,
+        issue_date: certData.issue_date,
+        expiry_date: certData.expiry_date || null
       });
-    } catch (confirmErr) {
-      console.warn("Backend confirmMint error:", confirmErr.message);
-    }
+  if (!draftRes?.success || !draftRes.data?.id) {
+    throw new Error(draftRes?.message || "Không lưu được bản ghi chứng chỉ vào máy chủ.");
+  }
+
+  const dbCertId = draftRes.data.id;
+  const prepRes = await certificateApi.prepareMint(dbCertId);
+  if (!prepRes?.success || !prepRes.data?.ipfs_hash) {
+    throw new Error(prepRes?.message || "Không chuẩn bị được metadata phát hành.");
+  }
+  const ipfsHash = prepRes.data.ipfs_hash;
+
+  const contract = getCertificateContract(walletSigner.signer);
+  const expiryTimestamp = certData.expiry_date
+    ? Math.floor(new Date(certData.expiry_date).getTime() / 1000)
+    : 0;
+  const tokenURI = `data:application/json;utf8,${encodeURIComponent(JSON.stringify({
+    name: `${certData.course_name} - ${certData.student_name}`,
+    code: certData.certificate_code,
+    score: certData.score,
+    ipfs: ipfsHash
+  }))}`;
+
+  const tx = await contract.issueCertificate(
+    recipientAddress,
+    certData.certificate_code,
+    certData.student_name,
+    certData.student_code,
+    certData.course_code,
+    certData.course_name,
+    certData.score,
+    expiryTimestamp,
+    ipfsHash,
+    dataCommitmentHash,
+    tokenURI
+  );
+  const receipt = await tx.wait();
+  if (receipt?.status !== 1) throw new Error(`Giao dịch phát hành thất bại (${tx.hash}).`);
+
+  const onchainResult = await contract.verifyByCertificateCode(certData.certificate_code);
+  if (!onchainResult?.exists) {
+    throw new Error(`Giao dịch ${tx.hash} đã được xác nhận nhưng chưa đọc được chứng chỉ từ contract.`);
+  }
+  const tokenId = onchainResult.tokenId.toString();
+
+  try {
+    await certificateApi.confirmMint({
+      certificate_id: dbCertId,
+      tx_hash: tx.hash,
+      token_id: tokenId
+    });
+  } catch (confirmErr) {
+    throw new Error(`Đã phát hành on-chain (Tx: ${tx.hash}) nhưng chưa đồng bộ được MySQL: ${confirmErr.message}`);
   }
 
   // B5: Cập nhật cache LocalStorage
   const newCertificate = {
-    id: dbCertId || Date.now(),
+    id: dbCertId,
     certificate_code: certData.certificate_code,
     data_hash: dataCommitmentHash,
     student_name: certData.student_name,
@@ -297,7 +297,7 @@ export const issueCertificateOnChain = async (certData, walletSigner) => {
     status: "ISSUED_ON_CHAIN",
     wallet_address: recipientAddress,
     token_id: tokenId,
-    tx_hash: txHash,
+    tx_hash: tx.hash,
     ipfs_hash: ipfsHash,
     pdf_url: `http://localhost:5000/api/public/pdf/${certData.certificate_code}`,
     revoked_reason: null,
@@ -318,30 +318,26 @@ export const issueCertificateOnChain = async (certData, walletSigner) => {
 
 // 8. Thu hồi chứng chỉ (Đồng bộ Smart Contract & MySQL)
 export const revokeCertificateOnChain = async (certCode, reason, certId, tokenId, walletSigner) => {
+  if (!walletSigner?.signer) throw new Error("Hãy kết nối ví ADMIN trước khi thu hồi.");
+  if (!certId || !tokenId) throw new Error("Chứng chỉ thiếu ID hoặc Token ID; không thể thu hồi an toàn.");
+
+  const network = await walletSigner.signer.provider.getNetwork();
+  if (contractJson.chainId && Number(network.chainId) !== Number(contractJson.chainId)) {
+    throw new Error(`MetaMask đang ở chain ${network.chainId}; hãy chuyển sang chain ${contractJson.chainId} của contract.`);
+  }
+
+  const contract = getCertificateContract(walletSigner.signer);
+  const tx = await contract.revokeCertificate(tokenId, reason);
+  const receipt = await tx.wait();
+  if (receipt?.status !== 1) throw new Error(`Giao dịch thu hồi thất bại (${tx.hash}).`);
+
+  try {
+    await certificateApi.revokeCertificate(certId, reason);
+  } catch (apiErr) {
+    throw new Error(`Đã thu hồi on-chain (Tx: ${tx.hash}) nhưng chưa đồng bộ được MySQL: ${apiErr.message}`);
+  }
+
   initStorage();
-
-  // B1: Thu hồi trên Smart Contract nếu có ví Admin
-  if (walletSigner?.signer && tokenId) {
-    try {
-      const contract = getCertificateContract(walletSigner.signer);
-      const tx = await contract.revokeCertificate(tokenId, reason);
-      await tx.wait();
-      console.log("✅ Thu hồi on-chain thành công trên Smart Contract!");
-    } catch (contractErr) {
-      console.warn("Thu hồi Smart Contract fallback:", contractErr.message);
-    }
-  }
-
-  // B2: Gọi Backend thu hồi trong MySQL
-  if (certId) {
-    try {
-      await certificateApi.revokeCertificate(certId, reason);
-    } catch (apiErr) {
-      console.warn("Backend revoke error:", apiErr.message);
-    }
-  }
-
-  // B3: Cập nhật cache LocalStorage
   const list = getAllCertificates();
   const idx = list.findIndex(
     (c) => c.certificate_code.trim().toUpperCase() === certCode.trim().toUpperCase()
@@ -351,6 +347,7 @@ export const revokeCertificateOnChain = async (certCode, reason, certId, tokenId
     list[idx].status = "REVOKED";
     list[idx].revoked_reason = reason;
     list[idx].revoked_at = new Date().toISOString().slice(0, 10);
+    list[idx].revoke_tx_hash = tx.hash;
     localStorage.setItem(STORAGE_KEY_CERTS, JSON.stringify(list));
     return list[idx];
   }

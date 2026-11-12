@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { shortenAddress, connectMetaMask } from "../services/web3Service";
+import { authApi } from "../services/apiService";
 
 export default function AdminLayout({ children, wallet, setWallet, user, setUser }) {
   const location = useLocation();
@@ -27,7 +28,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
 
   const handleLogout = () => {
     setUser(null);
-    localStorage.removeItem("certchain_user");
+    authApi.logout();
     navigate("/");
   };
 

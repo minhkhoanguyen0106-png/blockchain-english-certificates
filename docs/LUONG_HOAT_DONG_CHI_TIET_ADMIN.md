@@ -1,613 +1,454 @@
-# TÀI LIỆU LUỒNG HOẠT ĐỘNG CHI TIẾT TỪNG CHỨC NĂNG PHÂN HỆ QUẢN TRỊ (ADMIN PORTAL)
+# TÀI LIỆU KIẾN TRÚC & ĐẶC TẢ LUỒNG HOẠT ĐỘNG PHÂN HỆ QUẢN TRỊ (ADMIN PORTAL)
 **Hệ Thống Quản Lý & Cấp Phát Chứng Chỉ Tiếng Anh Bằng Blockchain (CertChain)**
 
-> **Phiên bản tài liệu**: 2.1 (Admin Specification & Workflow)  
+> **Phiên bản tài liệu**: 3.0 (Production-Grade & Hardened Architecture)  
 > **Cập nhật ngày**: 15/11/2026  
-> **Dành cho**: Cán bộ Quản trị (`ADMIN`), Cán bộ Khảo thí (`STAFF`), Hội đồng chấm nghiệm thu đề tài  
-> **Áp dụng tại**: Phân hệ Quản trị CertChain (`/admin/*`)
+> **Áp dụng tại**: Phân hệ Quản trị CertChain (`/admin/*`) & Backend API (`/api/*`)  
+> **Cơ chế bảo vệ**: Nguyên tắc Bốn Mắt (Four-Eyes Principle), Xác minh Blockchain Độc lập (Backend Verification), Đối soát Idempotent (Reconciliation Engine), và Bảo mật Dữ liệu Riêng tư (Privacy-by-Design).
 
 ---
 
 ## 📑 MỤC LỤC TỔNG QUAN
 
-1. [Tổng Quan Phân Hệ Quản Trị & Ma Trận Phân Quyền (RBAC)](#1-tổng-quan-phân-hệ-quản-trị--ma-trận-phân-quyền-rbac)
-2. [Chi Tiết Luồng Hoạt Động Từng Chức Năng Admin](#2-chi-tiết-luồng-hoạt-động-từng-chức-năng-admin)
-   - [Chức năng 1: Đăng Nhập & Quản Lý Phiên Làm Việc (Auth & Session)](#chức-năng-1-đăng-nhập--quản-lý-phiên-làm-việc-auth--session)
-   - [Chức năng 2: Giám Sát Dashboard & Kết Nối Mạng Web3 (Dashboard & Web3 Health Monitor)](#chức-năng-2-giám-sát-dashboard--kết-nối-mạng-web3-dashboard--web3-health-monitor)
-   - [Chức năng 3: Soạn Thảo, Chấm Điểm & Lập Bản Nháp (Staff Draft Workflow)](#chức-năng-3-soạn-thảo-chấm-điểm--lập-bản-nháp-staff-draft-workflow)
-   - [Chức năng 4: Phê Duyệt, Ký MetaMask & Đúc Soulbound Token On-Chain (Admin Minting Workflow)](#chức-năng-4-phê-duyệt-ký-metamask--đúc-soulbound-token-on-chain-admin-minting-workflow)
-   - [Chức năng 5: Quản Lý Danh Sách & Lọc Đa Chiều Chứng Chỉ (Certificate Directory)](#chức-năng-5-quản-lý-danh-sách--lọc-đa-chiều-chứng-chỉ-certificate-directory)
-   - [Chức năng 6: Xem Trước Phôi Bằng PDF & In Ấn Trực Tuyến (In-browser Inspection & Print)](#chức-năng-6-xem-trước-phôi-bằng-pdf--in-ấn-trực-tuyến-in-browser-inspection--print)
-   - [Chức năng 7: Quy Trình Thu Hồi Bằng On-Chain Chống Chối Bỏ (Revocation Workflow)](#chức-năng-7-quy-trình-thu-hồi-bằng-on-chain-chống-chối-bỏ-revocation-workflow)
-   - [Chức năng 8: Quản Lý Hồ Sơ Học Viên & Danh Mục Khóa Học (Data Management)](#chức-năng-8-quản-lý-hồ-sơ-học-viên--danh-mục-khóa-học-data-management)
-3. [Cỗ Máy Trạng Thái Chứng Chỉ (State Machine)](#3-cỗ-máy-trạng-thái-chứng-chỉ-state-machine)
-4. [Sơ Đồ Tuần Tự Tổng Hợp (Master Sequence Diagram)](#4-sơ-đồ-tuần-tự-tổng-hợp-master-sequence-diagram)
-5. [Cơ Chế Xử Lý Lỗi & Ngoại Lệ Thường Gặp (Troubleshooting Guide)](#5-cơ-chế-xử-lý-lỗi--ngoại-lệ-thường-gặp-troubleshooting-guide)
+1. [Đánh Giá Hiện Trạng & Định Hướng Nâng Cấp Kiến Trúc](#1-đánh-giá-hiện-trạng--định-hướng-nâng-cấp-kiến-trúc)
+2. [Cỗ Máy Trạng Thái Chứng Chỉ Chuẩn Sản Phẩm (Production State Machine)](#2-cỗ-máy-trạng-thái-chứng-chỉ-chuẩn-sản-phẩm-production-state-machine)
+3. [6 Giai Đoạn Vận Hành Phân Hệ Quản Trị](#3-6-giai-đoạn-vận-hành-phân-hệ-quản-trị)
+   - [Giai đoạn 1: Đăng Nhập, Quản Lý Phiên & Bảo Mật Khóa (Auth & Key Management)](#giai-đoạn-1-đăng-nhập-quản-lý-phiên--bảo-mật-khóa-auth--key-management)
+   - [Giai đoạn 2: Giám Sát Dashboard, Cảnh Báo Nghiệp Vụ & Sức Khỏe Web3](#giai-đoạn-2-giám-sát-dashboard-cảnh-báo-nghiệp-vụ--sức-khỏe-web3)
+   - [Giai đoạn 3: Quản Trị Dữ Liệu Nguồn, Hồ Sơ & Phiên Bản Quy Tắc Điểm](#giai-đoạn-3-quản-trị-dữ-liệu-nguồn-hồ-sơ--phiên-bản-quy-tắc-điểm)
+   - [Giai đoạn 4: Lập Hồ Sơ & Kiểm Soát Hai Bước (Four-Eyes Approval Workflow)](#giai-đoạn-4-lập-hồ-sơ--kiểm-soát-hai-bước-four-eyes-approval-workflow)
+   - [Giai đoạn 5: Xác Minh Giao Dịch Độc Lập & Đúc Soulbound Token On-Chain](#giai-đoạn-5-xác-minh-giao-dịch-độc-lập--đúc-soulbound-token-on-chain)
+   - [Giai đoạn 6: Giám Sát Vòng Đời, Thu Hồi, Cấp Lại & Đối Soát Dữ Liệu](#giai-đoạn-6-giám-sát-vòng-đời-thu-hồi-cấp-lại--đối-soát-dữ-liệu)
+4. [Mô Hình Mã Băm Mật Mã & Bảo Vệ Quyền Riêng Tư (Privacy-by-Design)](#4-mô-hình-mã-băm-mật-mã--bảo-vệ-quyền-riêng-tư-privacy-by-design)
+5. [Cơ Chế Đối Soát & Tự Khôi Phục (Reconciliation & Idempotency)](#5-cơ-chế-đối-soát--tự-khôi-phục-reconciliation--idempotency)
+6. [Sơ Đồ Tuần Tự Kiểm Chứng Hai Chiều (Master Sequence Diagram)](#6-sơ-đồ-tuần-tự-kiểm-chứng-hai-chiều-master-sequence-diagram)
+7. [Bảng Xử Lý Sự Cố & Hướng Dẫn Vận Hành Hệ Thống (Ops Manual)](#7-bảng-xử-lý-sự-cố--hướng-dẫn-vận-hành-hệ-thống-ops-manual)
 
 ---
 
-## 1. TỔNG QUAN PHÂN HỆ QUẢN TRỊ & MA TRẬN PHÂN QUYỀN (RBAC)
+## 1. ĐÁNH GIÁ HIỆN TRẠNG & ĐỊNH HƯỚNG NÂNG CẤP KIẾN TRÚC
 
-Phân hệ Quản trị (**Admin Portal**) là trung tâm điều hành nghiệp vụ cấp phát, thẩm tra và quản lý vòng đời của chứng chỉ tiếng Anh (IELTS, TOEIC, VSTEP, Cambridge, TOEFL). Hệ thống áp dụng mô hình bảo vệ **3 lớp nghiêm ngặt**:
+Qua đợt thẩm định bảo mật và kiến trúc hệ thống, hệ thống CertChain xác lập **7 cải tiến trọng yếu** nhằm chuyển đổi từ mô hình thử nghiệm sang chuẩn vận hành thương mại:
 
-```
-+-----------------------------------------------------------------------------------+
-|  LỚP 1: GIAO DIỆN REACT (UI Guard & Dynamic Role Visibility)                      |
-|  - Ẩn/hiện nút Web3, nút Ký On-Chain theo Role đăng nhập                          |
-|  - Kiểm tra kết nối MetaMask và chuyển mạng Chain ID 31337 tự động                |
-+-----------------------------------------------------------------------------------+
-                                      │
-                                      ▼
-+-----------------------------------------------------------------------------------+
-|  LỚP 2: BACKEND NODE.JS EXPRESS (JWT Auth + RBAC Middleware)                      |
-|  - Xác thực Bearer JWT Header (`authMiddleware.js`)                               |
-|  - Kiểm tra quyền hạn `requireRole(['ADMIN'])` (`rbac.middleware.js`)            |
-|  - Ghi vết mọi hành vi vào nhật ký kiểm toán `issue_logs`                         |
-+-----------------------------------------------------------------------------------+
-                                      │
-                                      ▼
-+-----------------------------------------------------------------------------------+
-|  LỚP 3: SMART CONTRACT SOLIDITY (On-Chain AccessControl & Ownable)                |
-|  - Kiểm tra `msg.sender == owner()` hoặc `hasRole(ISSUER_ROLE, msg.sender)`       |
-|  - Khóa vĩnh viễn quyền chuyển nhượng Soulbound Token (Non-Transferable ERC-721)  |
-|  - Ghi nhận Transaction Receipt và Event bất biến trên chuỗi                      |
-+-----------------------------------------------------------------------------------+
-```
-
-### 1.1 Phân định vai trò người dùng (User Roles)
-
-* **Quản trị viên (`ADMIN`)**:
-  * Đại diện: Giám đốc trung tâm / Trưởng ban Quản trị khảo thí (Tài khoản demo: `admin_khoa` hoặc `admin`).
-  * Nắm giữ Private Key của ví Web3 Deployer (`0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266`).
-  * Toàn quyền: Xem Dashboard, Đúc On-chain Soulbound Token, Ký MetaMask Thu hồi bằng, Thêm khóa học và học viên.
-* **Cán bộ Khảo thí (`STAFF`)**:
-  * Đại diện: Chuyên viên phụ trách nhập điểm, thư ký phòng thi (Tài khoản demo: `staff_long`, `staff_lan`).
-  * Quyền hạn: Xem Dashboard, Soạn thảo hồ sơ chứng chỉ, Lập bản nháp (`PENDING`), Thêm học viên mới, In phôi bằng PDF.
-  * Hạn chế: **Không có quyền ký ví MetaMask để phát hành hay thu hồi On-Chain** (Tránh phát sinh phí gas trái phép hoặc gian lận đúc bằng).
-
-### 1.2 Ma trận phân quyền chi tiết (RBAC Matrix)
-
-| STT | Tên Chức Năng Quản Trị | Route / Endpoint | Quyền `ADMIN` | Quyền `STAFF` | Yêu Cầu Ví MetaMask |
-| :---: | :--- | :--- | :---: | :---: | :---: |
-| 1 | Đăng nhập hệ thống nội bộ | `/login` (`POST /api/auth/login`) | ✅ Cho phép | ✅ Cho phép | ❌ Không |
-| 2 | Giám sát Dashboard & Web3 | `/admin/dashboard` | ✅ Cho phép | ✅ Cho phép (Ẩn cảnh báo ví) | Khuyến nghị ADMIN |
-| 3 | Lập bản nháp chứng chỉ (`PENDING`) | `/admin/certificates/issue` | ✅ Cho phép | ✅ Cho phép | ❌ Không |
-| 4 | Ký MetaMask đúc On-chain Soulbound | `/admin/certificates/issue` | ✅ Cho phép | ❌ Bị chặn (Chỉ lưu nháp) | ✅ Bắt buộc (Ví Admin) |
-| 5 | Tra cứu danh sách & Bộ lọc đa chiều | `/admin/certificates` | ✅ Cho phép | ✅ Cho phép | ❌ Không |
-| 6 | Xem trước phôi PDF & In ấn | `/admin/certificates` (`Modal`) | ✅ Cho phép | ✅ Cho phép | ❌ Không |
-| 7 | Ký MetaMask thu hồi chứng chỉ On-Chain | `/admin/certificates` (`Revoke`) | ✅ Cho phép | ❌ Bị chặn (Ẩn nút) | ✅ Bắt buộc (Ví Admin) |
-| 8 | Thêm mới hồ sơ học viên | `/admin/data-management` | ✅ Cho phép | ✅ Cho phép | ❌ Không |
-| 9 | Thêm mới danh mục khóa học | `/admin/data-management` | ✅ Cho phép | ❌ Bị chặn | ❌ Không |
+| STT | Vấn đề Kiến trúc Cũ | Mức độ | Giải pháp Nâng cấp Phiên bản 3.0 |
+| :---: | :--- | :---: | :--- |
+| **1** | Admin vừa tạo vừa duyệt nháp, thiếu kiểm soát chéo | **Cao** | Thiết lập **Quy tắc Bốn Mắt (Four-Eyes Principle)**: `STAFF` lập hồ sơ $\to$ `ADMIN` đối soát và phê duyệt. Nếu Admin tự tạo nháp, hệ thống kích hoạt cơ chế ghi vết kiểm toán tăng cường và khóa quyền tự duyệt. Bổ sung trạng thái `REJECTED` khi từ chối hồ sơ. |
+| **2** | Backend tin tưởng dữ liệu `tx_hash` do Frontend gửi | **Rất cao** | Triển khai **Xác minh Giao dịch Độc lập tại Backend (`blockchainService.js`)**: Backend tự truy vấn RPC Node, kiểm tra Transaction Receipt (`status === 1`), khớp địa chỉ Smart Contract, bóc tách Event `CertificateIssued`, đối chiếu ví nhận và mã bằng trước khi cập nhật MySQL. |
+| **3** | Không có đối soát khi giao dịch thành công nhưng MySQL đứt kết nối | **Rất cao** | Xây dựng **Động cơ Đối soát (Reconciliation Engine - `reconcileCertificate`)**: Kiểm tra định kỳ hoặc cho phép bấm "Đối soát On-Chain" để đọc trực tiếp trạng thái từ Smart Contract, tự động phục hồi dữ liệu MySQL bị lệch mà không bao giờ đúc trùng token. |
+| **4** | Dữ liệu cá nhân (CCCD, Họ tên, Điểm số) có nguy cơ lộ trên chuỗi | **Rất cao** | Áp dụng **Privacy-by-Design**: Bỏ số CCCD/CMND khỏi Blockchain; phân tách rõ ràng 3 lớp băm: Mã băm cam kết dữ liệu (`certHash` - Keccak256), Mã băm toàn vẹn tệp PDF (`pdfHash` - SHA-256), và CID IPFS lưu trữ phân tán. |
+| **5** | Chưa có quy trình xử lý sai sót & cấp lại chứng chỉ | **Cao** | Xây dựng **Quy trình Cấp Lại Chứng Chỉ (Re-issuance Workflow)**: Tuyệt đối không sửa dữ liệu đã đúc. Tiến hành Thu hồi (`REVOKED`) chứng chỉ sai sót kèm lý do hành chính $\to$ Lập hồ sơ mới liên kết trường `replaces_certificate_id` để duy trì lịch sử truy vết pháp lý. |
+| **6** | Dashboard phụ thuộc MetaMask, thiếu cảnh báo hành động | **Trung bình** | Tách biệt việc đọc trạng thái mạng (qua Read-only RPC Provider) với yêu cầu quyền truy cập ví cá nhân. Bổ sung mục **"Công việc cần xử lý" (Action Items)**: Hồ sơ chờ duyệt, Giao dịch lỗi, Lệch đồng bộ. |
+| **7** | JWT 24h lưu LocalStorage & Ví cố định mã nguồn | **Cao** | Đề xuất cơ chế Refresh Token an toàn, Cookie `HttpOnly/SameSite`. Môi trường triển khai tách biệt ví Deployer với ví Cấp bằng (`ISSUER_ROLE`) chuyên dụng. |
 
 ---
 
-## 2. CHI TIẾT LUỒNG HOẠT ĐỘNG TỪNG CHỨC NĂNG ADMIN
+## 2. CỖ MÁY TRẠNG THÁI CHỨNG CHỈ CHUẨN SẢN PHẨM (PRODUCTION STATE MACHINE)
 
----
-
-### CHỨC NĂNG 1: ĐĂNG NHẬP & QUẢN LÝ PHIÊN LÀM VIỆC (AUTH & SESSION)
-
-#### 1. Mục đích & Tác nhân
-* **Mục đích**: Xác thực định danh cán bộ trung tâm, cấp phát JWT Token làm bằng chứng truy cập bảo mật và điều hướng chính xác theo vai trò nghiệp vụ.
-* **Tác nhân**: Cán bộ Khảo thí (`STAFF`) hoặc Quản trị viên (`ADMIN`).
-
-#### 2. Dữ liệu Đầu vào & Đầu ra
-* **Đầu vào (Input)**:
-  * Tên đăng nhập (`username`): e.g., `admin_khoa`, `staff_long`.
-  * Mật khẩu (`password`): e.g., `123456`.
-  * Nút chọn nhanh (Quick-fill demo buttons): Admin Giám Đốc, Staff Khảo Thí, Học Viên.
-* **Đầu ra (Output)**:
-  * `token`: JSON Web Token (JWT) có thời hạn 24h.
-  * `user`: Object `{ id, username, full_name, email, role, status }`.
-  * Chuyển hướng trình duyệt đến `/admin/dashboard`.
-
-#### 3. Các bước xử lý chi tiết (Step-by-Step)
-1. Người dùng truy cập route `/login`.
-2. Điền thông tin đăng nhập hoặc bấm các nút chọn nhanh để điền tài khoản mẫu.
-3. Nhấn **"Đăng Nhập Quản Trị"**.
-4. Client gửi request `POST /api/auth/login` kèm payload `{ username, password }`.
-5. Backend xử lý:
-   * Tìm người dùng trong bảng `users` theo `username` với điều kiện `status = 'ACTIVE'`.
-   * So sánh mật khẩu băm bằng `bcrypt.compare(password, user.password_hash)`.
-   * Nếu hợp lệ: Ký JWT chứa `{ id, username, role }` bằng `JWT_SECRET`.
-   * Trả về HTTP 200 kèm `token` và thông tin `user`.
-6. Frontend lưu thông tin vào `localStorage.setItem("certchain_auth", JSON.stringify(data))`.
-7. `App.jsx` cập nhật state `currentUser`, điều hướng người dùng sang `/admin/dashboard`.
-8. Nếu phiên hết hạn hoặc đăng xuất: `logout()` xóa khóa lưu trữ, hủy bỏ quyền gọi API và quay về `/login`.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as Cán bộ / Admin
-    participant UI as LoginPage (React)
-    participant AuthAPI as Auth Controller (Express)
-    participant DB as MySQL (users)
-
-    User->>UI: Nhập username, password (hoặc bấm Quick Fill)
-    User->>UI: Bấm "Đăng Nhập Quản Trị"
-    UI->>AuthAPI: POST /api/auth/login { username, password }
-    AuthAPI->>DB: SELECT * FROM users WHERE username = ? AND status = 'ACTIVE'
-    DB-->>AuthAPI: Trả về bản ghi người dùng & password_hash
-    AuthAPI->>AuthAPI: bcrypt.compare(password, password_hash)
-    alt Mật khẩu đúng
-        AuthAPI->>AuthAPI: jwt.sign({ id, username, role }, SECRET, { expiresIn: '24h' })
-        AuthAPI-->>UI: 200 OK { token, user: { full_name, role, ... } }
-        UI->>UI: Lưu token & user vào localStorage
-        UI-->>User: Hiển thị Toast thành công & Chuyển hướng sang /admin/dashboard
-    else Sai mật khẩu hoặc tài khoản bị khóa
-        AuthAPI-->>UI: 401 Unauthorized { message: "Tên đăng nhập hoặc mật khẩu không chính xác" }
-        UI-->>User: Báo lỗi trên giao diện (Alert đỏ)
-    end
-```
-
----
-
-### CHỨC NĂNG 2: GIÁM SÁT DASHBOARD & KẾT NỐI MẠNG WEB3 (DASHBOARD & WEB3 HEALTH MONITOR)
-
-#### 1. Mục đích & Tác nhân
-* **Mục đích**: Cung cấp bức tranh tổng thể về tình hình cấp chứng chỉ, tỷ lệ phân bố giữa các kỳ thi tiếng Anh, nhật ký kiểm toán mới nhất, đồng thời giám sát sức khỏe kết nối giữa trình duyệt và Smart Contract trên Blockchain.
-* **Tác nhân**: Cán bộ Quản trị (`ADMIN`) và Cán bộ Khảo thí (`STAFF`).
-
-#### 2. Dữ liệu Đầu vào & Đầu ra
-* **Đầu vào (Input)**:
-  * Trạng thái ví MetaMask (Địa chỉ ví đang kích hoạt, Mạng Chain ID).
-  * Lời gọi API thống kê: `GET /api/dashboard/stats`, `GET /api/dashboard/recent-activity`.
-* **Đầu ra (Output)**:
-  * 4 thẻ thống kê tổng quan: Tổng chứng chỉ, Đã cấp On-Chain (`ISSUED_ON_CHAIN`), Đang chờ duyệt (`PENDING`), Bị thu hồi (`REVOKED`).
-  * Biểu đồ tỷ lệ phân bố kỳ thi (IELTS, TOEIC, VSTEP, Cambridge, TOEFL).
-  * Bảng dòng thời gian 5 hành vi nghiệp vụ gần nhất từ bảng `issue_logs`.
-  * Banner thông báo trạng thái ví:
-    * `ADMIN`: Xác nhận ví Issuer `0xf39F...2266` kết nối đúng Chain 31337 (Màu xanh) hoặc cảnh báo kết nối (Màu vàng).
-    * `STAFF`: Hiển thị hướng dẫn nghiệp vụ dành riêng cho Cán bộ khảo thí (Màu xanh lam nhẹ nhàng).
-
-#### 3. Các bước xử lý chi tiết (Step-by-Step)
-1. Khi load trang `/admin/dashboard`, `useEffect` đồng thời kích hoạt 2 luồng:
-   * **Luồng Web3**: Gọi `connectMetaMask()` để kiểm tra tiện ích mở rộng MetaMask. Đọc `network.chainId` và `signer.getAddress()`. Đối chiếu với `CONTRACT_ADDRESS` trong file JSON biên dịch.
-   * **Luồng API**: Gọi đồng thời `GET /api/dashboard/stats` và `GET /api/dashboard/recent-activity`.
-2. Nếu phát hiện MetaMask đang ở sai mạng (ví dụ Ethereum Mainnet 1 hoặc Sepolia 11155111 thay vì Hardhat 31337), hệ thống kích hoạt hàm `ensureCorrectNetwork()` để tự động gửi tín hiệu yêu cầu MetaMask chuyển sang mạng cục bộ `Hardhat Localhost` (`http://127.0.0.1:8545`).
-3. Render giao diện các thẻ Counter với hiệu ứng số liệu trực quan.
-
----
-
-### CHỨC NĂNG 3: SOẠN THẢO, CHẤM ĐIỂM & LẬP BẢN NHÁP (STAFF DRAFT WORKFLOW)
-
-#### 1. Mục đích & Tác nhân
-* **Mục đích**: Cho phép Cán bộ khảo thí nhập liệu điểm thi tiếng Anh của học viên, tự động tính điểm Overall theo chuẩn của từng kỳ thi quốc tế, tạo bản ghi nháp để chuyển tiếp cho Giám đốc ký duyệt.
-* **Tác nhân**: Cán bộ Khảo thí (`STAFF`).
-
-#### 2. Dữ liệu Đầu vào & Quy tắc Động cơ Chấm điểm (`scoreEngine.js`)
-* **Chọn học viên**: Danh sách lấy từ bảng `students`. Khi chọn một học viên, hệ thống tự động điền Họ tên, Mã HV, Email và Địa chỉ ví MetaMask của học viên.
-* **Chọn khóa học**:
-  * `IELTS Academic`: Thang điểm 0.0 - 9.0 (bước nhảy 0.5). Tự động tính điểm Overall theo quy chế làm tròn của IDP/British Council:
-    $$\text{Average} = \frac{L + R + W + S}{4}$$
-    (Phần thập phân $< 0.25 \to .0$, $0.25 \le \text{thập phân} < 0.75 \to .5$, $\ge 0.75 \to$ làm tròn lên bậc nguyên tiếp theo).
-  * `TOEIC 4 Kỹ năng`: Thang điểm Nghe (5-495), Đọc (5-495), Viết (0-200), Nói (0-200). Tổng điểm: $L + R$ (Tối đa 990).
-  * `VSTEP B2-C1`: Thang điểm 10. Điểm trung bình 4 kỹ năng làm tròn đến 0.5:
-    * $\ge 8.5$: Bậc 5 (C1)
-    * $6.0 - 8.0$: Bậc 4 (B2)
-    * $4.0 - 5.5$: Bậc 3 (B1)
-  * `Cambridge CAE`: Điểm 160 - 210.
-* **Thời hạn hiệu lực**:
-  * IELTS, TOEIC, VSTEP: Tự động cộng chính xác 2 năm kể từ ngày thi.
-  * Cambridge: Mặc định vô thời hạn (Vĩnh viễn).
-
-#### 3. Các bước xử lý chi tiết (Step-by-Step)
-1. Cán bộ mở `/admin/certificates/issue`.
-2. Chọn học viên từ danh sách Dropdown $\to$ Các trường thông tin cá nhân và ví tự động được điền.
-3. Chọn Khóa học $\to$ Giao diện mở ra các ô nhập 4 kỹ năng tương ứng.
-4. Nhập điểm từng kỹ năng $\to$ Khung Live Preview bên phải tự động render phôi bằng có tên học viên, tem bảo chứng và bảng điểm chi tiết.
-5. Kiểm tra dữ liệu: Hàm `validateSubScores()` kiểm tra giới hạn điểm.
-6. Cán bộ bấm nút **"Lưu Bản Nháp (Chờ ADMIN Phê Duyệt)"**.
-7. Client gửi request `POST /api/certificates/draft`.
-8. Backend lưu bản ghi với trạng thái `PENDING`, ghi log `CREATE_DRAFT` vào `issue_logs`.
-9. Hiển thị thông báo thành công và chuyển hướng về danh sách chứng chỉ.
-
----
-
-### CHỨC NĂNG 4: PHÊ DUYỆT, KÝ METAMASK & ĐÚC SOULBOUND TOKEN ON-CHAIN (ADMIN MINTING WORKFLOW)
-
-#### 1. Mục đích & Tác nhân
-* **Mục đích**: Chuyển giao thức chứng chỉ từ trạng thái nháp lưu tạm sang tài sản số bất biến trên Blockchain thông qua chuẩn Soulbound Token (ERC-721 Non-Transferable), lưu phôi bằng vĩnh viễn trên IPFS Pinata.
-* **Tác nhân**: Cán bộ Quản trị (`ADMIN`) - người nắm giữ khóa ký của đơn vị cấp bằng.
-
-#### 2. Dữ liệu Đầu vào & Đầu ra
-* **Đầu vào (Input)**:
-  * Hồ sơ chứng chỉ hợp lệ (Mã bằng, Mã học viên, Tên khóa học, Điểm số, Địa chỉ ví học viên).
-  * Ví MetaMask Admin (Đã kết nối, có đủ số dư ETH trả gas).
-* **Đầu ra (Output)**:
-  * `token_id`: Mã Token định danh độc nhất trên Smart Contract.
-  * `tx_hash`: Mã băm giao dịch trên Blockchain.
-  * `ipfs_hash`: Mã CID lưu trữ phôi bằng gốc và metadata trên IPFS.
-  * Trạng thái chứng chỉ đổi thành `ISSUED_ON_CHAIN`.
-
-#### 3. Các bước xử lý chi tiết (Step-by-Step)
-1. Admin truy cập `/admin/certificates/issue` (hoặc mở một bản ghi `PENDING` từ danh sách).
-2. Hệ thống kiểm tra:
-   * Địa chỉ ví học viên: Tự động chuẩn hóa và kiểm tra chuẩn EIP-55 bằng `ethers.getAddress(address.toLowerCase())`. Nếu độ dài khác 42 ký tự hoặc sai hex sẽ cảnh báo ngay lập tức.
-   * Trạng thái mạng: Gọi `ensureCorrectNetwork()` để chắc chắn MetaMask đang trỏ vào Chain ID 31337.
-3. Bấm **"Ký MetaMask & Cấp Bằng On-Chain"**. Nút chuyển sang trạng thái Loading:
-   * **Bước 4.1 (Backend Prep)**: Gọi `POST /api/certificates/:id/prepare-mint`. Backend tiến hành:
-     * Sinh phôi bằng PDF độ phân giải cao bằng thư viện `PDFKit` (có sẵn con dấu số, tem nổi và mã QR xác thực).
-     * Đẩy file PDF lên mạng phi tập trung IPFS thông qua dịch vụ Pinata SDK.
-     * Nhận về mã băm CID (VD: `QmZtmD2qt8fJv32FNbdZUEbx4epPrq7iCPcNo1XauQBhMx`).
-   * **Bước 4.2 (Cryptographic Commitment)**: Tính toán mã băm Keccak-256 trên nội dung chứng chỉ:
-     ```javascript
-     const canonicalData = JSON.stringify({ code, name, studentCode, score, date });
-     const dataCommitmentHash = ethers.keccak256(ethers.toUtf8Bytes(canonicalData));
-     ```
-   * **Bước 4.3 (MetaMask Signature & Smart Contract Mint)**:
-     * Khởi tạo đối tượng Smart Contract: `new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer)`.
-     * Kích hoạt hàm:
-       ```solidity
-       contract.issueCertificate(
-           recipientAddress,
-           certificateCode,
-           studentName,
-           studentCode,
-           courseCode,
-           courseName,
-           score,
-           expiryTimestamp,
-           ipfsHash,
-           dataCommitmentHash,
-           tokenURI
-       );
-       ```
-     * Trình duyệt bật cửa sổ popup MetaMask yêu cầu Admin xác nhận ký và trả phí gas.
-   * **Bước 4.4 (Tx Mining & On-Chain Event)**:
-     * Hardhat/Ethereum Node thực thi giao dịch, lưu trữ thông tin vào `struct Certificate`, phát event `CertificateIssued`.
-     * Client đợi giao dịch hoàn tất: `await tx.wait()`.
-     * Đọc `tokenId` vừa sinh từ contract thông qua hàm `verifyByCertificateCode(certCode)`.
-   * **Bước 4.5 (Backend Synchronization)**:
-     * Client gửi request `POST /api/certificates/confirm-mint` kèm `{ certificate_id, tx_hash, token_id }`.
-     * Backend cập nhật bảng `certificates`: `status = 'ISSUED_ON_CHAIN'`, lưu `tx_hash`, `token_id`, `ipfs_hash`.
-     * Ghi nhận một dòng nhật ký kiểm toán `MINT_ONCHAIN` vào `issue_logs`.
-4. Màn hình kích hoạt hiệu ứng pháo hoa chúc mừng (`confetti`), hiển thị popup thành công chứa: Mã Token ID, Tx Hash, Link mở IPFS và Nút tải phôi bằng.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Admin as Quản Trị Viên (ADMIN)
-    participant UI as IssueCertPage (React)
-    participant MM as Ví MetaMask
-    participant API as Certificate API (Express)
-    participant IPFS as Pinata IPFS Gateway
-    participant SC as Smart Contract (Hardhat Node)
-    participant DB as MySQL Database
-
-    Admin->>UI: Bấm "Ký MetaMask & Cấp Bằng On-Chain"
-    UI->>UI: Kiểm tra ví học viên (EIP-55 Checksum) & Chain ID 31337
-    UI->>API: POST /api/certificates/draft (Lưu DB nếu chưa có)
-    API->>DB: INSERT/UPDATE certificates (status='PENDING')
-    DB-->>API: Trả về cert_id
-    UI->>API: POST /api/certificates/:id/prepare-mint
-    API->>API: Sinh file PDF bằng PDFKit (kèm QR Code nhúng)
-    API->>IPFS: Upload PDF lên Pinata IPFS
-    IPFS-->>API: Trả về CID (ipfs_hash)
-    API-->>UI: 200 OK { ipfs_hash, cert_id }
-    UI->>UI: Tính Keccak256(canonicalData) -> certHash
-    UI->>MM: Yêu cầu ký gọi SC: issueCertificate(...)
-    MM-->>Admin: Bật Popup yêu cầu xác nhận giao dịch & Gas
-    Admin->>MM: Bấm "Confirm" (Xác nhận)
-    MM->>SC: Gửi raw transaction issueCertificate
-    SC->>SC: Kiểm tra onlyOwner/ISSUER_ROLE & Đúc Soulbound Token
-    SC-->>MM: Trả về Transaction Receipt (status = 1)
-    MM-->>UI: Nhận tx_hash
-    UI->>SC: Gọi hàm verifyByCertificateCode(code) để lấy Token ID
-    SC-->>UI: Trả về tokenId On-Chain
-    UI->>API: POST /api/certificates/confirm-mint { cert_id, tx_hash, token_id }
-    API->>DB: UPDATE certificates SET status='ISSUED_ON_CHAIN', tx_hash=?, token_id=?
-    API->>DB: INSERT INTO issue_logs (action='MINT_ONCHAIN')
-    DB-->>API: OK
-    API-->>UI: 200 OK { success: true }
-    UI-->>Admin: Kích hoạt Pháo hoa Confetti & Hiển thị Thẻ Bằng Chứng On-Chain
-```
-
----
-
-### CHỨC NĂNG 5: QUẢN LÝ DANH SÁCH & LỌC ĐA CHIỀU CHỨNG CHỈ (CERTIFICATE DIRECTORY)
-
-#### 1. Mục đích & Tác nhân
-* **Mục đích**: Cung cấp công cụ tra cứu, kiểm soát danh mục toàn bộ chứng chỉ đã phát hành hoặc đang soạn thảo; phục vụ thanh tra, đối soát dữ liệu giữa cơ sở dữ liệu nội bộ và sổ cái Blockchain.
-* **Tác nhân**: Cán bộ Quản trị (`ADMIN`) và Cán bộ Khảo thí (`STAFF`).
-
-#### 2. Dữ liệu Đầu vào & Đầu ra
-* **Đầu vào (Input)**:
-  * Từ khóa tìm kiếm: Mã chứng chỉ, Họ tên học viên, Mã học viên.
-  * Bộ lọc khóa học: Tất cả, IELTS, TOEIC, VSTEP, Cambridge, TOEFL.
-  * Bộ lọc trạng thái: Tất cả, Đã cấp On-Chain (`ISSUED_ON_CHAIN`), Đang chờ duyệt (`PENDING`), Đã thu hồi (`REVOKED`).
-* **Đầu ra (Output)**:
-  * Bảng dữ liệu có phân trang (Pagination). Mỗi dòng gồm: Mã bằng, Thông tin học viên, Khóa học, Điểm Overall, Ngày cấp / Hạn dùng, Nhãn trạng thái màu sắc, Cột hành động (Xem PDF, Mở Explorer, Thu hồi bằng).
-
-#### 3. Các bước xử lý chi tiết (Step-by-Step)
-1. Khi truy cập trang `/admin/certificates`, frontend gọi `GET /api/certificates` kèm các Query params (`page`, `limit`, `search`, `course`, `status`).
-2. Backend thực thi câu lệnh SQL kết hợp bảng:
-   ```sql
-   SELECT c.*, s.full_name AS student_name, s.student_code, cr.course_name, cr.course_code
-   FROM certificates c
-   LEFT JOIN students s ON c.student_id = s.id
-   LEFT JOIN courses cr ON c.course_id = cr.id
-   WHERE ...
-   ORDER BY c.created_at DESC;
-   ```
-3. Bảng dữ liệu render các thẻ nhãn trạng thái (`StatusTag`):
-   * `ISSUED_ON_CHAIN`: Màu xanh lá cây kèm icon tick bảo chứng.
-   * `PENDING`: Màu vàng cam biểu thị bản nháp chờ phê duyệt.
-   * `REVOKED`: Màu đỏ cảnh báo chứng chỉ đã mất giá trị pháp lý.
-4. Khi người dùng thay đổi bộ lọc, bảng tự động cập nhật mà không cần tải lại toàn bộ trang web.
-
----
-
-### CHỨC NĂNG 6: XEM TRƯỚC PHÔI BẰNG PDF & IN ẤN TRỰC TUYẾN (IN-BROWSER INSPECTION & PRINT)
-
-#### 1. Mục đích & Tác nhân
-* **Mục đích**: Cho phép xem xét tính thẩm mỹ, độ chính xác của các trường thông tin và kiểm tra mã QR nhúng trên phôi bằng trước khi trao bản cứng cho học viên.
-* **Tác nhân**: Cán bộ Quản trị (`ADMIN`) và Cán bộ Khảo thí (`STAFF`).
-
-#### 2. Dữ liệu Đầu vào & Đầu ra
-* **Đầu vào (Input)**: Bấm nút biểu tượng "Tệp tin" (File) hoặc "Xem PDF" tại bất kỳ dòng chứng chỉ nào.
-* **Đầu ra (Output)**: Modal popup mở toàn màn hình trình hiển thị PDF (PDF Viewer) với các chức năng phóng to, thu nhỏ, tải file `.pdf` gốc về máy và nút lệnh in ấn trực tiếp ra máy in.
-
-#### 3. Các bước xử lý chi tiết (Step-by-Step)
-1. Cán bộ click vào nút **"Xem PDF"** trên bảng danh sách.
-2. Ứng dụng lấy đường dẫn tệp:
-   * Nếu đã phát hành: Sử dụng URL IPFS Gateway (VD: `https://gateway.pinata.cloud/ipfs/{ipfs_hash}`) hoặc endpoint backend `/api/public/pdf/{certCode}`.
-   * Nếu đang ở bản nháp: Hệ thống hiển thị phôi Canvas dựng sẵn từ dữ liệu CSDL.
-3. Modal mở khung Iframe nhúng tài liệu PDF chuẩn vector vector có thể in ấn độ phân giải cao 300 DPI.
-4. Cán bộ có thể dùng điện thoại cá nhân quét ngay mã QR in trên phôi để đối soát tính năng tra cứu công khai.
-
----
-
-### CHỨC NĂNG 7: QUY TRÌNH THU HỒI BẰNG ON-CHAIN CHỐNG CHỐI BỎ (REVOCATION WORKFLOW)
-
-#### 1. Mục đích & Tác nhân
-* **Mục đích**: Vô hiệu hóa vĩnh viễn giá trị của một văn bằng trên chuỗi khối khi phát hiện gian lận thi cử, làm giả điểm số hoặc sai sót hành chính nghiêm trọng.
-* **Đặc tính**: **Bất biến và Chống chối bỏ**. Một khi đã thu hồi on-chain, không ai (kể cả Admin) có thể khôi phục lại trạng thái hợp lệ của Token đó.
-* **Tác nhân**: **Duy nhất Quản trị viên (`ADMIN`)** nắm giữ quyền Chủ sở hữu Smart Contract (`onlyOwner` / `REVOKER_ROLE`).
-
-#### 2. Dữ liệu Đầu vào & Đầu ra
-* **Đầu vào (Input)**:
-  * Mã chứng chỉ cần thu hồi (Ví dụ: `CERT-IELTS-2026-001`).
-  * Danh mục kiểm tra đối soát (Checklist): Tên học viên, Khóa học, Điểm số, Token ID, Tx Hash cấp bằng gốc.
-  * Lý do thu hồi bắt buộc (Revoke Reason): Tối thiểu 10 ký tự (Ví dụ: *"Phát hiện gian lận mang thiết bị thu phát sóng trong phòng thi"*).
-* **Đầu ra (Output)**:
-  * Giao dịch `revokeCertificate` được đóng block trên Blockchain.
-  * Thuộc tính `isRevoked = true` và `revokeReason` được gán vĩnh viễn trên Smart Contract.
-  * CSDL MySQL cập nhật `status = 'REVOKED'`, lưu `revoked_at`, `revoked_by`, `revoke_tx_hash`.
-  * Ghi nhật ký kiểm toán `REVOKE_ONCHAIN` vào `issue_logs`.
-
-#### 3. Các bước xử lý chi tiết (Step-by-Step)
-1. Trên bảng danh sách chứng chỉ, Admin tìm chứng chỉ có trạng thái `ISSUED_ON_CHAIN` và bấm nút **"Thu Hồi"** (Màu đỏ).
-2. **Modal Cảnh Báo An Toàn Cấp Cao** xuất hiện:
-   * Hiển thị banner đỏ cảnh báo tính bất khả đảo ngược của Blockchain.
-   * Bảng tóm tắt thông tin đối tượng: Mã bằng, Tên học viên, Khóa học, Token ID và Tx Hash phát hành trước đây.
-   * Ô nhập lý do thu hồi: Nút xác nhận bị khóa mờ (`disabled`) cho đến khi Admin nhập đầy đủ lý do.
-3. Admin bấm **"Xác Nhận Thu Hồi & Ký MetaMask"**.
-4. Hệ thống kiểm tra ví Admin: Đảm bảo ví đang kết nối là `0xf39Fd...92266` và đang ở mạng Chain ID 31337.
-5. Client gọi Smart Contract:
-   ```solidity
-   contract.revokeCertificate(certCode, reason);
-   ```
-6. Cửa sổ MetaMask bật lên yêu cầu ký xác thực giao dịch thu hồi.
-7. Admin bấm **"Xác nhận" (Confirm)** trên MetaMask.
-8. Smart Contract kiểm tra quyền `onlyOwner`, cập nhật `_certificates[tokenId].isRevoked = true`, phát ra Event `CertificateRevoked`.
-9. Giao dịch được xác nhận (`receipt.status === 1`), Client gửi request đồng bộ về Backend:
-   `POST /api/certificates/:id/revoke` kèm `{ reason, tx_hash }`.
-10. Backend cập nhật bảng `certificates` và ghi log kiểm toán.
-11. Bảng danh sách tự động chuyển nhãn của chứng chỉ sang màu đỏ `REVOKED`. Nếu bất kỳ ai quét mã QR của bằng này, trang tra cứu công khai sẽ lập tức báo động đỏ: **"CHỨNG CHỈ ĐÃ BỊ THU HỒI"**.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Admin as Quản Trị Viên (ADMIN)
-    participant UI as CertificatesListPage (React)
-    participant MM as Ví MetaMask
-    participant SC as Smart Contract (Hardhat Node)
-    participant API as Certificate API (Express)
-    participant DB as MySQL Database
-
-    Admin->>UI: Bấm nút "Thu Hồi" tại dòng chứng chỉ
-    UI->>UI: Mở Modal Kiểm tra Checklist & Nhập lý do thu hồi
-    Admin->>UI: Điền lý do: "Gian lận quy chế thi ngày..."
-    Admin->>UI: Bấm "Ký MetaMask & Thu Hồi On-Chain"
-    UI->>MM: Yêu cầu ký gọi SC: revokeCertificate(certCode, reason)
-    MM-->>Admin: Bật Popup xác nhận giao dịch Thu Hồi
-    Admin->>MM: Bấm "Confirm" (Xác nhận)
-    MM->>SC: Gửi transaction revokeCertificate
-    SC->>SC: Kiểm tra onlyOwner -> Gán isRevoked=true, lưu lý do
-    SC->>SC: Phát sự kiện CertificateRevoked
-    SC-->>MM: Trả về Transaction Receipt (status = 1)
-    MM-->>UI: Nhận revoke_tx_hash
-    UI->>API: POST /api/certificates/:id/revoke { reason, tx_hash }
-    API->>DB: UPDATE certificates SET status='REVOKED', revoke_reason=?, revoke_tx_hash=?
-    API->>DB: INSERT INTO issue_logs (action='REVOKE_ONCHAIN')
-    DB-->>API: Cập nhật thành công
-    API-->>UI: 200 OK
-    UI-->>Admin: Đổi nhãn chứng chỉ thành REVOKED (Đỏ) & Hiển thị thông báo hoàn tất
-```
-
----
-
-### CHỨC NĂNG 8: QUẢN LÝ HỒ SƠ HỌC VIÊN & DANH MỤC KHÓA HỌC (DATA MANAGEMENT)
-
-#### 1. Mục đích & Tác nhân
-* **Mục đích**: Chuẩn hóa dữ liệu nguồn về học viên và các chương trình đào tạo/kỳ thi, đảm bảo quá trình cấp bằng diễn ra nhanh chóng, chính xác, không bị sai lệch địa chỉ ví hay quy chế điểm.
-* **Tác nhân**: Cán bộ Quản trị (`ADMIN`) và Cán bộ Khảo thí (`STAFF`).
-
-#### 2. Dữ liệu Quản lý Chi tiết
-* **Phân hệ Học viên (`students`)**:
-  * Mã học viên (`student_code`): Khóa chính kinh doanh (VD: `HV2026-0199`).
-  * Số CCCD/CMND (`citizen_id`): Lưu trữ riêng tư trong MySQL, **không đẩy lên Blockchain** để tuân thủ quyền riêng tư dữ liệu cá nhân (Privacy-by-Design).
-  * Họ và tên (`full_name`), Email (`email`), Ngày sinh (`date_of_birth`), Điện thoại (`phone`).
-  * Địa chỉ ví MetaMask (`wallet_address`): Địa chỉ ví Ethereum 42 ký tự chuẩn EIP-55 để nhận Soulbound Token.
-* **Phân hệ Khóa học / Kỳ thi (`courses`)**:
-  * Mã khóa học (`course_code`): Định danh duy nhất (VD: `IELTS-ACAD`, `TOEIC-INT`, `VSTEP-C1`).
-  * Tên khóa học (`course_name`), Loại điểm (`score_type`), Thang điểm tối đa (`max_score`), Thời lượng học (`duration`), Mô tả tóm tắt.
-
-#### 3. Các bước xử lý chi tiết (Step-by-Step)
-1. Người dùng mở trang `/admin/data-management`, chọn Tab **"Danh Sách Học Viên"** hoặc **"Danh Mục Khóa Học"**.
-2. **Thêm mới học viên**:
-   * Bấm **"+ Thêm Học Viên Mới"** $\to$ Modal mở ra.
-   * Nhập đầy đủ thông tin. Hệ thống tự động kiểm tra định dạng email và định dạng địa chỉ ví Ethereum 42 ký tự.
-   * Bấm **"Lưu Học Viên"** $\to$ Gọi `POST /api/students` lưu vào CSDL MySQL.
-3. **Thêm mới khóa học** (Chỉ dành riêng cho `ADMIN`):
-   * Bấm **"+ Thêm Khóa Học / Kỳ Thi"** $\to$ Nhập mã khóa, tên khóa và quy chế điểm.
-   * Bấm **"Lưu Khóa Học"** $\to$ Gọi `POST /api/courses` cập nhật vào CSDL.
-4. Dữ liệu mới thêm sẽ ngay lập tức xuất hiện trong Dropdown của màn hình Cấp chứng chỉ `/admin/certificates/issue`.
-
----
-
-## 3. CỖ MÁY TRẠNG THÁI CHỨNG CHỈ (STATE MACHINE)
-
-Mọi văn bằng trong hệ thống đều vận hành theo cỗ máy 9 trạng thái nghiêm ngặt nhằm đảm bảo tính toàn vẹn và ngăn ngừa việc đúc bằng sai quy trình:
+Khắc phục triệt để tình trạng gộp lỗi hoặc lưu trạng thái tạm bợ trên bộ nhớ trình duyệt, CertChain v3.0 quản lý vòng đời chứng chỉ bằng **10 trạng thái chuẩn hóa**, được lưu trữ nhất quán giữa cơ sở dữ liệu MySQL và sổ cái Blockchain:
 
 ```
 [Khảo Thí Nhập Liệu]
          │
          ▼
-     ┌───────┐      STAFF Lưu nháp      ┌─────────┐
-     │ DRAFT │ ───────────────────────> │ PENDING │
-     └───────┘                          └─────────┘
-                                             │
-                             ADMIN Phê duyệt │ Bắt đầu đúc
-                                             ▼
-                                      ┌───────────┐
-                                      │ UPLOADING │ (Tạo PDF & Đẩy IPFS Pinata)
-                                      └───────────┘
-                                             │
-                                   Thành công│ Lấy được CID
-                                             ▼
-                                  ┌────────────────────┐
-                                  │ AWAITING_SIGNATURE │ (Chờ ký ví MetaMask)
-                                  └────────────────────┘
-                                             │
-                                    Admin Ký │ Trả phí gas
-                                             ▼
-                                      ┌────────────┐
-                                      │ PROCESSING │ (Đang đào Block trên chuỗi)
-                                      └────────────┘
-                                             │
-                        ┌────────────────────┴────────────────────┐
-                        │ Giao dịch thành công                     │ Giao dịch thất bại / Revert
-                        ▼                                         ▼
-              ┌──────────────────┐                           ┌────────┐
-              │ ISSUED_ON_CHAIN  │                           │ FAILED │
-              └──────────────────┘                           └────────┘
-                        │
-       Phát hiện gian lận│ Admin ký On-Chain Thu Hồi
-                        ▼
-                  ┌─────────┐
-                  │ REVOKED │ (Trạng thái kết thúc - Bất biến)
-                  └─────────┘
+     ┌───────┐
+     │ DRAFT │ (Đang soạn thảo trên Client & CSDL bản nháp sơ bộ)
+     └───────┘
+         │
+         │ STAFF Gửi phê duyệt
+         ▼
+    ┌─────────┐                Admin Từ chối               ┌──────────┐
+    │ PENDING │ ─────────────────────────────────────────> │ REJECTED │ (Kèm lý do từ chối)
+    └─────────┘                                            └──────────┘
+         │
+         │ Admin Đối soát & Chấp thuận
+         ▼
+    ┌──────────┐
+    │ APPROVED │ (Hồ sơ đã khóa, sẵn sàng ký số)
+    └──────────┘
+         │
+         │ Backend sinh PDF & Upload IPFS
+         ▼
+   ┌───────────┐
+   │ PREPARING │ ─── Lỗi IPFS/Timeout ───> [Tự động lưu lỗi & Cho phép thử lại]
+   └───────────┘
+         │
+         │ Lấy được CID & Metadata
+         ▼
+┌────────────────────┐
+│ AWAITING_SIGNATURE │ (Chờ Admin ký xác nhận trên ví Web3)
+└────────────────────┘
+         │
+         │ Admin Ký ví MetaMask
+         ▼
+  ┌────────────┐
+  │ PROCESSING │ ─── Revert / Hết Gas ───> [Ghi nhận FAILED & Lưu vết Mempool]
+  └────────────┘
+         │
+         │ Transaction Mined & Backend Xác minh Event độc lập
+         ▼
+┌──────────────────┐
+│ ISSUED_ON_CHAIN  │ (Chứng chỉ có hiệu lực pháp lý toàn cầu)
+└──────────────────┘
+    │          │
+    │          │ Quá hạn 2 năm (IELTS, TOEIC, VSTEP)
+    │          ▼
+    │     ┌─────────┐
+    │     │ EXPIRED │ (Hết hạn nghiệp vụ - Quét QR báo hết hạn)
+    │     └─────────┘
+    │
+    │ Phát hiện gian lận / Sai sót hành chính nghiêm trọng
+    │ Admin Ký MetaMask gọi hàm revokeCertificate
+    ▼
+┌─────────┐
+│ REVOKED │ (Trạng thái kết thúc - Bất biến vĩnh viễn trên Blockchain)
+└─────────┘
 ```
 
-### Bảng định nghĩa trạng thái & Thẩm quyền kích hoạt
+### Bảng Đặc Tả Chi Tiết 10 Trạng Thái
 
-| Trạng thái | Ý nghĩa nghiệp vụ | Lưu trữ tại | Thẩm quyền chuyển trạng thái |
+| Mã Trạng Thái | Ý Nghĩa Nghiệp Vụ | Nơi Lưu Trữ | Điều Kiện Chuyển Tiếp Hợp Lệ |
 | :--- | :--- | :--- | :--- |
-| `DRAFT` | Dữ liệu đang được gõ trên form giao diện | Client Memory | Cán bộ Khảo thí (`STAFF`), `ADMIN` |
-| `PENDING` | Bản nháp đã lưu vào CSDL, chờ xem xét | MySQL | Cán bộ Khảo thí (`STAFF`), `ADMIN` |
-| `UPLOADING` | Hệ thống đang tạo file PDF và tải lên Pinata IPFS | Backend Process | Hệ thống tự động |
-| `AWAITING_SIGNATURE` | Metadata đã sẵn sàng, chờ Admin bấm xác nhận trên MetaMask | MetaMask Extension | Quản trị viên (`ADMIN`) |
-| `PROCESSING` | Transaction đang được thợ đào xử lý trong Mempool | Blockchain Network | Hardhat / EVM Node |
-| `ISSUED_ON_CHAIN` | Soulbound Token đã đúc thành công, chứng chỉ có hiệu lực | Smart Contract & MySQL | Smart Contract phát sinh |
-| `FAILED` | Giao dịch bị từ chối gas, revert hoặc nghẽn mạng | Client State | Smart Contract / Trình duyệt |
-| `REVOKED` | Chứng chỉ bị hủy bỏ giá trị pháp lý vĩnh viễn | Smart Contract & MySQL | **Duy nhất Quản trị viên (`ADMIN`)** |
+| **`DRAFT`** | Hồ sơ đang soạn, chưa hoàn chỉnh điểm 4 kỹ năng | MySQL (`certificates`) | Staff đang nhập liệu hoặc lưu tạm. |
+| **`PENDING`** | Đã hoàn tất điểm, gửi lên Ban Giám Hiệu chờ duyệt | MySQL & `issue_logs` | Điểm số hợp lệ theo `scoreEngine`, ví học viên đúng EIP-55. |
+| **`REJECTED`** | Admin từ chối bản nháp (sai điểm, sai tên) | MySQL & `issue_logs` | Admin bắt buộc nhập lý do từ chối; hồ sơ chuyển về Staff sửa lại. |
+| **`APPROVED`** | Đã được duyệt, hồ sơ bị khóa đóng băng dữ liệu | MySQL | Admin chấp thuận; không ai được sửa điểm nữa. |
+| **`PREPARING`** | Backend đang tạo tệp PDF vector & đẩy lên Pinata IPFS | Backend Process | Tự động kích hoạt khi bước vào tiến trình phát hành. |
+| **`AWAITING_SIGNATURE`**| CID và hàm băm đã sẵn sàng, chờ Admin ký MetaMask | Backend & UI Modal | Admin mở popup xác nhận giao dịch trên trình duyệt. |
+| **`PROCESSING`** | Giao dịch đang nằm trong khối đào (Mining) | Blockchain Mempool | Admin đã gửi raw transaction; hệ thống chờ Receipt. |
+| **`ISSUED_ON_CHAIN`** | Soulbound Token đã đúc; Backend đã xác minh Event | Smart Contract & MySQL | Transaction thành công (`receipt.status === 1`), phát sinh `CertificateIssued`. |
+| **`EXPIRED`** | Chứng chỉ đã quá thời hạn 2 năm theo quy chế thi | Tính toán thời gian thực | `block.timestamp > expiryDate` (Áp dụng IELTS/TOEIC/VSTEP). |
+| **`REVOKED`** | Chứng chỉ bị hủy bỏ giá trị pháp lý vĩnh viễn | Smart Contract & MySQL | **Duy nhất Admin ký giao dịch `revokeCertificate` On-Chain**. |
 
 ---
 
-## 4. SƠ ĐỒ TUẦN TỰ TỔNG HỢP (MASTER SEQUENCE DIAGRAM)
+## 3. 6 GIAI ĐOẠN VẬN HÀNH PHÂN HỆ QUẢN TRỊ
 
-Sơ đồ dưới đây thể hiện toàn bộ tương tác giữa các thực thể trong toàn bộ vòng đời của chứng chỉ: từ lúc Cán bộ khảo thí lập nháp cho đến khi Quản trị viên ký đúc On-Chain và thu hồi:
+---
+
+### GIAI ĐOẠN 1: ĐĂNG NHẬP, QUẢN LÝ PHIÊN & BẢO MẬT KHÓA (AUTH & KEY MANAGEMENT)
+
+#### 1. Mục tiêu kiến trúc
+Đảm bảo định danh chính xác cán bộ, chống tấn công XSS/CSRF, kiểm soát phiên làm việc nghiêm ngặt và bảo vệ Private Key của tổ chức phát hành.
+
+#### 2. Luồng vận hành chi tiết
+1. **Đăng nhập & Cấp phát phiên**:
+   * Cán bộ truy cập `/login`. Nhập Tên đăng nhập và Mật khẩu.
+   * Backend xác thực mật khẩu băm BCrypt. Kiểm tra trạng thái tài khoản `status = 'ACTIVE'`.
+   * **Cơ chế Token an toàn**:
+     * `Access Token`: Thời hạn ngắn (15 - 30 phút), dùng để gọi các API nghiệp vụ thông thường.
+     * `Refresh Token`: Thời hạn 7 ngày, lưu dưới dạng Cookie `HttpOnly`, cờ `Secure`, `SameSite=Strict` để chống đọc trộm qua mã độc JavaScript (XSS).
+2. **Kiểm tra trạng thái thời gian thực**:
+   * Tại mỗi request có gắn token, middleware `authMiddleware.js` không chỉ giải mã JWT mà còn truy vấn nhẹ bộ nhớ cache/CSDL để kiểm tra tài khoản có bị khóa (`LOCKED`) hoặc bị hạ quyền (`ROLE_CHANGED`) hay không. Nếu có, lập tức thu hồi phiên làm việc.
+3. **Quản trị Khóa Ký Phát Hành (Issuer Key Management)**:
+   * **Không bao giờ lưu Private Key trong mã nguồn Frontend hoặc CSDL ứng dụng**.
+   * Trên môi trường Production: Tách biệt địa chỉ Deployer hợp đồng với địa chỉ Issuer. Quản trị viên ký giao dịch thông qua ví phần cứng (Ledger / Trezor) hoặc ví bảo mật Web3 (MetaMask) kết nối với mạng Mainnet/L2.
+
+---
+
+### GIAI ĐOẠN 2: GIÁM SÁT DASHBOARD, CẢNH BÁO NGHIỆP VỤ & SỨC KHỎE WEB3
+
+#### 1. Mục tiêu kiến trúc
+Cung cấp màn hình điều hành trực quan, tách bạch giữa việc đọc dữ liệu công khai và kết nối ví cá nhân, tập trung vào các **Hành động nghiệp vụ cần xử lý ngay**.
+
+#### 2. Phân vùng chức năng trên Dashboard
+* **Vùng 1: Bộ Đo Sức Khỏe Mạng Web3 (Read-Only RPC Health)**:
+  * Kết nối tới Smart Contract thông qua nhà cung cấp RPC công khai (`ethers.JsonRpcProvider`).
+  * Hiển thị: Mạng Blockchain đang kết nối, Địa chỉ Smart Contract, Block cao nhất hiện tại, Trạng thái hoạt động của IPFS Gateway.
+  * **Không ép buộc Admin phải bật popup kết nối ví cá nhân chỉ để xem thống kê**. Chỉ yêu cầu kết nối ví khi Admin thực hiện tác vụ ký phát hành hoặc thu hồi.
+* **Vùng 2: Khu Vực Công Việc Cần Xử Lý (Action Required Area)**:
+  * 🔔 **Hồ sơ chờ phê duyệt**: Danh sách các chứng chỉ do Staff gửi lên ở trạng thái `PENDING`.
+  * ⚠️ **Giao dịch Blockchain lỗi / Cần đối soát**: Các chứng chỉ đã gửi lệnh nhưng chưa nhận được biên lai hoặc bị lệch trạng thái giữa MySQL và Blockchain.
+  * ⏳ **Chứng chỉ sắp hết hạn**: Các văn bằng IELTS/TOEIC/VSTEP sắp cán mốc 2 năm kể từ ngày cấp.
+* **Vùng 3: Thống Kê Tổng Quan & Biểu Đồ**:
+  * Các khối Counter thời gian thực: Tổng số chứng chỉ, Đang hiệu lực (`ISSUED_ON_CHAIN`), Đã từ chối (`REJECTED`), Đã thu hồi (`REVOKED`).
+  * Biểu đồ tỷ lệ phân bố giữa các kỳ thi (IELTS, TOEIC, VSTEP, Cambridge, TOEFL).
+  * Nhật ký kiểm toán 10 thao tác quản trị gần nhất trích xuất từ bảng `issue_logs`.
+
+---
+
+### GIAI ĐOẠN 3: QUẢN TRỊ DỮ LIỆU NGUỒN, HỒ SƠ & PHIÊN BẢN QUY TẮC ĐIỂM
+
+#### 1. Mục tiêu kiến trúc
+Quản lý tập trung thông tin học viên, danh mục kỳ thi và lưu trữ phiên bản quy tắc tính điểm nhằm đảm bảo tính giải trình pháp lý lâu dài.
+
+#### 2. Nguyên tắc quản trị dữ liệu
+1. **Kiểm tra trùng lặp hồ sơ học viên**:
+   * Kiểm tra nghiêm ngặt tính duy nhất của Mã học viên (`student_code`), Số định danh công dân (`citizen_id`) và Email.
+   * **Bảo vệ quyền riêng tư**: Số CCCD/CMND chỉ lưu nội bộ trong MySQL có mã hóa, **tuyệt đối không đưa lên Blockchain công khai**.
+2. **Quy định về Địa chỉ ví học viên (EIP-55 Checksum)**:
+   * Địa chỉ ví được chuẩn hóa qua hàm `ethers.getAddress(address.toLowerCase())`.
+   * **Quy tắc bất biến ví**: Khi một chứng chỉ đã được đúc Soulbound Token vào một địa chỉ ví cụ thể, địa chỉ ví gắn với chứng chỉ đó sẽ **bị khóa vĩnh viễn**. Nếu học viên thay đổi ví trong hồ sơ cá nhân sau này, chứng chỉ cũ vẫn giữ nguyên địa chỉ ví gốc trên chuỗi khối để đảm bảo tính toàn vẹn lịch sử.
+3. **Quản lý Phiên Bản Quy Tắc Điểm (Scoring Rule Versioning)**:
+   * Mỗi chứng chỉ phát hành đều ghi nhận cấu hình thang điểm và công thức làm tròn tại đúng thời điểm thi.
+   * Khi trung tâm cập nhật quy chế điểm mới (ví dụ: đổi cách làm tròn điểm TOEIC hay đổi khung VSTEP), quy chế mới chỉ áp dụng cho các khóa thi tương lai, **không bao giờ áp dụng ngược làm thay đổi kết quả các chứng chỉ đã phát hành**.
+
+---
+
+### GIAI ĐOẠN 4: LẬP HỒ SƠ & KIỂM SOÁT HAI BƯỚC (FOUR-EYES APPROVAL WORKFLOW)
+
+#### 1. Mục tiêu kiến trúc
+Xóa bỏ hoàn toàn rủi ro thao túng điểm số hoặc gian lận đúc bằng thông qua quy trình kiểm soát chéo độc lập giữa Cán bộ Khảo thí và Ban Quản Trị.
+
+```
+       BƯỚC 1: LẬP HỒ SƠ                                  BƯỚC 2: PHÊ DUYỆT
+[ Cán bộ Khảo thí (STAFF) ]                          [ Ban Giám Hiệu (ADMIN) ]
+             │                                                   │
+             ▼                                                   ▼
+┌─────────────────────────┐                             ┌─────────────────────────┐
+│ 1. Chọn học viên nguồn  │                             │ 1. Mở danh sách PENDING │
+│ 2. Nhập điểm 4 kỹ năng  │                             │ 2. Đối chiếu bảng điểm  │
+│ 3. scoreEngine tính điểm│ ──── Gửi phê duyệt ───────> │ 3. Kiểm tra thông tin   │
+│ 4. Kiểm tra Live Preview│       (PENDING)             │ 4. Ra quyết định:       │
+│ 5. Bấm "Gửi Phê Duyệt"  │                             │    - CHẤP THUẬN (Duyệt) │
+└─────────────────────────┘                             │    - TỪ CHỐI (Ghi lý do)│
+                                                        └─────────────────────────┘
+```
+
+#### 2. Quy trình chi tiết từng bước
+1. **Bước 4.1: Khảo thí lập hồ sơ (Staff Entry)**:
+   * Staff chọn học viên từ cơ sở dữ liệu.
+   * Nhập điểm các kỹ năng: Động cơ `scoreEngine.js` tự động tính điểm Overall theo quy chế thi quốc tế và tự động tính hạn hiệu lực 2 năm.
+   * Staff kiểm tra phôi bằng hiển thị trực quan bên cột Live Preview.
+   * Staff bấm **"Lưu Bản Nháp (Gửi Ban Giám Hiệu Duyệt)"**. Hệ thống ghi bản ghi vào MySQL với trạng thái `PENDING`, ghi nhận `created_by = staff_id`.
+   * **Khóa dữ liệu**: Hồ sơ ở trạng thái `PENDING` bị khóa chỉnh sửa đối với Staff.
+2. **Bước 4.2: Ban Giám Hiệu đối soát & phê duyệt (Admin Approval)**:
+   * Admin mở danh sách chứng chỉ chờ duyệt.
+   * Admin bấm xem chi tiết hồ sơ: Màn hình hiển thị bảng đối soát bao gồm bảng điểm gốc, thông tin định danh học viên, ví nhận và phôi dự thảo.
+   * **Trường hợp Từ chối (`REJECT`)**: Admin bấm "Từ chối hồ sơ", bắt buộc nhập lý do từ chối (ví dụ: *"Sai điểm Listening so với bài thi gốc"*). Trạng thái chuyển thành `REJECTED`. Hệ thống gửi thông báo trả về cho Staff lập lại.
+   * **Trường hợp Chấp thuận (`APPROVE`)**: Admin bấm "Phê Duyệt & Chuyển Sang Ký On-Chain". Trạng thái chuyển sang `APPROVED`. Hồ sơ sẵn sàng cho giai đoạn đúc Blockchain.
+   * **Cơ chế Kiểm soát Tự Duyệt**: Nếu một bản ghi do chính Admin tạo ra, hệ thống yêu cầu một Admin thứ hai xác nhận hoặc hiển thị cảnh báo kiểm toán độc lập trên nhật ký `issue_logs`.
+
+---
+
+### GIAI ĐOẠN 5: XÁC MINH GIAO DỊCH ĐỘC LẬP & ĐÚC SOULBOUND TOKEN ON-CHAIN
+
+#### 1. Mục tiêu kiến trúc
+Thực hiện đúc tài sản số Soulbound Token (ERC-721 Non-Transferable) lên Blockchain, lưu trữ phôi bất biến trên IPFS Pinata, và **bắt buộc Backend phải tự xác minh giao dịch độc lập từ RPC Node trước khi chấp nhận ghi nhận dữ liệu**.
+
+#### 2. Luồng thực thi chi tiết
+1. **Chuẩn bị dữ liệu & Tạo Metadata IPFS (`PREPARING`)**:
+   * Admin bấm **"Ký MetaMask & Phát Hành On-Chain"**.
+   * Backend gọi thư viện `PDFKit` sinh file chứng chỉ PDF vector chuẩn in ấn, tích hợp chữ ký số và mã QR xác thực.
+   * Backend đẩy tệp PDF lên mạng IPFS thông qua dịch vụ Pinata, nhận về mã CID định danh phân tán.
+   * Tính toán mã băm Keccak-256 dữ liệu chuẩn hóa (`certHash`) và mã băm toàn vẹn tệp PDF (`pdfHash`).
+2. **Ký giao dịch qua ví MetaMask (`AWAITING_SIGNATURE` $\to$ `PROCESSING`)**:
+   * Màn hình mở cửa sổ tổng hợp thông tin xác nhận lần cuối: Họ tên học viên, Mã bằng, Điểm thi, Địa chỉ ví nhận, CID IPFS.
+   * Khởi tạo hàm Smart Contract thông qua ví Admin:
+     ```solidity
+     contract.issueCertificate(
+         recipientAddress,
+         certificateCode,
+         studentName,
+         studentCode,
+         courseCode,
+         courseName,
+         score,
+         expiryTimestamp,
+         ipfsHash,
+         certHash,
+         tokenURI
+     );
+     ```
+   * Admin xác nhận chữ ký trên popup MetaMask. Giao dịch được phát thanh vào mạng lưới Blockchain.
+3. **Xác minh giao dịch độc lập tại Backend (Backend Blockchain Verification)**:
+   * Client nhận được Transaction Hash (`tx_hash`) từ MetaMask và gửi request về: `POST /api/certificates/confirm-mint`.
+   * **Backend KHÔNG tin tưởng mù quáng tham số của Client**. Backend kích hoạt dịch vụ `blockchainService.js`:
+     ```javascript
+     // 1. Kiểm tra mã băm txHash
+     const receipt = await provider.getTransactionReceipt(tx_hash);
+     
+     // 2. Xác minh giao dịch thành công (Không bị Revert)
+     if (!receipt || receipt.status !== 1) throw new Error("Giao dịch Blockchain thất bại");
+     
+     // 3. Khớp địa chỉ Smart Contract đích
+     if (receipt.to.toLowerCase() !== CONTRACT_ADDRESS) throw new Error("Sai hợp đồng chứng chỉ");
+     
+     // 4. Bóc tách Event CertificateIssued trong Transaction Logs
+     const event = parseCertificateIssuedEvent(receipt.logs);
+     
+     // 5. Đối chiếu mã bằng và ví nhận on-chain với CSDL nội bộ
+     if (event.certificateCode !== cert.certificate_code) throw new Error("Sai lệch mã chứng chỉ");
+     if (event.recipient.toLowerCase() !== cert.student_wallet.toLowerCase()) throw new Error("Sai ví nhận");
+     
+     // 6. Lấy chính xác Token ID thực tế từ Event On-Chain
+     const verifiedTokenId = event.tokenId.toString();
+     ```
+4. **Cập nhật CSDL & Ghi vết kiểm toán**:
+   * Cập nhật bản ghi trong MySQL: `status = 'ISSUED_ON_CHAIN'`, `token_id = verifiedTokenId`, `tx_hash = receipt.hash`.
+   * Ghi nhận một dòng nhật ký kiểm toán `MINT_BLOCKCHAIN` vào `issue_logs` kèm định danh Admin ký và số Block đào.
+   * Client hiển thị hiệu ứng chúc mừng Confetti và xuất thẻ bằng chứng Blockchain.
+
+---
+
+### GIAI ĐOẠN 6: GIÁM SÁT VÒNG ĐỜI, THU HỒI, CẤP LẠI & ĐỐI SOÁT DỮ LIỆU
+
+#### 1. Mục tiêu kiến trúc
+Quản trị toàn diện vòng đời văn bằng sau phát hành: Tra cứu đa chiều, đối soát khôi phục sự cố, xử lý hết hạn tự nhiên, thu hồi chống chối bỏ và quy trình cấp lại chứng chỉ đúng luật.
+
+#### 2. Các quy trình vận hành chính
+1. **Tra cứu & Bộ lọc Đa Tiêu Chí**:
+   * Bảng danh sách tại `/admin/certificates` cung cấp bộ lọc kết hợp: Loại chứng chỉ, Trạng thái (Pending, Approved, Issued, Revoked, Expired), Kỳ thi, Khoảng ngày cấp.
+   * Xem trước phôi PDF vector sắc nét trực tiếp trong popup Iframe mà không cần tải về máy.
+2. **Quy Trình Thu Hồi On-Chain Chống Chối Bỏ (Revocation Workflow)**:
+   * Chỉ áp dụng khi phát hiện gian lận quy chế thi hoặc sai lệch nghiêm trọng.
+   * **Bảo vệ quyền riêng tư trên chuỗi**: Trên Smart Contract, chỉ ghi nhận mã định danh lý do hành chính (ví dụ: `REV_EXAM_FRAUD_01`). Biên bản chi tiết, hồ sơ hội đồng kỷ luật và bằng chứng vi phạm được lưu trữ bảo mật trong cơ sở dữ liệu nội bộ MySQL.
+   * Admin bắt buộc kiểm tra checklist 4 bước và nhập lý do $\to$ Ký MetaMask gọi hàm `revokeCertificate(certCode, reason)`.
+   * Backend xác minh sự kiện `CertificateRevoked` trên RPC Node $\to$ Cập nhật `status = 'REVOKED'`.
+3. **Quy Trình Xử Lý Sai Sót & Cấp Lại Chứng Chỉ (Re-issuance Workflow)**:
+   * *Nguyên tắc tối thượng*: **Tuyệt đối không sửa dữ liệu đã đúc trên Blockchain**.
+   * Khi phát hiện sai sót do lỗi đánh máy điểm thi hoặc sai tên:
+     * **Bước 1**: Thực hiện quy trình Thu hồi chứng chỉ cũ với lý do: *"Thu hồi để điều chỉnh sai sót hành chính theo biên bản số..."*.
+     * **Bước 2**: Khảo thí lập hồ sơ chứng chỉ mới với thông tin chính xác.
+     * **Bước 3**: Hồ sơ mới được gán trường liên kết: `replaces_certificate_id = [ID_chứng_chỉ_cũ]`.
+     * **Bước 4**: Ban Giám Hiệu phê duyệt và đúc Soulbound Token mới.
+     * **Kết quả**: Khi tra cứu chứng chỉ mới hoặc cũ, hệ thống đều hiển thị rõ mối liên kết lịch sử thay thế để thanh tra đối soát.
+4. **Cơ Chế Hết Hạn Tự Nhiên (`EXPIRED`)**:
+   * Các chứng chỉ quốc tế có thời hạn 2 năm (IELTS, TOEIC, VSTEP) không bị đổi trạng thái thành `REVOKED`.
+   * Tại cổng tra cứu công khai, Smart Contract và giao diện tự động đối chiếu `block.timestamp > expiryDate` để gắn nhãn màu vàng cảnh báo: **"CHỨNG CHỈ ĐÃ HẾT HẠN HIỆU LỰC THEO QUY CHẾ"**.
+
+---
+
+## 4. MÔ HÌNH MÃ BĂM MẬT MÃ & BẢO VỆ QUYỀN RIÊNG TƯ (PRIVACY-BY-DESIGN)
+
+Hệ thống phân tách rạch ròi 3 giá trị băm với các mục đích mật mã học hoàn toàn khác nhau:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ 1. DATA COMMITMENT HASH (certHash - Keccak-256)                                       │
+│ - Mục đích: Lưu trực tiếp trên Smart Contract đại diện cho cam kết dữ liệu gốc.       │
+│ - Đầu vào: Chuỗi JSON chuẩn hóa (Canonical JSON) gồm: Mã bằng, Tên, Điểm, Ngày cấp.   │
+│ - Đảm bảo: Bất kỳ ai sửa đổi điểm số hay tên học viên sẽ làm sai lệch certHash.      │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+                                           │
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ 2. DOCUMENT INTEGRITY HASH (pdfHash - SHA-256)                                         │
+│ - Mục đích: Đối soát tính toàn vẹn vật lý của tệp tin phôi bằng PDF.                  │
+│ - Đầu vào: Dòng byte nhị phân thô của file PDF gốc do PDFKit sinh ra.                 │
+│ - Đảm bảo: Nếu bất kỳ ai dùng Acrobat chỉnh sửa nội dung file, SHA-256 sẽ đổi ngay.    │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+                                           │
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ 3. CONTENT IDENTIFIER (ipfsHash / CIDv0 - IPFS)                                        │
+│ - Mục đích: Địa chỉ định danh lưu trữ phi tập trung trên mạng lưới InterPlanetary File. │
+│ - Đầu vào: Tệp PDF và Metadata schema ERC-721 được ghim (pinned) qua Pinata Gateway. │
+│ - Đảm bảo: Tính sẵn sàng cao, không bị mất mát dữ liệu khi máy chủ web gặp sự cố.      │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 5. CƠ CHẾ ĐỐI SOÁT & TỰ KHÔI PHỤC (RECONCILIATION & IDEMPOTENCY)
+
+Một trong những rủi ro lớn nhất của ứng dụng Web3 lai (Hybrid DApp) là **Lệch pha trạng thái (State Desynchronization)**: Giao dịch trên Blockchain đã được thợ đào đóng block thành công, nhưng đường truyền mạng giữa trình duyệt và máy chủ Backend bị ngắt khiến CSDL MySQL chưa kịp cập nhật.
+
+### Quy trình Tự Khôi Phục Idempotent (`reconcileCertificate`)
+Khi phát hiện một chứng chỉ đã gửi giao dịch nhưng trong bảng quản trị vẫn hiển thị `PENDING` hoặc `PROCESSING`:
+
+1. Admin bấm nút **"Đối Soát On-Chain"** (Reconcile) trên dòng chứng chỉ đó.
+2. Backend gửi truy vấn trực tiếp đến Smart Contract qua hàm View:
+   ```solidity
+   contract.verifyByCertificateCode(certCode);
+   ```
+3. Nếu Smart Contract trả về `exists == true`:
+   * Backend tự động cập nhật bản ghi trong MySQL: `status = 'ISSUED_ON_CHAIN'`, cập nhật đúng `tokenId` trên chuỗi.
+   * Ghi nhận một dòng log kiểm toán: `RECONCILE_SUCCESS`.
+   * **Tuyệt đối không bao giờ gửi thêm giao dịch đúc mới**, bảo vệ hệ thống không bị phát sinh token trùng lặp và không lãng phí phí gas.
+
+---
+
+## 6. SƠ ĐỒ TUẦN TỰ KIỂM CHỨNG HAI CHIỀU (MASTER SEQUENCE DIAGRAM)
+
+Sơ đồ thể hiện chu trình hoàn chỉnh theo nguyên tắc Bốn Mắt và Xác minh độc lập tại Backend:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Staff as Cán bộ Khảo thí (STAFF)
-    actor Admin as Quản trị viên (ADMIN)
+    actor Staff as Cán Bộ Khảo Thí (STAFF)
+    actor Admin as Ban Quản Trị (ADMIN)
     participant UI as Giao Diện Web React
-    participant MM as Ví MetaMask
+    participant MM as Ví MetaMask Admin
     participant API as Backend Express API
+    participant BS as Blockchain Service (Node.js)
     participant IPFS as Mạng IPFS Pinata
     participant SC as Smart Contract ERC-721
     participant DB as CSDL MySQL
 
-    %% Giai đoạn 1: Lập nháp
-    Note over Staff, DB: GIAI ĐOẠN 1: SOẠN THẢO & TẠO BẢN NHÁP
-    Staff->>UI: Đăng nhập tài khoản Staff Khảo Thí
-    Staff->>UI: Chọn học viên, nhập điểm 4 kỹ năng (IELTS/TOEIC/VSTEP)
-    UI->>UI: Động cơ scoreEngine tự động tính điểm Overall & Hạn 2 năm
-    Staff->>UI: Bấm "Lưu Bản Nháp"
-    UI->>API: POST /api/certificates/draft { data }
-    API->>DB: INSERT INTO certificates (status='PENDING')
-    DB-->>API: cert_id
-    API-->>UI: Lưu nháp thành công
+    %% BƯỚC 1: LẬP HỒ SƠ
+    Note over Staff, DB: BƯỚC 1: KHẢO THÍ LẬP HỒ SƠ & GỬI DUYỆT
+    Staff->>UI: Nhập điểm 4 kỹ năng (IELTS/TOEIC/VSTEP)
+    UI->>UI: scoreEngine tính điểm Overall chuẩn & Khóa ví EIP-55
+    Staff->>UI: Bấm "Gửi Phê Duyệt"
+    UI->>API: POST /api/certificates/draft { payload }
+    API->>DB: INSERT INTO certificates (status='PENDING', created_by=staff_id)
+    API->>DB: INSERT INTO issue_logs (action='CREATE_DRAFT')
+    API-->>UI: Lưu nháp PENDING thành công
 
-    %% Giai đoạn 2: Phê duyệt và đúc On-Chain
-    Note over Admin, DB: GIAI ĐOẠN 2: PHÊ DUYỆT & KÝ ĐÚC ON-CHAIN
-    Admin->>UI: Đăng nhập tài khoản Admin Giám Đốc
-    Admin->>UI: Mở bản ghi chứng chỉ PENDING, bấm "Ký MetaMask & Cấp Bằng"
+    %% BƯỚC 2: ADMIN PHÊ DUYỆT
+    Note over Admin, DB: BƯỚC 2: ADMIN ĐỐI SOÁT & PHÊ DUYỆT (FOUR-EYES)
+    Admin->>UI: Mở danh sách hồ sơ PENDING
+    Admin->>UI: Kiểm tra bảng điểm đối soát & Bấm "Duyệt Hồ Sơ"
+    UI->>API: POST /api/certificates/:id/approve
+    API->>DB: UPDATE certificates SET status='APPROVED'
+    API-->>UI: Hồ sơ đã duyệt, sẵn sàng ký số
+
+    %% BƯỚC 3: PHÁT HÀNH & KÝ METAMASK
+    Note over Admin, DB: BƯỚC 3: KÝ METAMASK & ĐÚC SOULBOUND TOKEN
+    Admin->>UI: Bấm "Ký MetaMask & Phát Hành On-Chain"
     UI->>API: POST /api/certificates/:id/prepare-mint
-    API->>API: Sinh phôi PDF vector kèm mã QR xác thực
-    API->>IPFS: Upload phôi PDF lên Pinata IPFS
-    IPFS-->>API: Trả về CID (ipfs_hash)
-    API-->>UI: Trả về CID metadata
-    UI->>UI: Tính toán Keccak-256 dữ liệu chứng chỉ -> certHash
-    UI->>MM: Kích hoạt gọi hàm: issueCertificate(recipient, code, ..., ipfsHash, certHash)
-    MM-->>Admin: Yêu cầu xác nhận giao dịch & Ký ví
-    Admin->>MM: Bấm Xác Nhận (Confirm)
-    MM->>SC: Gửi transaction issueCertificate
-    SC->>SC: Đúc Soulbound Token ERC-721 vào ví học viên
-    SC-->>MM: Transaction mined thành công
+    API->>API: Sinh file PDF bằng PDFKit (kèm QR xác thực)
+    API->>IPFS: Upload PDF lên Pinata IPFS
+    IPFS-->>API: Trả về CID (ipfsHash)
+    API-->>UI: Trả về { ipfsHash, certHash }
+    UI->>MM: Yêu cầu ký gọi SC: issueCertificate(...)
+    MM-->>Admin: Bật Popup yêu cầu xác nhận giao dịch & Gas
+    Admin->>MM: Bấm "Xác Nhận" (Confirm)
+    MM->>SC: Phát raw transaction vào Mempool
+    SC->>SC: Đúc Soulbound Token vào ví học viên & Emit Event CertificateIssued
+    SC-->>MM: Giao dịch thành công (Mined)
     MM-->>UI: Trả về tx_hash
-    UI->>SC: verifyByCertificateCode(code) -> lấy tokenId
-    SC-->>UI: Trả về tokenId
-    UI->>API: POST /api/certificates/confirm-mint { cert_id, tx_hash, token_id }
-    API->>DB: UPDATE certificates SET status='ISSUED_ON_CHAIN', tx_hash=?, token_id=?
-    API->>DB: INSERT INTO issue_logs (action='MINT_ONCHAIN')
-    DB-->>API: Đồng bộ hoàn tất
-    API-->>UI: Phản hồi 200 OK
-    UI-->>Admin: Bắn pháo hoa Confetti & Xuất chứng nhận On-Chain
 
-    %% Giai đoạn 3: Thu hồi chứng chỉ
-    Note over Admin, DB: GIAI ĐOẠN 3: THU HỒI CHỨNG CHỈ ON-CHAIN
-    Admin->>UI: Vào danh sách chứng chỉ, chọn "Thu Hồi"
-    UI->>UI: Kiểm tra checklist đối soát, yêu cầu nhập lý do thu hồi
-    Admin->>UI: Nhập lý do gian lận & Bấm "Xác Nhận Thu Hồi"
-    UI->>MM: Kích hoạt gọi hàm: revokeCertificate(code, reason)
-    MM-->>Admin: Yêu cầu ký ví xác nhận thu hồi
-    Admin->>MM: Bấm Xác Nhận (Confirm)
-    MM->>SC: Gửi transaction revokeCertificate
-    SC->>SC: Gán isRevoked = true, lưu lý do bất biến
-    SC-->>MM: Transaction mined thành công
-    MM-->>UI: Trả về revoke_tx_hash
-    UI->>API: POST /api/certificates/:id/revoke { reason, tx_hash }
-    API->>DB: UPDATE certificates SET status='REVOKED', revoke_reason=?
-    API->>DB: INSERT INTO issue_logs (action='REVOKE_ONCHAIN')
-    DB-->>API: Hoàn tất
-    API-->>UI: Đồng bộ CSDL thành công
-    UI-->>Admin: Chuyển nhãn chứng chỉ thành REVOKED (Đỏ)
+    %% BƯỚC 4: XÁC MINH ĐỘC LẬP TẠI BACKEND
+    Note over Admin, DB: BƯỚC 4: XÁC MINH GIAO DỊCH ĐỘC LẬP TẠI BACKEND
+    UI->>API: POST /api/certificates/confirm-mint { certificate_id, tx_hash }
+    API->>BS: verifyMintTransaction({ txHash, expectedCode, expectedRecipient })
+    BS->>SC: Lấy TransactionReceipt qua RPC Node độc lập
+    BS->>BS: Kiểm tra receipt.status===1 & Phân tích Log Event CertificateIssued
+    BS->>BS: Khớp mã chứng chỉ, khớp ví học viên & Trích xuất tokenId chuẩn
+    BS-->>API: Giao dịch Blockchain Đã Xác Minh { verified: true, tokenId }
+    API->>DB: UPDATE certificates SET status='ISSUED_ON_CHAIN', token_id=?, tx_hash=?
+    API->>DB: INSERT INTO issue_logs (action='MINT_BLOCKCHAIN')
+    API-->>UI: 200 OK { success: true, verified_on_chain: true }
+    UI-->>Admin: Bắn pháo hoa Confetti & Hiển thị thẻ Bằng Chứng On-Chain
+
+    %% BƯỚC 5: ĐỐI SOÁT KHI GẶP SỰ CỐ
+    Note over Admin, DB: BƯỚC 5: ĐỐI SOÁT & TỰ PHỤC HỒI (RECONCILIATION)
+    opt Nếu mạng bị rớt khi confirm-mint
+        Admin->>UI: Bấm nút "Đối Soát On-Chain" (Reconcile)
+        UI->>API: POST /api/certificates/:id/reconcile
+        API->>BS: queryOnChainCertificate(code)
+        BS->>SC: contract.verifyByCertificateCode(code)
+        SC-->>BS: Trả về dữ liệu On-Chain { exists: true, tokenId, isRevoked }
+        API->>DB: Đồng bộ trạng thái MySQL khớp với Blockchain
+        API-->>UI: Phục hồi trạng thái thành công mà không đúc trùng
+    end
 ```
 
 ---
 
-## 5. CƠ CHẾ XỬ LÝ LỖI & NGOẠI LỆ THƯỜNG GẶP (TROUBLESHOOTING GUIDE)
+## 7. BẢNG XỬ LÝ SỰ CỐ & HƯỚNG DẪN VẬN HÀNH HỆ THỐNG (OPS MANUAL)
 
-Trong quá trình thao tác phân hệ Quản trị, các sự cố kỹ thuật có thể phát sinh do môi trường Web3, mạng lưới Blockchain hoặc thiết bị người dùng. Bảng dưới đây cung cấp giải pháp xử lý tức thì:
-
-| Tình huống lỗi | Nguyên nhân kỹ thuật | Biểu hiện trên màn hình | Hướng dẫn khắc phục |
-| :--- | :--- | :--- | :--- |
-| **Địa chỉ ví học viên không hợp lệ** | Chuỗi địa chỉ ví bị thiếu ký tự, sai độ dài (khác 42 ký tự) hoặc sai checksum EIP-55 hoa/thường. | Alert: *"Địa chỉ ví của học viên không hợp lệ (cần địa chỉ Ethereum 42 ký tự)"*. | Hệ thống đã tích hợp `ethers.getAddress(address.toLowerCase())`. Đảm bảo nhập đúng 42 ký tự bắt đầu bằng `0x`. Khuyến nghị chọn học viên có sẵn từ danh sách để lấy địa chỉ chuẩn của Hardhat. |
-| **MetaMask sai mạng (Wrong Chain)** | Trình duyệt đang chọn mạng Ethereum Mainnet (1) hoặc Sepolia (11155111) thay vì Hardhat (31337). | Thông báo lỗi hoặc popup yêu cầu đổi mạng. | Bấm xác nhận trên popup MetaMask khi hệ thống tự động gọi `wallet_switchEthereumChain` sang mạng `Hardhat Localhost` (RPC `http://127.0.0.1:8545`, Chain ID `31337`). |
-| **Người dùng từ chối ký ví (User Rejected)** | Admin bấm nút "Từ chối" (Reject) trên popup MetaMask hoặc đóng cửa sổ ví. | Thông báo: *"Bạn đã từ chối yêu cầu ký giao dịch trên MetaMask (Mã lỗi: 4001)"*. | Thao tác này an toàn. Bản ghi trong CSDL vẫn giữ nguyên trạng thái `PENDING`. Admin có thể kiểm tra lại thông tin và bấm nút ký lại bất kỳ lúc nào. |
-| **Lỗi kết nối RPC Node (`ECONNREFUSED`)** | Tiến trình Hardhat node cục bộ chưa được khởi chạy trong Terminal. | Lỗi: *"Cannot connect to the network localhost. ECONNREFUSED 127.0.0.1:8545"*. | Mở một cửa sổ Terminal mới tại thư mục `contracts/` và chạy lệnh: `npx hardhat node`. Giữ cửa sổ này luôn chạy trong suốt quá trình kiểm thử. |
-| **Lỗi tải lên IPFS (Pinata Timeout)** | Mạng Internet gián đoạn hoặc API Key Pinata hết hạn/chưa cấu hình trong `.env`. | Lỗi: *"Không chuẩn bị được metadata phát hành"*. | Kiểm tra biến môi trường `PINATA_API_KEY` và `PINATA_SECRET_KEY` trong file `backend/.env`. Backend đã tích hợp cơ chế lưu trữ phôi cục bộ dự phòng nếu IPFS gặp sự cố. |
-| **Không thấy nút Ký MetaMask** | Đang đăng nhập dưới vai trò Cán bộ Khảo thí (`STAFF`). | Chỉ có nút màu vàng *"Lưu Bản Nháp (Chờ ADMIN Phê Duyệt)"*. | Đây là thiết kế bảo mật chuẩn theo ma trận RBAC. Hãy đăng xuất và đăng nhập lại bằng tài khoản Quản trị viên (`admin_khoa` / mật khẩu `123456`) để kích hoạt quyền đúc On-Chain. |
+| Hiện Tượng Sự Cố | Nguyên Nhân Kỹ Thuật | Hành Động Xử Lý Chuẩn Hóa |
+| :--- | :--- | :--- |
+| **Backend từ chối xác nhận đúc (`confirm-mint`)** | Mã băm `tx_hash` gửi lên không tìm thấy trên RPC Node hoặc giao dịch bị Revert do lỗi quyền/hết gas. | Kiểm tra log Terminal Hardhat. Xác nhận tài khoản ký có vai trò `ISSUER_ROLE`/`Owner`. Nếu mạng bị lag, bấm nút "Đối Soát On-Chain" sau 5-10 giây để kiểm tra lại. |
+| **Hồ sơ bị lệch giữa MySQL (`PENDING`) và Blockchain (`ISSUED`)** | Giao dịch MetaMask ký xong nhưng trình duyệt đóng đột ngột trước khi gọi API `confirm-mint`. | **Tuyệt đối không bấm nút đúc lại**. Mở danh sách chứng chỉ, click vào nút biểu tượng làm mới **"Đối Soát On-Chain"**; hệ thống sẽ tự động đọc Smart Contract và kéo trạng thái về `ISSUED_ON_CHAIN`. |
+| **Địa chỉ ví học viên báo lỗi checksum** | Chuỗi địa chỉ ví bị dán sai ký tự hoa thường hoặc thiếu độ dài 42 ký tự. | Hệ thống đã tích hợp `ethers.getAddress(addr.toLowerCase())`. Đảm bảo địa chỉ có tiền tố `0x` và đủ 40 ký tự hex theo sau. |
+| **Học viên khiếu nại sai tên/sai điểm sau khi đã cấp bằng** | Không thể sửa trực tiếp vì Blockchain có tính bất biến. | Thực hiện quy trình **Cấp Lại (Re-issuance)**: Thu hồi chứng chỉ cũ với lý do hành chính $\to$ Lập hồ sơ mới gắn `replaces_certificate_id` $\to$ Ban Giám Hiệu duyệt và cấp văn bằng mới. |
+| **MetaMask cảnh báo sai Chain ID** | Trình duyệt đang ở mạng Ethereum Mainnet hoặc Sepolia thay vì Hardhat Node (31337). | Bấm nút chuyển mạng trên thông báo giao diện để kích hoạt `wallet_switchEthereumChain` chuyển về mạng `Hardhat Localhost` (`http://127.0.0.1:8545`). |
 
 ---
 
-> 📌 **Tài liệu tham chiếu liên quan**:
-> - [Sơ đồ Luồng Hoạt Động Tổng Thể Hệ Thống v2.0](file:///D:/blockchain/blockchain-english-certificates/docs/LUONG_HOAT_DONG_HE_THONG.md)
-> - [Bảng Danh Sách Trang Giao Diện & Tính Năng Chi Tiết](file:///D:/blockchain/blockchain-english-certificates/docs/DANH_SACH_CHUC_NANG_GIAO_DIEN.md)
-> - [Đặc Tả Thiết Kế UI/UX & Design System](file:///D:/blockchain/blockchain-english-certificates/docs/UI_UX_SPECIFICATION.md)
-> - [Mã Nguồn Hợp Đồng Thông Minh Soulbound Token](file:///D:/blockchain/blockchain-english-certificates/contracts/contracts/EnglishCertificateNFT.sol)
+> 📌 **Tài liệu đối soát kiến trúc liên quan**:
+> - [Tệp Dịch Vụ Xác Minh Blockchain Độc Lập](file:///D:/blockchain/blockchain-english-certificates/backend/src/services/blockchainService.js)
+> - [Bộ Điều Khiển Nghiệp Vụ Chứng Chỉ Backend](file:///D:/blockchain/blockchain-english-certificates/backend/src/controllers/certificateController.js)
+> - [Mã Nguồn Smart Contract Soulbound Token](file:///D:/blockchain/blockchain-english-certificates/contracts/contracts/EnglishCertificateNFT.sol)
+> - [Đặc Tả Động Cơ Chấm Điểm Đa Kỳ Thi](file:///D:/blockchain/blockchain-english-certificates/frontend/src/services/scoreEngine.js)

@@ -8,6 +8,8 @@ import {
   prepareMintCertificate,
   confirmMintCertificate,
   revokeCertificate,
+  rejectDraftCertificate,
+  reconcileCertificate,
   deleteCertificate
 } from '../controllers/certificateController.js';
 import { verifyToken, requireRole } from '../middleware/authMiddleware.js';
@@ -43,6 +45,12 @@ router.post('/prepare-mint', verifyToken, requireRole('ADMIN', 'STAFF'), prepare
 
 // Xác nhận đã đúc on-chain thành công sau khi MetaMask ký (F06-05, F06-06)
 router.post('/confirm-mint', verifyToken, requireRole('ADMIN', 'STAFF'), confirmMintCertificate);
+
+// Từ chối bản nháp chứng chỉ (F06-07) - Chỉ dành cho ADMIN
+router.post('/:id/reject', verifyToken, requireRole('ADMIN'), rejectDraftCertificate);
+
+// Đối soát và đồng bộ lại với Smart Contract (F06-08 - Reconciliation)
+router.post('/:id/reconcile', verifyToken, requireRole('ADMIN', 'STAFF'), reconcileCertificate);
 
 // Thu hồi chứng chỉ (F07-04, F07-05)
 router.post('/:id/revoke', verifyToken, requireRole('ADMIN'), revokeCertificate);

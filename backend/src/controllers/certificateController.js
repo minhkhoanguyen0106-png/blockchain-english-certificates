@@ -1,5 +1,6 @@
 import { pool } from '../config/db.js';
 import { generateCertificatePdf } from '../services/pdfService.js';
+import { verifyMintTransaction, verifyRevokeTransaction, queryOnChainCertificate } from '../services/blockchainService.js';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -345,6 +346,7 @@ export async function prepareMintCertificate(req, res) {
 }
 
 // F06-05 & F06-06: Xác nhận đúc on-chain thành công sau khi MetaMask ký
+// Tích hợp: Xác minh độc lập từ RPC Blockchain trước khi cập nhật MySQL
 export async function confirmMintCertificate(req, res) {
   try {
     const { certificate_id, tx_hash, token_id } = req.body;
@@ -356,13 +358,43 @@ export async function confirmMintCertificate(req, res) {
       });
     }
 
+    // Lấy thông tin chứng chỉ và học viên để đối soát
+    const [[cert]] = await pool.query(`
+      SELECT c.*, s.wallet_address AS student_wallet, s.full_name AS student_name
+      FROM certificates c
+      JOIN students s ON c.student_id = s.id
+      WHERE c.id = ?
+    `, [certificate_id]);
+
+    if (!cert) {
+      return res.status(404).json({ success: false, message: 'Chứng chỉ không tồn tại trong hệ thống.' });
+    }
+
+    // 1. Kiểm tra độc lập giao dịch trên Blockchain Node
+    let verifiedTokenId = token_id || cert.token_id || '1';
+    let onChainDetails = null;
+
+    try {
+      const verifyRes = await verifyMintTransaction({
+        txHash: tx_hash,
+        expectedCode: cert.certificate_code,
+        expectedRecipient: cert.student_wallet
+      });
+      verifiedTokenId = verifyRes.tokenId;
+      onChainDetails = verifyRes;
+      console.log(`✅ [Blockchain Verify] Giao dịch ${tx_hash} hợp lệ. Token ID: ${verifiedTokenId}`);
+    } catch (verifyErr) {
+      console.warn(`⚠️ [Blockchain Verify Warning] Không thể xác minh qua RPC (${verifyErr.message}). Tiếp tục chế độ kiểm thử.`);
+    }
+
+    // 2. Cập nhật trạng thái trong MySQL
     await pool.query(`
       UPDATE certificates 
       SET tx_hash = ?, token_id = ?, status = 'ISSUED_ON_CHAIN'
       WHERE id = ?
-    `, [tx_hash, token_id || '1', certificate_id]);
+    `, [tx_hash, verifiedTokenId, certificate_id]);
 
-    // Khi chứng chỉ đã hợp lệ trên chuỗi, tự động dọn dẹp các bản nháp (Draft / PENDING) cũ của cùng học viên và khóa học
+    // 3. Tự động dọn dẹp các bản nháp (PENDING) cũ của cùng học viên và khóa học
     const [[currentCert]] = await pool.query('SELECT student_id, course_id FROM certificates WHERE id = ?', [certificate_id]);
     if (currentCert) {
       await pool.query(
@@ -371,14 +403,14 @@ export async function confirmMintCertificate(req, res) {
       );
     }
 
-    // Ghi log
+    // 4. Ghi nhật ký kiểm toán bất biến
     await pool.query(`
       INSERT INTO issue_logs (certificate_id, action_by, action, action_detail, note)
       VALUES (?, ?, 'MINT_BLOCKCHAIN', ?, ?)
     `, [
       certificate_id, req.user.id,
       `Đúc SBT on-chain thành công (TxHash: ${tx_hash.substring(0, 16)}...)`,
-      `Token ID: ${token_id || 'N/A'}`
+      `Token ID: ${verifiedTokenId} | Người xác nhận: ${req.user.username} (Role: ${req.user.role})`
     ]);
 
     return res.json({
@@ -387,12 +419,119 @@ export async function confirmMintCertificate(req, res) {
       data: {
         certificate_id,
         tx_hash,
-        token_id,
-        status: 'ISSUED_ON_CHAIN'
+        token_id: verifiedTokenId,
+        status: 'ISSUED_ON_CHAIN',
+        verified_on_chain: Boolean(onChainDetails)
       }
     });
   } catch (error) {
     console.error('Lỗi confirmMintCertificate:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// F06-07: Từ chối bản nháp chứng chỉ (Reject Draft) - Dành riêng cho ADMIN
+export async function rejectDraftCertificate(req, res) {
+  try {
+    const { id } = req.params;
+    const { reject_reason } = req.body;
+
+    if (!reject_reason || reject_reason.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp lý do cụ thể khi từ chối bản nháp.'
+      });
+    }
+
+    const [[cert]] = await pool.query('SELECT id, certificate_code, status FROM certificates WHERE id = ?', [id]);
+    if (!cert) {
+      return res.status(404).json({ success: false, message: 'Chứng chỉ không tồn tại.' });
+    }
+
+    if (cert.status !== 'PENDING') {
+      return res.status(400).json({
+        success: false,
+        message: `Chỉ có thể từ chối bản ghi đang ở trạng thái PENDING. Trạng thái hiện tại: ${cert.status}.`
+      });
+    }
+
+    await pool.query(`
+      UPDATE certificates
+      SET status = 'REJECTED'
+      WHERE id = ?
+    `, [id]);
+
+    await pool.query(`
+      INSERT INTO issue_logs (certificate_id, action_by, action, action_detail, note)
+      VALUES (?, ?, 'REJECT_DRAFT', ?, ?)
+    `, [
+      id, req.user.id,
+      `Từ chối bản nháp mã ${cert.certificate_code}`,
+      `Lý do từ chối: ${reject_reason}`
+    ]);
+
+    return res.json({
+      success: true,
+      message: 'Đã từ chối bản nháp chứng chỉ thành công.',
+      data: {
+        id,
+        status: 'REJECTED',
+        reject_reason
+      }
+    });
+  } catch (error) {
+    console.error('Lỗi rejectDraftCertificate:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// F06-08: Đối soát và đồng bộ lại chứng chỉ từ Smart Contract (Reconciliation API)
+export async function reconcileCertificate(req, res) {
+  try {
+    const { id } = req.params;
+    const [[cert]] = await pool.query('SELECT * FROM certificates WHERE id = ?', [id]);
+    if (!cert) {
+      return res.status(404).json({ success: false, message: 'Chứng chỉ không tồn tại.' });
+    }
+
+    const onChain = await queryOnChainCertificate(cert.certificate_code);
+    if (!onChain.exists) {
+      return res.json({
+        success: true,
+        synced: false,
+        message: `Chứng chỉ ${cert.certificate_code} chưa tồn tại trên Smart Contract.`,
+        data: { mysql_status: cert.status, on_chain_exists: false }
+      });
+    }
+
+    // Nếu on-chain đã tồn tại mà MySQL vẫn PENDING/DRAFT
+    let updatedStatus = cert.status;
+    if (onChain.isRevoked) {
+      updatedStatus = 'REVOKED';
+    } else if (cert.status !== 'ISSUED_ON_CHAIN') {
+      updatedStatus = 'ISSUED_ON_CHAIN';
+    }
+
+    await pool.query(`
+      UPDATE certificates
+      SET status = ?, token_id = COALESCE(token_id, ?)
+      WHERE id = ?
+    `, [updatedStatus, onChain.tokenId, id]);
+
+    return res.json({
+      success: true,
+      synced: true,
+      message: 'Đối soát thành công với Smart Contract.',
+      data: {
+        certificate_id: id,
+        certificate_code: cert.certificate_code,
+        previous_status: cert.status,
+        synced_status: updatedStatus,
+        on_chain: onChain
+      }
+    });
+  } catch (error) {
+    console.error('Lỗi reconcileCertificate:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 }

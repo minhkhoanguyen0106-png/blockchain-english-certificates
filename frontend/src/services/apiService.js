@@ -116,6 +116,19 @@ export const certificateApi = {
       body: JSON.stringify({ reason })
     });
   },
+  // Từ chối bản nháp (ADMIN)
+  rejectDraft: async (id, reject_reason) => {
+    return await apiRequest(`/certificates/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reject_reason })
+    });
+  },
+  // Đối soát On-Chain (Reconciliation)
+  reconcile: async (id) => {
+    return await apiRequest(`/certificates/${id}/reconcile`, {
+      method: "POST"
+    });
+  },
   // Xóa bản nháp chứng chỉ
   deleteCertificate: async (id) => {
     return await apiRequest(`/certificates/${id}`, {

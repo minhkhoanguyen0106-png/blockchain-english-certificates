@@ -14,9 +14,10 @@ export default function CertificateCard({ cert, isPreview = false }) {
 
   const isRevoked = cert.status === "REVOKED";
   const isExpired = cert.expiry_date && new Date(cert.expiry_date) < new Date();
-  const isDraftOrPreview = isPreview || cert.status === "DRAFT" || !cert.status;
+  const isIssued = (cert.status === "ISSUED_ON_CHAIN" || cert.status === "REVOKED") && !isPreview;
   const isPending = cert.status === "PENDING";
-  const isValidActive = cert.status === "ISSUED_ON_CHAIN" && !isExpired && !isRevoked;
+  const isDraftOrPreview = isPreview || cert.status === "DRAFT" || !cert.status;
+  const isValidActive = cert.status === "ISSUED_ON_CHAIN" && !isExpired && !isRevoked && !isPreview;
 
   return (
     <div style={{
@@ -199,13 +200,13 @@ export default function CertificateCard({ cert, isPreview = false }) {
             <QrCode size={68} color="#000000" />
           </div>
           <div style={{ fontSize: "10px", color: "#fbbf24", marginTop: "4px", fontWeight: 600 }}>
-            {isDraftOrPreview ? "MÃ QR MÔ PHỎNG" : "QUÉT ĐỐI SOÁT XÁC THỰC"}
+            {isIssued ? "QUÉT ĐỐI SOÁT XÁC THỰC" : "MÃ QR MÔ PHỎNG"}
           </div>
         </div>
 
       </div>
 
-      {/* Blockchain Details banner */}
+      {/* Verification details banner */}
       <div style={{
         marginTop: "16px",
         padding: "10px 14px",
@@ -216,9 +217,24 @@ export default function CertificateCard({ cert, isPreview = false }) {
         justifyContent: "space-between",
         color: "#94a3b8"
       }}>
-        <span>Mã số bằng: <strong style={{ color: isDraftOrPreview ? "#94a3b8" : "#38bdf8" }}>{isDraftOrPreview ? "Chưa phát hành" : (cert.token_id ? `#${cert.token_id}` : "N/A")}</strong></span>
-        <span>Mã xác thực: <span style={{ color: "#cbd5e1" }}>{isDraftOrPreview ? "Chưa phát sinh" : shortenAddress(cert.tx_hash)}</span></span>
-        <span>Mã lưu trữ: <span style={{ color: "#fbbf24" }}>{isDraftOrPreview ? "Chưa lưu trữ" : (cert.ipfs_hash ? `${cert.ipfs_hash.slice(0, 8)}...` : "—")}</span></span>
+        <span>
+          Mã số bằng:{" "}
+          <strong style={{ color: isIssued && cert.token_id ? "#38bdf8" : "#94a3b8" }}>
+            {isIssued && cert.token_id ? `#${cert.token_id}` : "Chưa phát hành"}
+          </strong>
+        </span>
+        <span>
+          Mã xác thực:{" "}
+          <span style={{ color: isIssued && cert.tx_hash ? "#cbd5e1" : "#94a3b8" }}>
+            {isIssued && cert.tx_hash ? shortenAddress(cert.tx_hash) : "Chưa phát sinh"}
+          </span>
+        </span>
+        <span>
+          Mã lưu trữ:{" "}
+          <span style={{ color: isIssued && cert.ipfs_hash ? "#fbbf24" : "#94a3b8" }}>
+            {isIssued && cert.ipfs_hash ? `${cert.ipfs_hash.slice(0, 8)}...` : "Chưa lưu trữ"}
+          </span>
+        </span>
       </div>
 
     </div>

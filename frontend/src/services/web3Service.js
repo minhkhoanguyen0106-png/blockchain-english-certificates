@@ -123,7 +123,7 @@ export const getCertificateByCode = async (code) => {
         wallet_address: d.student_wallet || "0x71C...4e8B",
         token_id: d.token_id,
         tx_hash: d.tx_hash,
-        ipfs_hash: d.ipfs_hash || "QmZtmD2qt8fJv32FNbdZUEbx4epPrq7iCPcNo1XauQBhMx",
+        ipfs_hash: d.ipfs_hash || null,
         pdf_url: `http://localhost:5000/api/public/pdf/${d.certificate_code}`,
         revoked_reason: d.revoke_reason,
         revoked_at: d.revoked_at ? d.revoked_at.slice(0, 10) : null

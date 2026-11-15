@@ -177,8 +177,10 @@ export default function CertificatesListPage({ wallet, user }) {
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="form-select" style={{ minWidth: "180px" }}>
             <option value="ALL">Tất cả trạng thái ({certs.length})</option>
             <option value="ISSUED_ON_CHAIN">Hợp lệ On-Chain ({certs.filter(c => c.status === "ISSUED_ON_CHAIN").length})</option>
+            <option value="PENDING">Chờ duyệt PENDING ({certs.filter(c => c.status === "PENDING").length})</option>
+            <option value="REJECTED">Bị từ chối ({certs.filter(c => c.status === "REJECTED").length})</option>
             <option value="REVOKED">Đã thu hồi ({certs.filter(c => c.status === "REVOKED").length})</option>
-            <option value="PENDING">Bản nháp Draft ({certs.filter(c => c.status === "PENDING").length})</option>
+            <option value="EXPIRED">Đã hết hạn ({certs.filter(c => c.status === "EXPIRED").length})</option>
           </select>
 
           <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className="form-select" style={{ minWidth: "170px" }}>
@@ -244,7 +246,9 @@ export default function CertificatesListPage({ wallet, user }) {
                     <td>
                       {c.status === "ISSUED_ON_CHAIN" && <span className="badge badge-success">Hợp Lệ</span>}
                       {c.status === "REVOKED" && <span className="badge badge-danger">Đã Thu Hồi</span>}
-                      {c.status === "PENDING" && <span className="badge badge-warning">Draft</span>}
+                      {c.status === "PENDING" && <span className="badge badge-warning">Chờ Duyệt</span>}
+                      {c.status === "REJECTED" && <span className="badge" style={{ background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.3)" }}>Bị Từ Chối</span>}
+                      {c.status === "EXPIRED" && <span className="badge" style={{ background: "rgba(148, 163, 184, 0.15)", color: "#94a3b8", border: "1px solid rgba(148, 163, 184, 0.3)" }}>Hết Hạn</span>}
                     </td>
 
                     <td style={{ fontSize: "11px" }}>

@@ -27,12 +27,12 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     speaking: "7.5",
     issue_date: new Date().toISOString().slice(0, 10),
     expiry_date: "2028-10-29",
-    status: "ISSUED_ON_CHAIN"
+    status: "DRAFT"
   });
 
   const [loading, setLoading] = useState(false);
   const [successCert, setSuccessCert] = useState(null);
-  const [allowAdminEdit, setAllowAdminEdit] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Load students and courses from MySQL
   useEffect(() => {
@@ -113,17 +113,16 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
   const handleIssue = async (e) => {
     e.preventDefault();
-    setLoading(true);
 
     const validation = validateSubScores(formData.course_code, formData);
     if (!validation.isValid) {
       alert(`Dữ liệu điểm chưa hợp lệ:\n- ${validation.errors.join("\n- ")}`);
-      setLoading(false);
       return;
     }
 
-    try {
-      if (user?.role === "STAFF") {
+    if (user?.role === "STAFF") {
+      setLoading(true);
+      try {
         const result = await certificateApi.createDraft({
           certificate_code: formData.certificate_code,
           student_code: formData.student_code,
@@ -139,20 +138,34 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         if (!result?.success || !result.data?.id) {
           throw new Error(result?.message || "Máy chủ chưa xác nhận lưu bản nháp.");
         }
-        alert(`Đã lưu bản nháp ${formData.certificate_code}. Chứng chỉ đang chờ ADMIN phát hành.`);
+        alert(`Đã lưu bản nháp ${formData.certificate_code}. Chứng chỉ đang chờ Quản trị viên kiểm duyệt.`);
         navigate("/admin/certificates");
-        return;
+      } catch (err) {
+        alert("Lỗi khi lưu bản nháp: " + (err.message || err));
+      } finally {
+        setLoading(false);
       }
+      return;
+    }
 
-      if (user?.role !== "ADMIN") {
-        throw new Error("Tài khoản hiện tại không có quyền phát hành chứng chỉ.");
-      }
+    if (user?.role !== "ADMIN") {
+      alert("Tài khoản hiện tại không có quyền phát hành chứng chỉ.");
+      return;
+    }
 
+    // Bật màn hình đối soát thông tin trước khi ký MetaMask
+    setShowConfirmModal(true);
+  };
+
+  const executeMintOnChain = async () => {
+    setShowConfirmModal(false);
+    setLoading(true);
+
+    try {
       if (!isMetaMaskInstalled()) {
         throw new Error("Hãy cài MetaMask trước khi phát hành on-chain.");
       }
 
-      // Chỉ tiếp tục với ví MetaMask có signer thật; không dùng ví demo để phát hành.
       let activeWallet = wallet;
       if (!activeWallet?.signer) {
         activeWallet = await connectMetaMask();
@@ -273,18 +286,13 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                 <label className="form-label" style={{ marginBottom: 0, fontSize: "12px" }}>Điểm số các kỹ năng thành phần</label>
                 {user?.role === "ADMIN" && (
-                  <label style={{ fontSize: "11px", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", color: allowAdminEdit ? "#f59e0b" : "var(--text-muted)" }}>
-                    <input
-                      type="checkbox"
-                      checked={allowAdminEdit}
-                      onChange={(e) => setAllowAdminEdit(e.target.checked)}
-                    />
-                    <span>Mở khóa sửa điểm khẩn cấp (Sẽ ghi Audit Log)</span>
-                  </label>
+                  <span style={{ fontSize: "11px", color: "var(--primary, #3b82f6)", fontWeight: 600 }}>
+                    🔒 Dữ liệu đã niêm phong
+                  </span>
                 )}
               </div>
 
-              {user?.role === "ADMIN" && !allowAdminEdit && (
+              {user?.role === "ADMIN" && (
                 <div style={{
                   background: "rgba(59, 130, 246, 0.08)",
                   border: "1px solid rgba(59, 130, 246, 0.25)",
@@ -297,7 +305,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   alignItems: "center",
                   gap: "6px"
                 }}>
-                  <span>🔒 <strong>Nguyên tắc Bốn Mắt (Four-Eyes):</strong> Dữ liệu điểm do Cán bộ Khảo thí nhập liệu đã được niêm phong. Admin có quyền đối soát và ký phát hành on-chain, không được tùy tiện sửa điểm.</span>
+                  <span>🔒 <strong>Nguyên tắc Bốn Mắt (Four-Eyes):</strong> Dữ liệu điểm do Nhân viên Khảo thí nhập liệu đã được niêm phong. Quản trị viên chỉ đối soát, phê duyệt và ký phát hành on-chain, không được tự ý sửa điểm. Nếu điểm sai, vui lòng từ chối bản nháp để Khảo thí điều chỉnh lại.</span>
                 </div>
               )}
 
@@ -306,15 +314,15 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Listening</label>
                   <input
                     type="text"
-                    readOnly={user?.role === "ADMIN" && !allowAdminEdit}
+                    readOnly={user?.role === "ADMIN"}
                     value={formData.listening}
                     onChange={(e) => handleSubScoreChange("listening", e.target.value)}
                     className="form-input"
                     style={{
                       padding: "8px 10px",
                       textAlign: "center",
-                      background: (user?.role === "ADMIN" && !allowAdminEdit) ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
-                      cursor: (user?.role === "ADMIN" && !allowAdminEdit) ? "not-allowed" : undefined
+                      background: user?.role === "ADMIN" ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
+                      cursor: user?.role === "ADMIN" ? "not-allowed" : undefined
                     }}
                   />
                 </div>
@@ -322,15 +330,15 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Reading</label>
                   <input
                     type="text"
-                    readOnly={user?.role === "ADMIN" && !allowAdminEdit}
+                    readOnly={user?.role === "ADMIN"}
                     value={formData.reading}
                     onChange={(e) => handleSubScoreChange("reading", e.target.value)}
                     className="form-input"
                     style={{
                       padding: "8px 10px",
                       textAlign: "center",
-                      background: (user?.role === "ADMIN" && !allowAdminEdit) ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
-                      cursor: (user?.role === "ADMIN" && !allowAdminEdit) ? "not-allowed" : undefined
+                      background: user?.role === "ADMIN" ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
+                      cursor: user?.role === "ADMIN" ? "not-allowed" : undefined
                     }}
                   />
                 </div>
@@ -338,15 +346,15 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Writing</label>
                   <input
                     type="text"
-                    readOnly={user?.role === "ADMIN" && !allowAdminEdit}
+                    readOnly={user?.role === "ADMIN"}
                     value={formData.writing}
                     onChange={(e) => handleSubScoreChange("writing", e.target.value)}
                     className="form-input"
                     style={{
                       padding: "8px 10px",
                       textAlign: "center",
-                      background: (user?.role === "ADMIN" && !allowAdminEdit) ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
-                      cursor: (user?.role === "ADMIN" && !allowAdminEdit) ? "not-allowed" : undefined
+                      background: user?.role === "ADMIN" ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
+                      cursor: user?.role === "ADMIN" ? "not-allowed" : undefined
                     }}
                   />
                 </div>
@@ -354,15 +362,15 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Speaking</label>
                   <input
                     type="text"
-                    readOnly={user?.role === "ADMIN" && !allowAdminEdit}
+                    readOnly={user?.role === "ADMIN"}
                     value={formData.speaking}
                     onChange={(e) => handleSubScoreChange("speaking", e.target.value)}
                     className="form-input"
                     style={{
                       padding: "8px 10px",
                       textAlign: "center",
-                      background: (user?.role === "ADMIN" && !allowAdminEdit) ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
-                      cursor: (user?.role === "ADMIN" && !allowAdminEdit) ? "not-allowed" : undefined
+                      background: user?.role === "ADMIN" ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
+                      cursor: user?.role === "ADMIN" ? "not-allowed" : undefined
                     }}
                   />
                 </div>
@@ -466,6 +474,111 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         </div>
 
       </div>
+
+      {/* Confirmation & Pre-mint Review Modal (Admin Four-Eyes Check) */}
+      {showConfirmModal && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "var(--bg-modal-backdrop)",
+          backdropFilter: "blur(8px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 998,
+          padding: "20px"
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: "560px",
+            width: "100%",
+            padding: "28px 32px",
+            background: "var(--bg-surface-elevated)",
+            borderRadius: "16px",
+            boxShadow: "0 25px 60px rgba(0,0,0,0.5)"
+          }}>
+            <h3 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "6px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span>🛡️</span> Đối Soát Dữ Liệu Trước Khi Phát Hành On-Chain
+            </h3>
+            <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "18px" }}>
+              Vui lòng kiểm tra kỹ lưỡng các thông số hồ sơ do Nhân viên Khảo thí lập trước khi kích hoạt giao dịch ký ví.
+            </p>
+
+            <div style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "10px",
+              padding: "16px",
+              fontSize: "13px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+              marginBottom: "18px"
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Mã chứng chỉ:</span>
+                <strong style={{ color: "var(--primary)" }}>{formData.certificate_code}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Học viên:</span>
+                <strong>{formData.student_name} ({formData.student_code})</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Kỳ thi / Chứng chỉ:</span>
+                <span style={{ color: "var(--accent-gold)", fontWeight: 600 }}>{formData.course_name}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Điểm thành phần:</span>
+                <span>L: {formData.listening} • R: {formData.reading} • W: {formData.writing} • S: {formData.speaking}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Điểm Overall:</span>
+                <strong style={{ color: "var(--success-text)", fontSize: "15px" }}>{formData.score}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Ngày cấp & Hiệu lực:</span>
+                <span>{formData.issue_date} (Hạn: {formData.expiry_date || "Vô thời hạn"})</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "var(--text-muted)" }}>Địa chỉ ví nhận:</span>
+                <code style={{ fontSize: "11px", color: "#38bdf8", background: "rgba(0,0,0,0.3)", padding: "2px 6px", borderRadius: "4px" }}>
+                  {formData.wallet_address}
+                </code>
+              </div>
+            </div>
+
+            <div style={{
+              background: "rgba(239, 68, 68, 0.1)",
+              border: "1px solid rgba(239, 68, 68, 0.3)",
+              borderRadius: "8px",
+              padding: "10px 14px",
+              fontSize: "12px",
+              color: "#fca5a5",
+              marginBottom: "20px"
+            }}>
+              ⚠️ <strong>Cảnh báo tính bất biến:</strong> Sau khi ký MetaMask, Soulbound Token (ERC-721) sẽ được phát hành vĩnh viễn trên sổ cái Blockchain và không thể chỉnh sửa điểm.
+            </div>
+
+            <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => setShowConfirmModal(false)}
+                className="btn btn-outline"
+                style={{ padding: "10px 18px", fontSize: "13px" }}
+              >
+                Hủy Bỏ / Kiểm Tra Lại
+              </button>
+              <button
+                type="button"
+                onClick={executeMintOnChain}
+                className="btn btn-gold"
+                style={{ padding: "10px 22px", fontSize: "13px", fontWeight: 700 }}
+              >
+                Xác Nhận & Mở Ví Ký MetaMask
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Success Modal */}
       {successCert && (

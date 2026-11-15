@@ -65,7 +65,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
     },
     {
       path: "/admin/data-management",
-      label: "Học Viên & Khóa Học",
+      label: "Học Viên & Kỳ Thi",
       icon: Users,
       badge: null
     }
@@ -76,7 +76,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
     if (location.pathname === "/admin/dashboard") return "Tổng quan hệ thống";
     if (location.pathname === "/admin/certificates") return "Danh sách & Thu hồi chứng chỉ";
     if (location.pathname === "/admin/certificates/issue") return "Cấp chứng chỉ & Đúc Soulbound Token";
-    if (location.pathname === "/admin/data-management") return "Quản trị học viên & khóa học";
+    if (location.pathname === "/admin/data-management") return "Quản trị học viên & danh mục kỳ thi";
     return "Phân hệ quản trị";
   };
 

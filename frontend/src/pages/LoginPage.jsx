@@ -130,7 +130,7 @@ export default function LoginPage({ setUser }) {
                   cursor: "pointer"
                 }}
               >
-                🛡️ Admin: admin_khoa
+                🛡️ Quản trị viên (Admin): admin_khoa
               </button>
               <button
                 type="button"
@@ -145,22 +145,7 @@ export default function LoginPage({ setUser }) {
                   cursor: "pointer"
                 }}
               >
-                💼 Staff: staff_long
-              </button>
-              <button
-                type="button"
-                onClick={() => { setUsername("student_yen"); setPassword("123456"); }}
-                style={{
-                  fontSize: "11px",
-                  padding: "4px 8px",
-                  borderRadius: "var(--radius-sm)",
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
-                  color: "var(--text-secondary)",
-                  cursor: "pointer"
-                }}
-              >
-                🎓 Student: student_yen
+                💼 Nhân viên Khảo thí (Staff): staff_long
               </button>
             </div>
           </div>

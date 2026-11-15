@@ -7,6 +7,8 @@ export default function CertificateCard({ cert, isPreview = false }) {
 
   const isRevoked = cert.status === "REVOKED";
   const isExpired = cert.expiry_date && new Date(cert.expiry_date) < new Date();
+  const isDraftOrPreview = isPreview || cert.status === "DRAFT" || !cert.status;
+  const isPending = cert.status === "PENDING";
   const isValidActive = cert.status === "ISSUED_ON_CHAIN" && !isExpired && !isRevoked;
 
   return (
@@ -136,27 +138,28 @@ export default function CertificateCard({ cert, isPreview = false }) {
         {/* Verification Status Badge */}
         <div>
           <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "6px" }}>TRẠNG THÁI HIỆU LỰC ON-CHAIN</div>
-          {isValidActive && (
+          {isDraftOrPreview ? (
+            <div className="badge badge-warning" style={{ fontSize: "12px", padding: "6px 14px", background: "rgba(245, 158, 11, 0.2)", color: "#f59e0b", border: "1px dashed rgba(245, 158, 11, 0.4)" }}>
+              ⚠️ BẢN XEM TRƯỚC – CHƯA PHÁT HÀNH
+            </div>
+          ) : isPending ? (
+            <div className="badge badge-info" style={{ fontSize: "12px", padding: "6px 14px" }}>
+              ⏳ ĐANG CHỜ DUYỆT (PENDING DRAFT)
+            </div>
+          ) : isValidActive ? (
             <div className="badge badge-success" style={{ fontSize: "12px", padding: "6px 14px" }}>
               <CheckCircle2 size={15} />
               HỢP LỆ & CÒN HIỆU LỰC (ACTIVE)
             </div>
-          )}
-          {isRevoked && (
+          ) : isRevoked ? (
             <div className="badge badge-danger" style={{ fontSize: "12px", padding: "6px 14px" }}>
               <XCircle size={15} />
               ĐÃ BỊ THU HỒI (REVOKED)
             </div>
-          )}
-          {!isRevoked && isExpired && (
+          ) : (
             <div className="badge badge-warning" style={{ fontSize: "12px", padding: "6px 14px" }}>
               <Calendar size={15} />
               HẾT HẠN HIỆU LỰC 2 NĂM (EXPIRED)
-            </div>
-          )}
-          {cert.status === "PENDING" && (
-            <div className="badge badge-info" style={{ fontSize: "12px", padding: "6px 14px" }}>
-              ĐANG CHỜ KÝ (PENDING DRAFT)
             </div>
           )}
 
@@ -164,7 +167,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
             Mã bằng: <span style={{ color: "#f8fafc", fontWeight: 600 }}>{cert.certificate_code}</span>
           </div>
           <div style={{ fontSize: "11px", color: "#94a3b8" }}>
-            Ngày cấp: <span style={{ color: "#f8fafc" }}>{cert.issue_date}</span>
+            Ngày dự kiến: <span style={{ color: "#f8fafc" }}>{cert.issue_date}</span>
           </div>
         </div>
 
@@ -180,7 +183,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
             <QrCode size={68} color="#000000" />
           </div>
           <div style={{ fontSize: "10px", color: "#fbbf24", marginTop: "4px", fontWeight: 600 }}>
-            QUÉT ĐỐI SOÁT ON-CHAIN
+            {isDraftOrPreview ? "MÃ QR MÔ PHỎNG" : "QUÉT ĐỐI SOÁT ON-CHAIN"}
           </div>
         </div>
 
@@ -197,9 +200,9 @@ export default function CertificateCard({ cert, isPreview = false }) {
         justifyContent: "space-between",
         color: "#94a3b8"
       }}>
-        <span>Token ID: <strong style={{ color: "#38bdf8" }}>#{cert.token_id || "1001"}</strong></span>
-        <span>Tx Hash: <span style={{ color: "#cbd5e1" }}>{shortenAddress(cert.tx_hash)}</span></span>
-        <span>IPFS: <span style={{ color: "#fbbf24" }}>{cert.ipfs_hash ? `${cert.ipfs_hash.slice(0, 8)}...` : "QmPending"}</span></span>
+        <span>Token ID: <strong style={{ color: isDraftOrPreview ? "#94a3b8" : "#38bdf8" }}>{isDraftOrPreview ? "Chờ đúc on-chain" : (cert.token_id ? `#${cert.token_id}` : "N/A")}</strong></span>
+        <span>Tx Hash: <span style={{ color: "#cbd5e1" }}>{isDraftOrPreview ? "Chưa phát sinh" : shortenAddress(cert.tx_hash)}</span></span>
+        <span>IPFS: <span style={{ color: "#fbbf24" }}>{isDraftOrPreview ? "Chờ upload" : (cert.ipfs_hash ? `${cert.ipfs_hash.slice(0, 8)}...` : "QmPending")}</span></span>
       </div>
 
     </div>

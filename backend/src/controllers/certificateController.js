@@ -109,7 +109,7 @@ export async function getCertificates(req, res) {
     let whereClause = '1=1';
     const params = [];
 
-    if (status) {
+    if (status && status !== 'ALL') {
       whereClause += ' AND c.status = ?';
       params.push(status);
     }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2 } from "lucide-react";
+import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2, Sparkles } from "lucide-react";
 import { getAllCertificates, revokeCertificateOnChain, shortenAddress } from "../services/web3Service";
 import { certificateApi } from "../services/apiService";
 

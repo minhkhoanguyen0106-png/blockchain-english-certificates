@@ -222,12 +222,12 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     e.preventDefault();
 
     if (!formData.student_name || !formData.student_code) {
-      alert("Vui lòng chọn học viên từ CSDL hoặc nhập đầy đủ họ tên và mã học viên.");
+      alert("Vui lòng chọn học viên từ danh sách hoặc nhập đầy đủ họ tên và mã học viên.");
       return;
     }
 
     if (!formData.wallet_address) {
-      alert("Vui lòng nhập hoặc liên kết địa chỉ ví MetaMask của học viên trước khi tiếp tục.");
+      alert("Vui lòng nhập hoặc liên kết địa chỉ ví điện tử của học viên trước khi tiếp tục.");
       return;
     }
 
@@ -280,7 +280,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
     try {
       if (!isMetaMaskInstalled()) {
-        throw new Error("Hãy cài MetaMask trước khi phát hành on-chain.");
+        throw new Error("Hãy kết nối ví ký điện tử trước khi phát hành chứng chỉ.");
       }
 
       let activeWallet = wallet;
@@ -288,7 +288,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         activeWallet = await connectMetaMask();
       }
       if (!activeWallet?.signer) {
-        throw new Error("Không lấy được signer từ MetaMask. Hãy kết nối ví rồi thử lại.");
+        throw new Error("Không lấy được chữ ký số của Quản trị viên. Hãy kết nối ví rồi thử lại.");
       }
       if (activeWallet && setWallet) {
         setWallet(activeWallet);
@@ -539,7 +539,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 )}
 
                 <div className="form-group">
-                  <label className="form-label">Chọn học viên từ CSDL</label>
+                  <label className="form-label">Chọn học viên từ danh sách</label>
                   <select value={selectedStudentId} onChange={handleStudentSelect} className="form-select">
                     <option value="">-- Chọn học viên có sẵn --</option>
                     {studentsList.map(s => (
@@ -691,10 +691,10 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Địa chỉ ví MetaMask học viên</label>
+                  <label className="form-label">Địa chỉ ví điện tử học viên</label>
                   <input
                     type="text"
-                    placeholder="0x... (Địa chỉ ví MetaMask học viên)"
+                    placeholder="0x... (Địa chỉ ví điện tử học viên)"
                     value={formData.wallet_address}
                     onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
                     className="form-input"

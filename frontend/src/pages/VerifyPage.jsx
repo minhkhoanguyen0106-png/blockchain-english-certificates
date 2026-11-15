@@ -218,9 +218,9 @@ export default function VerifyPage({ user }) {
                   <ShieldCheck size={24} color="#04121e" />
                 </div>
                 <div>
-                  <h4 style={{ color: "var(--success-text)", fontWeight: 800, fontSize: "16px" }}>CHỨNG CHỈ HỢP LỆ (ON-CHAIN VERIFIED)</h4>
+                  <h4 style={{ color: "var(--success-text)", fontWeight: 800, fontSize: "16px" }}>CHỨNG CHỈ HỢP LỆ & XÁC THỰC THÀNH CÔNG</h4>
                   <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "2px" }}>
-                    Chứng chỉ đã được xác nhận chữ ký số của Giám đốc trung tâm và đúc thành công trên Blockchain.
+                    Chứng chỉ đã được xác nhận chữ ký số của Giám đốc trung tâm và lưu trữ an toàn trên hệ thống.
                   </p>
                 </div>
               </div>
@@ -241,12 +241,12 @@ export default function VerifyPage({ user }) {
                   <XCircle size={24} color="#ffffff" />
                 </div>
                 <div>
-                  <h4 style={{ color: "var(--danger-text)", fontWeight: 800, fontSize: "16px" }}>CHỨNG CHỈ ĐÃ BỊ THU HỒI (REVOKED)</h4>
+                  <h4 style={{ color: "var(--danger-text)", fontWeight: 800, fontSize: "16px" }}>CHỨNG CHỈ ĐÃ BỊ THU HỒI</h4>
                   <p style={{ color: "var(--danger-text)", fontSize: "13px", marginTop: "2px", fontWeight: 600 }}>
                     Lý do thu hồi: {result.revoked_reason || "Vi phạm quy chế thi cử"}
                   </p>
                   <p style={{ color: "var(--text-muted)", fontSize: "12px", marginTop: "4px" }}>
-                    Thời điểm ghi nhận thu hồi on-chain: {result.revoked_at}
+                    Thời điểm thu hồi: {result.revoked_at}
                   </p>
                 </div>
               </div>
@@ -302,7 +302,7 @@ export default function VerifyPage({ user }) {
                 className="btn btn-outline"
               >
                 <ExternalLink size={16} />
-                Xem Phôi Gốc Trên IPFS
+                Xem Phôi Bằng Gốc
               </a>
 
               <a
@@ -312,7 +312,7 @@ export default function VerifyPage({ user }) {
                 className="btn btn-outline"
               >
                 <ExternalLink size={16} />
-                Kiểm Tra Etherscan
+                Kiểm Tra Sổ Lưu Trữ
               </a>
             </div>
           </div>

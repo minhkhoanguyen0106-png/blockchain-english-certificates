@@ -42,7 +42,7 @@ export default function HomePage() {
             fontWeight: 600
           }}>
             <Sparkles size={16} />
-            <span>Nền Tảng Quản Lý & Xác Thực Bằng Tiếng Anh Trên Blockchain 4.0</span>
+            <span>Nền Tảng Quản Lý & Xác Thực Bằng Cấp Tiếng Anh Điện Tử</span>
           </div>
 
           <h1 style={{
@@ -54,7 +54,7 @@ export default function HomePage() {
             color: "var(--text-primary)"
           }}>
             Thẩm Định Chứng Chỉ Tiếng Anh <br />
-            <span className="text-gradient">Chống Làm Giả Tuyệt Đối Bằng SBT & IPFS</span>
+            <span className="text-gradient">Chống Làm Giả Tuyệt Đối & Xác Thực Bất Biến</span>
           </h1>
 
           <p style={{
@@ -131,7 +131,7 @@ export default function HomePage() {
               <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: "var(--primary-bg)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "20px" }}>
                 <Lock size={24} color="var(--primary)" />
               </div>
-              <h3 style={{ fontSize: "19px", fontWeight: 700, marginBottom: "10px", color: "var(--text-primary)" }}>Định Danh Bất Biến (SBT)</h3>
+              <h3 style={{ fontSize: "19px", fontWeight: 700, marginBottom: "10px", color: "var(--text-primary)" }}>Định Danh Độc Bản Bất Biến</h3>
               <p style={{ color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.65 }}>
                 Chứng chỉ được cấp theo chuẩn định danh độc bản: Gắn chặt vào danh tính học viên, khóa vĩnh viễn tính năng chuyển nhượng nhằm ngăn chặn triệt để hành vi mua bán bằng cấp.
               </p>

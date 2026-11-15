@@ -231,7 +231,7 @@ export default function DataManagementPage({ user }) {
                   <th>HỌ VÀ TÊN</th>
                   <th>SỐ CCCD / ĐỊNH DANH</th>
                   <th>EMAIL</th>
-                  <th>ĐỊA CHỈ VÍ METAMASK (SBT)</th>
+                  <th>ĐỊA CHỈ VÍ ĐIỆN TỬ</th>
                   <th style={{ textAlign: "right" }}>THAO TÁC</th>
                 </tr>
               </thead>

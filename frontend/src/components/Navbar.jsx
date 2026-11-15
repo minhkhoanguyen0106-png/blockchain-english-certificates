@@ -66,7 +66,7 @@ export default function Navbar({ wallet, setWallet, user, setUser }) {
               CERT<span style={{ color: "var(--primary)" }}>CHAIN</span>
             </div>
             <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
-              English Center SBT
+              English Testing Center
             </div>
           </div>
         </Link>
@@ -114,7 +114,7 @@ export default function Navbar({ wallet, setWallet, user, setUser }) {
             }}
           >
             <Search size={15} />
-            Tra Cứu On-Chain
+            Tra Cứu Bằng Cấp
             {isActive("/verify") && (
               <span style={{
                 position: "absolute",
@@ -248,10 +248,10 @@ export default function Navbar({ wallet, setWallet, user, setUser }) {
                     e.currentTarget.style.borderColor = "var(--border-subtle)";
                     e.currentTarget.style.color = "var(--text-secondary)";
                   }}
-                  title="Kết nối ví Web3 Quản trị viên để ký giao dịch on-chain"
+                  title="Kết nối ví Quản trị viên để xác thực phát hành"
                 >
                   <Wallet size={15} />
-                  <span>{connecting ? "Đang kết nối..." : "Ví MetaMask (Admin)"}</span>
+                  <span>{connecting ? "Đang kết nối..." : "Ví Quản Trị (Admin)"}</span>
                 </button>
               )}
             </>

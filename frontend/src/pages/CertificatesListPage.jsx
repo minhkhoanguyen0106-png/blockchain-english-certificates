@@ -110,7 +110,7 @@ export default function CertificatesListPage({ wallet, user }) {
   const handleConfirmRevoke = async () => {
     if (!revokeTarget) return;
     if (user?.role !== "ADMIN") {
-      alert("LỖI PHÂN QUYỀN (403): Chỉ Quản trị viên (ADMIN) mới có thẩm quyền thu hồi chứng chỉ trên Blockchain!");
+      alert("LỖI PHÂN QUYỀN (403): Chỉ Quản trị viên (ADMIN) mới có thẩm quyền thu hồi chứng chỉ trên hệ thống!");
       return;
     }
     if (!revokeReason.trim()) {
@@ -191,7 +191,7 @@ export default function CertificatesListPage({ wallet, user }) {
             <option value="CAMBRIDGE-CAE">Cambridge CAE</option>
           </select>
 
-          <button type="button" onClick={loadCerts} className="btn btn-outline" title="Làm mới dữ liệu từ CSDL">
+          <button type="button" onClick={loadCerts} className="btn btn-outline" title="Làm mới dữ liệu">
             <RefreshCw size={15} />
           </button>
 
@@ -286,7 +286,7 @@ export default function CertificatesListPage({ wallet, user }) {
                               to={`/admin/certificates/issue?code=${c.certificate_code}`}
                               className="btn btn-gold"
                               style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
-                              title="Đối soát và ký phát hành on-chain"
+                              title="Đối soát và ký phát hành"
                             >
                               <Sparkles size={13} />
                               Duyệt & Cấp
@@ -320,7 +320,7 @@ export default function CertificatesListPage({ wallet, user }) {
                               onClick={() => setRevokeTarget(c)}
                               className="btn btn-danger"
                               style={{ padding: "6px 12px", fontSize: "12px" }}
-                              title="Thu hồi chứng chỉ on-chain (Chỉ Quản trị viên)"
+                              title="Thu hồi chứng chỉ (Chỉ Quản trị viên)"
                             >
                               <AlertOctagon size={14} />
                               Thu Hồi
@@ -331,7 +331,7 @@ export default function CertificatesListPage({ wallet, user }) {
                               disabled
                               className="btn btn-outline"
                               style={{ padding: "6px 12px", fontSize: "12px", opacity: 0.5 }}
-                              title="Chỉ Quản trị viên (ADMIN) mới có quyền thu hồi on-chain"
+                              title="Chỉ Quản trị viên (ADMIN) mới có quyền thu hồi chứng chỉ"
                             >
                               Thu Hồi (Khóa)
                             </button>
@@ -400,14 +400,14 @@ export default function CertificatesListPage({ wallet, user }) {
                 <span style={{ color: "var(--accent-gold)", fontWeight: 700 }}>{revokeTarget.course_name} • {revokeTarget.score}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)" }}>Token ID on-chain:</span>
+                <span style={{ color: "var(--text-muted)" }}>Mã số bằng:</span>
                 <span>#{revokeTarget.token_id || "N/A"}</span>
               </div>
             </div>
 
             <div className="form-group">
               <label className="form-label" style={{ color: "var(--danger-text)" }}>
-                Lý do thu hồi (Bắt buộc ghi nhận on-chain):
+                Lý do thu hồi (Bắt buộc ghi nhận trên hệ thống):
               </label>
               <textarea
                 rows="3"
@@ -438,10 +438,10 @@ export default function CertificatesListPage({ wallet, user }) {
                 {revoking ? (
                   <>
                     <RefreshCw size={16} className="animate-spin" />
-                    Đang gửi transaction...
+                    Đang gửi yêu cầu xác thực...
                   </>
                 ) : (
-                  "Ký MetaMask & Thu Hồi Vĩnh Viễn"
+                  "Ký Xác Thực & Thu Hồi Vĩnh Viễn"
                 )}
               </button>
             </div>

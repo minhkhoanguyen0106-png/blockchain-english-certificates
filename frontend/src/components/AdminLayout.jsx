@@ -59,9 +59,9 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
     },
     {
       path: "/admin/certificates/issue",
-      label: "Cấp Chứng Chỉ Mới",
+      label: user?.role === "ADMIN" ? "Cấp Chứng Chỉ Mới" : "Soạn Bản Nháp",
       icon: FilePlus,
-      badge: user?.role === "ADMIN" ? "Đúc On-Chain" : "Soạn Nháp"
+      badge: null
     },
     {
       path: "/admin/data-management",
@@ -363,7 +363,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
                   style={{ fontSize: "12px", padding: "6px 14px", display: "inline-flex", alignItems: "center", gap: "6px" }}
                 >
                   <Wallet size={15} />
-                  {connecting ? "Đang kết nối..." : "Ví MetaMask (Admin)"}
+                  {connecting ? "Đang kết nối..." : "Ví Quản Trị (Admin)"}
                 </button>
               )
             ) : (

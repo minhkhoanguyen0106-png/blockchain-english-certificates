@@ -130,7 +130,7 @@ export default function LoginPage({ setUser }) {
                   cursor: "pointer"
                 }}
               >
-                🛡️ Quản trị viên (Admin): admin_khoa
+                🛡️ Quản trị viên: admin_khoa
               </button>
               <button
                 type="button"
@@ -145,7 +145,7 @@ export default function LoginPage({ setUser }) {
                   cursor: "pointer"
                 }}
               >
-                💼 Nhân viên Khảo thí (Staff): staff_long
+                💼 Nhân viên Khảo thí: staff_long
               </button>
             </div>
           </div>

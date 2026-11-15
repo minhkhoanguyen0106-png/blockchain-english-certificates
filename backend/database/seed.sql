@@ -8,11 +8,11 @@ USE english_cert_blockchain;
 -- 1. TÀI KHOẢN HỆ THỐNG (Mật khẩu mặc định: 123456 hoặc admin123)
 -- Hash bcrypt của '123456': $2b$10$IC8Jn6vNY9abYUv/ICdqV.2CC1UpttUu.YWPojptJT6c5KBTLIhgq
 INSERT INTO users (id, username, password_hash, full_name, email, role, status) VALUES
-(1, 'admin_khoa', '$2b$10$IC8Jn6vNY9abYUv/ICdqV.2CC1UpttUu.YWPojptJT6c5KBTLIhgq', 'Nguyễn Thị Minh Khoa (Giám Đốc)', 'minhkhoanguyen0106@gmail.com', 'ADMIN', 'ACTIVE'),
+(1, 'admin_khoa', '$2b$10$IC8Jn6vNY9abYUv/ICdqV.2CC1UpttUu.YWPojptJT6c5KBTLIhgq', 'Nguyễn Thị Minh Khoa', 'minhkhoanguyen0106@gmail.com', 'ADMIN', 'ACTIVE'),
 (2, 'admin', '$2b$10$IC8Jn6vNY9abYUv/ICdqV.2CC1UpttUu.YWPojptJT6c5KBTLIhgq', 'Nguyễn Quản Trị', 'admin@englishcenter.edu.vn', 'ADMIN', 'ACTIVE'),
-(3, 'staff_long', '$2b$10$IC8Jn6vNY9abYUv/ICdqV.2CC1UpttUu.YWPojptJT6c5KBTLIhgq', 'Trần Bảo Long (Cán Bộ Khảo Thí)', 'baolong.tran@englishcenter.edu.vn', 'STAFF', 'ACTIVE'),
-(4, 'staff_lan', '$2b$10$IC8Jn6vNY9abYUv/ICdqV.2CC1UpttUu.YWPojptJT6c5KBTLIhgq', 'Trần Thị Lan (Khảo Thí)', 'lan.tran@englishcenter.edu.vn', 'STAFF', 'ACTIVE'),
-(5, 'student_yen', '$2b$10$IC8Jn6vNY9abYUv/ICdqV.2CC1UpttUu.YWPojptJT6c5KBTLIhgq', 'Lê Hoàng Yến (Học Viên IELTS)', 'hoangyen.le@gmail.com', 'STUDENT', 'ACTIVE')
+(3, 'staff_long', '$2b$10$IC8Jn6vNY9abYUv/ICdqV.2CC1UpttUu.YWPojptJT6c5KBTLIhgq', 'Trần Bảo Long', 'baolong.tran@englishcenter.edu.vn', 'STAFF', 'ACTIVE'),
+(4, 'staff_lan', '$2b$10$IC8Jn6vNY9abYUv/ICdqV.2CC1UpttUu.YWPojptJT6c5KBTLIhgq', 'Trần Thị Lan', 'lan.tran@englishcenter.edu.vn', 'STAFF', 'ACTIVE'),
+(5, 'student_yen', '$2b$10$IC8Jn6vNY9abYUv/ICdqV.2CC1UpttUu.YWPojptJT6c5KBTLIhgq', 'Lê Hoàng Yến', 'hoangyen.le@gmail.com', 'STUDENT', 'ACTIVE')
 ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), role = VALUES(role), password_hash = VALUES(password_hash);
 
 -- 2. DANH MỤC KHÓA HỌC / KỲ THI

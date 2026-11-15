@@ -58,6 +58,9 @@ export default function DashboardPage({ wallet, setWallet, user }) {
   const revokedCount = stats ? Number(stats.revokedCount) : certs.filter(c => c.status === "REVOKED").length;
   const pendingCount = stats ? Number(stats.pendingCount) : certs.filter(c => c.status === "PENDING").length;
 
+  const displayName = user?.full_name ? user.full_name.replace(/\s*\([^)]*\)/g, "") : (user?.role === "ADMIN" ? "Quản trị viên" : "Nhân viên Khảo thí");
+  const roleName = user?.role === "ADMIN" ? "Quản trị viên" : "Nhân viên Khảo thí";
+
   return (
     <div>
       {/* Top Welcome Title */}
@@ -67,9 +70,9 @@ export default function DashboardPage({ wallet, setWallet, user }) {
             Bảng Điều Khiển <span className="text-gradient">Quản Trị</span>
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "4px" }}>
-            Xin chào, <strong>{user?.full_name || "Quản trị viên"}</strong> • Thẩm quyền:{" "}
+            Xin chào, <strong>{displayName}</strong> • Vai trò:{" "}
             <span className={`badge ${user?.role === "ADMIN" ? "badge-success" : "badge-warning"}`} style={{ fontSize: "11px", padding: "2px 8px" }}>
-              {user?.role || "ADMIN"}
+              {roleName}
             </span>
           </p>
         </div>

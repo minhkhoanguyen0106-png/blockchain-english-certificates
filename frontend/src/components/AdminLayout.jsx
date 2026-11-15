@@ -14,7 +14,8 @@ import {
   X,
   Sparkles,
   ExternalLink,
-  Layers
+  Layers,
+  User
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { shortenAddress, connectMetaMask } from "../services/web3Service";
@@ -25,6 +26,11 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [connecting, setConnecting] = useState(false);
+
+  const displayName = user?.full_name
+    ? user.full_name.replace(/\s*\([^)]*\)/g, "")
+    : (user?.role === "ADMIN" ? "Quản trị viên" : "Nhân viên Khảo thí");
+  const roleName = user?.role === "ADMIN" ? "Quản trị viên" : "Nhân viên Khảo thí";
 
   const handleLogout = () => {
     setUser(null);
@@ -156,30 +162,6 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
           >
             <X size={20} />
           </button>
-        </div>
-
-        {/* User Role Card in Sidebar */}
-        <div style={{
-          padding: "16px 20px",
-          margin: "16px 16px 8px",
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border-subtle)",
-          borderRadius: "var(--radius-md)"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700 }}>
-              TÀI KHOẢN ĐANG ĐĂNG NHẬP
-            </div>
-            <span className={`badge ${user?.role === "ADMIN" ? "badge-success" : "badge-warning"}`} style={{ fontSize: "10px", padding: "2px 8px" }}>
-              {user?.role || "GUEST"}
-            </span>
-          </div>
-          <div style={{ fontWeight: 700, fontSize: "14px", marginTop: "4px", color: "var(--text-primary)" }}>
-            {user?.full_name || "Quản trị viên"}
-          </div>
-          <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-            @{user?.username}
-          </div>
         </div>
 
         {/* Navigation Menu */}
@@ -335,6 +317,39 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
           {/* Action Tools: Theme, Wallet & User */}
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             
+            {/* User Profile Pill in Topbar */}
+            {user && (
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "4px 10px 4px 6px",
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: "var(--radius-full)",
+                fontSize: "12px"
+              }}>
+                <div style={{
+                  width: "24px",
+                  height: "24px",
+                  borderRadius: "50%",
+                  background: user?.role === "ADMIN" ? "rgba(16, 185, 129, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: user?.role === "ADMIN" ? "var(--success-color)" : "var(--warning-color)",
+                  fontWeight: 700,
+                  fontSize: "11px"
+                }}>
+                  <User size={13} />
+                </div>
+                <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{displayName}</span>
+                <span className={`badge ${user?.role === "ADMIN" ? "badge-success" : "badge-warning"}`} style={{ fontSize: "10px", padding: "2px 6px" }}>
+                  {roleName}
+                </span>
+              </div>
+            )}
+
             {/* Light / Dark Mode Toggle */}
             <ThemeToggle />
 

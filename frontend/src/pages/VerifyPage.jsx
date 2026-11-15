@@ -220,7 +220,7 @@ export default function VerifyPage({ user }) {
                 <div>
                   <h4 style={{ color: "var(--success-text)", fontWeight: 800, fontSize: "16px" }}>CHỨNG CHỈ HỢP LỆ & XÁC THỰC THÀNH CÔNG</h4>
                   <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "2px" }}>
-                    Chứng chỉ đã được xác nhận chữ ký số của Giám đốc trung tâm và lưu trữ an toàn trên hệ thống.
+                    Chứng chỉ đã được xác nhận chữ ký số của Quản trị viên và lưu trữ an toàn trên hệ thống.
                   </p>
                 </div>
               </div>

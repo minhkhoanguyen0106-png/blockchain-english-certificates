@@ -295,7 +295,7 @@ export default function Navbar({ wallet, setWallet, user, setUser }) {
                   background: user.role === "ADMIN" ? "rgba(16, 185, 129, 0.15)" : user.role === "STAFF" ? "rgba(245, 158, 11, 0.15)" : "rgba(99, 102, 241, 0.15)",
                   color: user.role === "ADMIN" ? "var(--success-text)" : user.role === "STAFF" ? "var(--warning-text)" : "var(--primary)"
                 }}>
-                  {user.role}
+                  {user.role === "ADMIN" ? "Quản trị viên" : user.role === "STAFF" ? "Khảo thí" : "Học viên"}
                 </span>
               </div>
 

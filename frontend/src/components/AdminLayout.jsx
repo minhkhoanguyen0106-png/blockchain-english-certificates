@@ -339,20 +339,35 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
 
             {/* MetaMask Connector */}
             {wallet ? (
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "6px 12px",
-                background: "var(--success-bg)",
-                border: "1px solid rgba(16, 185, 129, 0.3)",
-                borderRadius: "var(--radius-full)",
-                fontSize: "12px"
-              }}>
-                <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--success-color)", boxShadow: "0 0 6px var(--success-color)" }} />
-                <span style={{ fontWeight: 600, color: "var(--success-text)" }}>{shortenAddress(wallet.address)}</span>
+              <button
+                type="button"
+                onClick={handleConnectWallet}
+                disabled={connecting}
+                title={wallet.isDemo ? "Bạn đang dùng Ví Mô Phỏng. Bấm vào đây để kết nối ví MetaMask thật của bạn!" : "Đã kết nối ví MetaMask thật. Bấm để đổi ví khác."}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "6px 14px",
+                  background: wallet.isDemo ? "rgba(14, 165, 233, 0.12)" : "var(--success-bg)",
+                  border: wallet.isDemo ? "1px solid rgba(14, 165, 233, 0.35)" : "1px solid rgba(16, 185, 129, 0.3)",
+                  borderRadius: "var(--radius-full)",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                  color: "inherit"
+                }}
+              >
+                <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: wallet.isDemo ? "#0ea5e9" : "var(--success-color)", boxShadow: wallet.isDemo ? "0 0 6px #0ea5e9" : "0 0 6px var(--success-color)" }} />
+                <span style={{ fontWeight: 700, color: wallet.isDemo ? "#0284c7" : "var(--success-text)" }}>
+                  {wallet.isDemo ? `Ví Giám Đốc (${shortenAddress(wallet.address)})` : `🦊 ${shortenAddress(wallet.address)}`}
+                </span>
                 <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>({wallet.balance} ETH)</span>
-              </div>
+                {wallet.isDemo && (
+                  <span style={{ fontSize: "10px", color: "var(--primary)", background: "rgba(2, 132, 199, 0.15)", padding: "1px 6px", borderRadius: "4px", fontWeight: 700 }}>
+                    Bấm kết nối MetaMask thật
+                  </span>
+                )}
+              </button>
             ) : (
               <button
                 onClick={handleConnectWallet}

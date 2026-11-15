@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2 } from "lucide-react";
+import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2, ShieldCheck, ExternalLink, Clock, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { getAllCertificates, revokeCertificateOnChain, shortenAddress } from "../services/web3Service";
 import { certificateApi } from "../services/apiService";
 
@@ -18,6 +18,7 @@ export default function CertificatesListPage({ wallet, user }) {
   const [revokeTarget, setRevokeTarget] = useState(null);
   const [revokeReason, setRevokeReason] = useState("");
   const [revoking, setRevoking] = useState(false);
+  const [selectedProof, setSelectedProof] = useState(null);
 
   const loadCerts = async () => {
     setLoading(true);
@@ -206,8 +207,8 @@ export default function CertificatesListPage({ wallet, user }) {
                 <th>HỌC VIÊN</th>
                 <th>KHÓA HỌC & ĐIỂM</th>
                 <th>NGÀY CẤP</th>
-                <th>TRẠNG THÁI</th>
-                <th>ON-CHAIN PROOF</th>
+                <th>TRẠNG THÁI BLOCKCHAIN</th>
+                <th>BẰNG CHỨNG ON-CHAIN</th>
                 <th style={{ textAlign: "right" }}>THAO TÁC</th>
               </tr>
             </thead>

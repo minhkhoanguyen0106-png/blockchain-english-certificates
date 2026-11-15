@@ -420,6 +420,38 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
             }}>
               <CheckCircle2 size={36} color="var(--success-color)" />
             </div>
+            <div style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "5px 14px",
+              background: "rgba(16, 185, 129, 0.15)",
+              border: "1px solid rgba(16, 185, 129, 0.35)",
+              borderRadius: "var(--radius-full)",
+              color: "var(--success-text)",
+              fontWeight: 800,
+              fontSize: "12px",
+              marginBottom: "12px"
+            }}>
+              <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
+              ĐÃ ĐẨY LÊN BLOCKCHAIN THÀNH CÔNG (CONFIRMED)
+            </div>
+            <div style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "5px 14px",
+              background: "rgba(16, 185, 129, 0.15)",
+              border: "1px solid rgba(16, 185, 129, 0.35)",
+              borderRadius: "var(--radius-full)",
+              color: "var(--success-text)",
+              fontWeight: 800,
+              fontSize: "12px",
+              marginBottom: "12px"
+            }}>
+              <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
+              ĐÃ ĐẨY LÊN BLOCKCHAIN THÀNH CÔNG (CONFIRMED)
+            </div>
             <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--success-text)", marginBottom: "8px" }}>
               Đúc Chứng Chỉ On-Chain Thành Công!
             </h3>

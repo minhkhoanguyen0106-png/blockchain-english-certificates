@@ -220,9 +220,24 @@ export default function DashboardPage({ wallet, setWallet, user }) {
                   </td>
                   <td style={{ color: "var(--text-secondary)" }}>{c.issue_date}</td>
                   <td>
-                    {c.status === "ISSUED_ON_CHAIN" && <span className="badge badge-success">On-Chain</span>}
-                    {c.status === "REVOKED" && <span className="badge badge-danger">Revoked</span>}
-                    {c.status === "PENDING" && <span className="badge badge-warning">Draft</span>}
+                    {c.status === "ISSUED_ON_CHAIN" && (
+                      <span className="badge badge-success" style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "4px 8px" }}>
+                        <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
+                        Đã lên Blockchain
+                      </span>
+                    )}
+                    {c.status === "REVOKED" && (
+                      <span className="badge badge-danger" style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "4px 8px" }}>
+                        <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#ef4444" }} />
+                        Đã thu hồi
+                      </span>
+                    )}
+                    {c.status === "PENDING" && (
+                      <span className="badge badge-warning" style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "4px 8px" }}>
+                        <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#f59e0b" }} />
+                        Chưa lên chuỗi
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

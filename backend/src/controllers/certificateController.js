@@ -136,7 +136,8 @@ export async function getCertificates(req, res) {
     const [rows] = await pool.query(`
       SELECT 
         c.id, c.certificate_code, c.score_overall, c.issue_date, c.expiry_date,
-        c.token_id, c.tx_hash, c.status, c.pdf_url, c.created_at,
+        c.token_id, c.tx_hash, c.ipfs_hash, c.status, c.pdf_url, c.created_at,
+        c.revoke_reason, c.revoked_at,
         s.student_code, s.full_name AS student_name, s.citizen_id,
         co.course_code, co.course_name
       FROM certificates c

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2, ShieldCheck, ExternalLink, Clock, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2, ShieldCheck, ExternalLink, Clock, ShieldAlert, CheckCircle2, Copy, Check } from "lucide-react";
 import { getAllCertificates, revokeCertificateOnChain, shortenAddress } from "../services/web3Service";
 import { certificateApi } from "../services/apiService";
 
@@ -19,6 +19,7 @@ export default function CertificatesListPage({ wallet, user }) {
   const [revokeReason, setRevokeReason] = useState("");
   const [revoking, setRevoking] = useState(false);
   const [selectedProof, setSelectedProof] = useState(null);
+  const [copiedTx, setCopiedTx] = useState(false);
 
   const loadCerts = async () => {
     setLoading(true);
@@ -41,6 +42,7 @@ export default function CertificatesListPage({ wallet, user }) {
           status: d.status,
           token_id: d.token_id,
           tx_hash: d.tx_hash,
+          ipfs_hash: d.ipfs_hash,
           pdf_url: `http://localhost:5000/api/public/pdf/${d.certificate_code}`
         }));
         setCerts(mapped);
@@ -243,20 +245,92 @@ export default function CertificatesListPage({ wallet, user }) {
                     </td>
 
                     <td>
-                      {c.status === "ISSUED_ON_CHAIN" && <span className="badge badge-success">Hợp Lệ</span>}
+                      {c.status === "ISSUED_ON_CHAIN" && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProof(c)}
+                          className="badge badge-success"
+                          style={{
+                            cursor: "pointer",
+                            border: "1px solid rgba(16, 185, 129, 0.4)",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            padding: "5px 10px",
+                            borderRadius: "20px",
+                            background: "rgba(16, 185, 129, 0.12)",
+                            color: "#10b981",
+                            fontWeight: 700,
+                            fontSize: "12px",
+                            boxShadow: "0 2px 4px rgba(16, 185, 129, 0.1)"
+                          }}
+                          title="Nhấn để xem Bằng Chứng On-Chain chi tiết"
+                        >
+                          <ShieldCheck size={13} />
+                          Hợp Lệ
+                        </button>
+                      )}
                       {c.status === "REVOKED" && <span className="badge badge-danger">Đã Thu Hồi</span>}
-                      {c.status === "PENDING" && <span className="badge badge-warning">Draft</span>}
+                      {c.status === "PENDING" && <span className="badge badge-warning">Draft (Nháp)</span>}
                     </td>
 
                     <td style={{ fontSize: "11px" }}>
-                      <div>Token #{c.token_id || "N/A"}</div>
-                      <div style={{ color: "var(--text-muted)" }}>
-                        {c.tx_hash ? `Tx: ${shortenAddress(c.tx_hash)}` : "Chưa lên chuỗi"}
-                      </div>
+                      {c.tx_hash ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProof(c)}
+                          style={{
+                            background: "rgba(59, 130, 246, 0.08)",
+                            border: "1px solid rgba(59, 130, 246, 0.28)",
+                            borderRadius: "8px",
+                            padding: "6px 10px",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            display: "block",
+                            width: "100%",
+                            maxWidth: "180px",
+                            transition: "all 0.15s ease"
+                          }}
+                          title="Nhấn để xem đầy đủ Transaction Hash và Token ID"
+                        >
+                          <div style={{ fontWeight: 700, color: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
+                            <span>Token #{c.token_id || "N/A"}</span>
+                            <ExternalLink size={12} />
+                          </div>
+                          <div style={{ color: "var(--text-muted)", fontSize: "11px", fontFamily: "monospace", marginTop: "2px" }}>
+                            Tx: {shortenAddress(c.tx_hash)}
+                          </div>
+                        </button>
+                      ) : (
+                        <div style={{ color: "var(--text-muted)" }}>Chưa lên chuỗi</div>
+                      )}
                     </td>
 
                     <td style={{ textAlign: "right" }}>
-                      <div style={{ display: "inline-flex", gap: "8px" }}>
+                      <div style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
+                        {c.status === "ISSUED_ON_CHAIN" && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedProof(c)}
+                            className="btn btn-outline"
+                            style={{
+                              padding: "6px 10px",
+                              fontSize: "12px",
+                              color: "var(--primary)",
+                              borderColor: "rgba(59, 130, 246, 0.5)",
+                              background: "rgba(59, 130, 246, 0.05)",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              fontWeight: 600
+                            }}
+                            title="Bấm vào đây để mở Bằng Chứng Blockchain"
+                          >
+                            <ShieldCheck size={14} />
+                            Bằng Chứng
+                          </button>
+                        )}
+
                         <Link
                           to={`/verify?code=${c.certificate_code}`}
                           className="btn btn-outline"
@@ -404,6 +478,245 @@ export default function CertificatesListPage({ wallet, user }) {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Blockchain Proof Detail Modal */}
+      {selectedProof && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(15, 23, 42, 0.75)",
+          backdropFilter: "blur(8px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+          padding: "20px"
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: "620px",
+            width: "100%",
+            padding: "28px",
+            background: "var(--bg-surface-elevated, #ffffff)",
+            border: "1px solid rgba(59, 130, 246, 0.35)",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
+            borderRadius: "16px"
+          }}>
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px", borderBottom: "1px solid var(--border-color, #e2e8f0)", paddingBottom: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{
+                  width: "42px",
+                  height: "42px",
+                  borderRadius: "10px",
+                  background: "rgba(16, 185, 129, 0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#10b981"
+                }}>
+                  <ShieldCheck size={26} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: "18px", fontWeight: 800, margin: 0, color: "var(--text-primary)" }}>
+                    Bằng Chứng Giao Dịch On-Chain
+                  </h3>
+                  <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                    Xác thực tính toàn vẹn trực tiếp từ Smart Contract trên sổ cái
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedProof(null)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "22px",
+                  cursor: "pointer",
+                  color: "var(--text-muted)",
+                  padding: "4px 8px"
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Cert Overview */}
+            <div style={{
+              background: "var(--bg-surface, #f8fafc)",
+              border: "1px solid var(--border-color, #e2e8f0)",
+              borderRadius: "10px",
+              padding: "14px 16px",
+              marginBottom: "16px",
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "10px"
+            }}>
+              <div>
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Mã Chứng Chỉ:</span>
+                <div style={{ fontWeight: 800, color: "var(--primary)", fontSize: "14px" }}>{selectedProof.certificate_code}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Học Viên:</span>
+                <div style={{ fontWeight: 700, fontSize: "14px" }}>{selectedProof.student_name}</div>
+                <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{selectedProof.student_code}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Khóa Học:</span>
+                <div style={{ fontWeight: 600, fontSize: "13px" }}>{selectedProof.course_name}</div>
+              </div>
+              <div>
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Điểm & Ngày Cấp:</span>
+                <div style={{ fontWeight: 700, color: "var(--accent-gold)", fontSize: "13px" }}>{selectedProof.score} • {selectedProof.issue_date}</div>
+              </div>
+            </div>
+
+            {/* On-Chain Cryptographic Info */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px" }}>
+              {/* Token ID */}
+              <div style={{
+                background: "rgba(59, 130, 246, 0.05)",
+                border: "1px solid rgba(59, 130, 246, 0.2)",
+                borderRadius: "8px",
+                padding: "10px 14px"
+              }}>
+                <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: "4px" }}>
+                  Soulbound Token (ERC-721 SBT):
+                </div>
+                <div style={{ fontWeight: 800, color: "var(--primary)", fontSize: "15px" }}>
+                  Token #{selectedProof.token_id || "N/A"}{" "}
+                  <span style={{ fontSize: "12px", fontWeight: 500, color: "#10b981" }}>
+                    (Khóa vĩnh viễn theo học viên / Non-transferable)
+                  </span>
+                </div>
+              </div>
+
+              {/* Tx Hash */}
+              <div style={{
+                background: "rgba(15, 23, 42, 0.03)",
+                border: "1px solid var(--border-color, #e2e8f0)",
+                borderRadius: "8px",
+                padding: "10px 14px"
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700 }}>
+                    Mã Giao Dịch (Transaction Hash):
+                  </span>
+                  {selectedProof.tx_hash && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedProof.tx_hash);
+                        setCopiedTx(true);
+                        setTimeout(() => setCopiedTx(false), 2000);
+                      }}
+                      className="btn btn-outline"
+                      style={{ padding: "3px 8px", fontSize: "11px", height: "auto" }}
+                    >
+                      {copiedTx ? <><Check size={11} color="#10b981" /> Đã chép</> : <><Copy size={11} /> Sao chép</>}
+                    </button>
+                  )}
+                </div>
+                <div style={{
+                  fontFamily: "monospace",
+                  fontSize: "12px",
+                  color: "var(--text-primary)",
+                  wordBreak: "break-all",
+                  background: "rgba(0,0,0,0.03)",
+                  padding: "6px 8px",
+                  borderRadius: "6px"
+                }}>
+                  {selectedProof.tx_hash || "Chưa có thông tin Tx Hash"}
+                </div>
+              </div>
+
+              {/* Contract Address & Network */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "10px"
+              }}>
+                <div style={{
+                  background: "rgba(15, 23, 42, 0.03)",
+                  border: "1px solid var(--border-color, #e2e8f0)",
+                  borderRadius: "8px",
+                  padding: "10px 14px"
+                }}>
+                  <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: "4px" }}>
+                    Smart Contract:
+                  </div>
+                  <div style={{ fontFamily: "monospace", fontSize: "11px", color: "var(--primary)", wordBreak: "break-all" }}>
+                    0x5FbDB2315678afecb367f032d93F642f64180aa3
+                  </div>
+                </div>
+
+                <div style={{
+                  background: "rgba(15, 23, 42, 0.03)",
+                  border: "1px solid var(--border-color, #e2e8f0)",
+                  borderRadius: "8px",
+                  padding: "10px 14px"
+                }}>
+                  <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: "4px" }}>
+                    Mạng & Trạng Thái:
+                  </div>
+                  <div style={{ fontSize: "12px", fontWeight: 700, color: "#10b981", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <CheckCircle2 size={14} /> Hardhat Node (Chain 31337)
+                  </div>
+                </div>
+              </div>
+
+              {/* IPFS CID if any */}
+              {selectedProof.ipfs_hash && (
+                <div style={{
+                  background: "rgba(15, 23, 42, 0.03)",
+                  border: "1px solid var(--border-color, #e2e8f0)",
+                  borderRadius: "8px",
+                  padding: "10px 14px"
+                }}>
+                  <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: "4px" }}>
+                    IPFS Metadata CID:
+                  </div>
+                  <div style={{ fontFamily: "monospace", fontSize: "12px", color: "var(--accent-gold)", wordBreak: "break-all" }}>
+                    {selectedProof.ipfs_hash}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", borderTop: "1px solid var(--border-color, #e2e8f0)", paddingTop: "16px" }}>
+              <button
+                type="button"
+                onClick={() => setSelectedProof(null)}
+                className="btn btn-outline"
+                style={{ padding: "8px 18px", fontSize: "13px" }}
+              >
+                Đóng
+              </button>
+
+              <button
+                type="button"
+                onClick={() => window.open(`http://localhost:5000/api/public/pdf/${selectedProof.certificate_code}`, "_blank")}
+                className="btn btn-outline"
+                style={{ padding: "8px 16px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              >
+                <Download size={14} />
+                Tải File PDF
+              </button>
+
+              <Link
+                to={`/verify?code=${selectedProof.certificate_code}`}
+                className="btn btn-primary"
+                style={{ padding: "8px 20px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              >
+                <Eye size={14} />
+                Mở Cổng Thẩm Định On-Chain
+              </Link>
+            </div>
           </div>
         </div>
       )}

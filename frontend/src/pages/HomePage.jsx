@@ -80,11 +80,6 @@ export default function HomePage() {
               <QrCode size={18} />
               Quét Mã QR Xác Thực
             </Link>
-
-            <Link to="/login" className="btn btn-outline" style={{ padding: "14px 24px", fontSize: "15px" }}>
-              <Lock size={16} />
-              Cổng Quản Trị Trung Tâm
-            </Link>
           </div>
 
         </div>

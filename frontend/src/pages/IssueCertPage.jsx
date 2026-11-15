@@ -4,6 +4,7 @@ import { FileCheck, Sparkles, CheckCircle2, RefreshCw, Download, ExternalLink } 
 import confetti from "canvas-confetti";
 import { issueCertificateOnChain, INITIAL_STUDENTS, INITIAL_COURSES, connectMetaMask, isMetaMaskInstalled } from "../services/web3Service";
 import { certificateApi, studentApi, courseApi } from "../services/apiService";
+import { computeOverallScore, getExpiryDateForCourse, validateSubScores, detectCourseType, CERTIFICATE_TYPES } from "../services/scoreEngine";
 import CertificateCard from "../components/CertificateCard";
 
 export default function IssueCertPage({ wallet, setWallet, user }) {
@@ -16,7 +17,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     student_name: "Phạm Quốc Hưng",
     student_code: "HV2026-0199",
     email: "quochung.pham@gmail.com",
-    wallet_address: "0x91F84e8B291823eF4512C890123456789ABCDEF9",
+    wallet_address: "0x9965507d1a55bcc2695c58ba16Fb37D819b0A4dF",
     course_code: "IELTS-ACAD",
     course_name: "IELTS Academic Master",
     score: "7.5 Overall",
@@ -53,47 +54,25 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     loadOptions();
   }, []);
 
-  // Quy chuẩn làm tròn điểm IELTS quốc tế (British Council / IDP / Cambridge)
-  const calculateIeltsOverall = (l, r, w, s) => {
-    const nums = [parseFloat(l), parseFloat(r), parseFloat(w), parseFloat(s)];
-    if (nums.some(isNaN)) return formData.score;
-    const avg = nums.reduce((a, b) => a + b, 0) / 4;
-    const dec = avg - Math.floor(avg);
-    let rounded;
-    if (dec < 0.25) rounded = Math.floor(avg);
-    else if (dec < 0.75) rounded = Math.floor(avg) + 0.5;
-    else rounded = Math.floor(avg) + 1.0;
-    return `${rounded.toFixed(1)} Overall`;
-  };
-
   const handleSubScoreChange = (field, val) => {
     const updated = { ...formData, [field]: val };
-    if (formData.course_code.includes("IELTS")) {
-      const overall = calculateIeltsOverall(
-        field === "listening" ? val : formData.listening,
-        field === "reading" ? val : formData.reading,
-        field === "writing" ? val : formData.writing,
-        field === "speaking" ? val : formData.speaking
-      );
-      updated.score = overall;
-    } else if (formData.course_code.includes("TOEIC")) {
-      const l = parseInt(field === "listening" ? val : formData.listening) || 0;
-      const r = parseInt(field === "reading" ? val : formData.reading) || 0;
-      updated.score = `${l + r}/990`;
-    }
+    const overall = computeOverallScore(updated.course_code, {
+      listening: field === "listening" ? val : updated.listening,
+      reading: field === "reading" ? val : updated.reading,
+      writing: field === "writing" ? val : updated.writing,
+      speaking: field === "speaking" ? val : updated.speaking
+    });
+    updated.score = overall;
     setFormData(updated);
   };
 
   const handleDateChange = (issueDate) => {
-    const d = new Date(issueDate);
-    if (!isNaN(d.getTime())) {
-      d.setFullYear(d.getFullYear() + 2); // Chuẩn hiệu lực 2 năm quốc tế
-      setFormData({
-        ...formData,
-        issue_date: issueDate,
-        expiry_date: d.toISOString().slice(0, 10)
-      });
-    }
+    const expiry = getExpiryDateForCourse(formData.course_code, issueDate);
+    setFormData({
+      ...formData,
+      issue_date: issueDate,
+      expiry_date: expiry
+    });
   };
 
   const handleStudentSelect = (e) => {
@@ -114,10 +93,19 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     const courseCode = e.target.value;
     const found = coursesList.find(c => c.course_code === courseCode);
     if (found) {
+      const overall = computeOverallScore(found.course_code, {
+        listening: formData.listening,
+        reading: formData.reading,
+        writing: formData.writing,
+        speaking: formData.speaking
+      });
+      const expiry = getExpiryDateForCourse(found.course_code, formData.issue_date);
       setFormData(prev => ({
         ...prev,
         course_code: found.course_code,
-        course_name: found.course_name
+        course_name: found.course_name,
+        score: overall,
+        expiry_date: expiry
       }));
     }
   };
@@ -125,6 +113,13 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   const handleIssue = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    const validation = validateSubScores(formData.course_code, formData);
+    if (!validation.isValid) {
+      alert(`Dữ liệu điểm chưa hợp lệ:\n- ${validation.errors.join("\n- ")}`);
+      setLoading(false);
+      return;
+    }
 
     try {
       if (user?.role === "STAFF") {
@@ -317,11 +312,13 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 />
               </div>
               <div>
-                <label className="form-label" style={{ fontSize: "12px" }}>Hạn hiệu lực (Chuẩn 2 năm)</label>
+                <label className="form-label" style={{ fontSize: "12px" }}>
+                  Hạn hiệu lực {formData.expiry_date ? "(Theo chuẩn khóa học)" : "(Vô thời hạn)"}
+                </label>
                 <input
-                  type="date"
+                  type={formData.expiry_date ? "date" : "text"}
                   readOnly
-                  value={formData.expiry_date}
+                  value={formData.expiry_date || "Vô thời hạn (Vĩnh viễn)"}
                   className="form-input"
                   style={{ opacity: 0.85 }}
                 />

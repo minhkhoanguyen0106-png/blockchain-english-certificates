@@ -4,7 +4,7 @@ import { Search, ShieldCheck, AlertTriangle, XCircle, Download, ExternalLink, Qr
 import { getCertificateByCode } from "../services/web3Service";
 import CertificateCard from "../components/CertificateCard";
 
-export default function VerifyPage() {
+export default function VerifyPage({ user }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCode = searchParams.get("code") || "";
 
@@ -60,6 +60,42 @@ export default function VerifyPage() {
             Kiểm tra tính toàn vẹn và thẩm quyền cấp bằng trực tiếp từ Smart Contract trên sổ cái Blockchain.
           </p>
         </div>
+
+        {/* Student Welcome Banner (Dành riêng cho tài khoản học viên) */}
+        {user?.role === "STUDENT" && (
+          <div className="glass-panel" style={{
+            padding: "16px 20px",
+            marginBottom: "24px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "12px",
+            borderColor: "rgba(99, 102, 241, 0.3)",
+            background: "var(--bg-surface)"
+          }}>
+            <div>
+              <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)" }}>
+                🎓 Cổng Tra Cứu Dành Cho Học Viên: {user.full_name || user.fullName}
+              </div>
+              <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                Nhập mã chứng chỉ hoặc số CCCD đã đăng ký để kiểm tra chứng chỉ cá nhân của bạn.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const sampleCode = "CERT-VSTEP-2026-012";
+                setInputCode(sampleCode);
+                handleSearch(sampleCode);
+              }}
+              className="btn btn-outline"
+              style={{ fontSize: "12px", padding: "6px 14px", color: "var(--primary)" }}
+            >
+              Xem Bằng Của Tôi (CERT-VSTEP-2026-012)
+            </button>
+          </div>
+        )}
 
         {/* Search Input Box */}
         <div className="glass-panel" style={{ padding: "20px 24px", marginBottom: "32px" }}>
@@ -211,6 +247,29 @@ export default function VerifyPage() {
                   </p>
                   <p style={{ color: "var(--text-muted)", fontSize: "12px", marginTop: "4px" }}>
                     Thời điểm ghi nhận thu hồi on-chain: {result.revoked_at}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {result.status === "TAMPERED" && (
+              <div style={{
+                background: "rgba(245, 158, 11, 0.15)",
+                border: "1px solid rgba(245, 158, 11, 0.5)",
+                borderRadius: "var(--radius-md)",
+                padding: "16px 20px",
+                marginBottom: "24px",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "14px"
+              }}>
+                <div style={{ background: "#f59e0b", borderRadius: "50%", padding: "6px", display: "flex", marginTop: "2px", color: "#ffffff" }}>
+                  <AlertTriangle size={24} color="#ffffff" />
+                </div>
+                <div>
+                  <h4 style={{ color: "#d97706", fontWeight: 800, fontSize: "16px" }}>CẢNH BÁO: SAI LỆCH DỮ LIỆU TÀI LIỆU (TAMPERED)</h4>
+                  <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "2px" }}>
+                    Nội dung phôi bằng không trùng khớp với mã băm toàn vẹn đã cam kết trên Smart Contract. Dấu hiệu phôi bằng đã bị chỉnh sửa điểm số hoặc thông tin trái phép!
                   </p>
                 </div>
               </div>

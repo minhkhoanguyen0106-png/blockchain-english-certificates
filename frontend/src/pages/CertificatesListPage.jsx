@@ -358,9 +358,36 @@ export default function CertificatesListPage({ wallet, user }) {
               <h3 style={{ fontSize: "20px", fontWeight: 800 }}>Xác Nhận Thu Hồi Chứng Chỉ</h3>
             </div>
 
-            <p style={{ color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.5, marginBottom: "16px" }}>
-              Hành động này sẽ thực thi giao dịch gọi hàm <code>revokeCertificate()</code> trên Smart Contract và chuyển trạng thái của bằng <strong>{revokeTarget.certificate_code}</strong> ({revokeTarget.student_name}) sang <strong>REVOKED</strong> vĩnh viễn trên sổ cái Blockchain và MySQL.
+            <p style={{ color: "var(--text-secondary)", fontSize: "13px", lineHeight: 1.5, marginBottom: "14px" }}>
+              Hành động này sẽ thực thi giao dịch gọi hàm <code>revokeCertificate()</code> trên Smart Contract và hủy bỏ vĩnh viễn tính hiệu lực của chứng chỉ trên toàn mạng lưới.
             </p>
+
+            {/* Checklist đối soát trước khi ký */}
+            <div style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "var(--radius-sm)",
+              padding: "12px 14px",
+              marginBottom: "16px",
+              fontSize: "12px"
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                <span style={{ color: "var(--text-muted)" }}>Mã chứng chỉ:</span>
+                <strong style={{ color: "var(--primary)" }}>{revokeTarget.certificate_code}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                <span style={{ color: "var(--text-muted)" }}>Học viên sở hữu:</span>
+                <span style={{ fontWeight: 600 }}>{revokeTarget.student_name} ({revokeTarget.student_code})</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                <span style={{ color: "var(--text-muted)" }}>Khóa học & Điểm:</span>
+                <span style={{ color: "var(--accent-gold)", fontWeight: 700 }}>{revokeTarget.course_name} • {revokeTarget.score}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Token ID on-chain:</span>
+                <span>#{revokeTarget.token_id || "N/A"}</span>
+              </div>
+            </div>
 
             <div className="form-group">
               <label className="form-label" style={{ color: "var(--danger-text)" }}>

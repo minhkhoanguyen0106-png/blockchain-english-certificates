@@ -76,10 +76,12 @@ export const INITIAL_CERTIFICATES = [
 ];
 
 export const INITIAL_STUDENTS = [
-  { id: 1, student_code: "HV2026-0106", full_name: "Nguyễn Thị Minh Khoa", email: "minhkhoa.student@gmail.com", wallet_address: "0x71C84e8B291823eF4512C890123456789ABCDEF0" },
-  { id: 2, student_code: "HV2026-0088", full_name: "Trần Bảo Long", email: "baolong.tran@gmail.com", wallet_address: "0x4B291Aa9823ef4512C890123456789abcdef1234" },
-  { id: 3, student_code: "HV2026-0012", full_name: "Lê Hoàng Yến", email: "hoangyen.le@gmail.com", wallet_address: "0x82C61Fe1234567890abcdef1234567890abcdef1" },
-  { id: 4, student_code: "HV2026-0199", full_name: "Phạm Quốc Hưng", email: "quochung.pham@gmail.com", wallet_address: "0x91F84e8B291823eF4512C890123456789ABCDEF9" }
+  { id: 1, student_code: "HV2026-0106", full_name: "Nguyễn Thị Minh Khoa", email: "minhkhoa.student@gmail.com", wallet_address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC" },
+  { id: 2, student_code: "HV2026-0088", full_name: "Trần Bảo Long", email: "baolong.tran@gmail.com", wallet_address: "0x90F79bf6EB2c4f870365E785982E1f101E93b906" },
+  { id: 3, student_code: "HV2026-0012", full_name: "Lê Hoàng Yến", email: "hoangyen.le@gmail.com", wallet_address: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65" },
+  { id: 4, student_code: "HV2026-0199", full_name: "Phạm Quốc Hưng", email: "quochung.pham@gmail.com", wallet_address: "0x9965507d1a55bcc2695c58ba16Fb37D819b0A4dF" },
+  { id: 5, student_code: "HV2026-0001", full_name: "Lê Hoàng Nam", email: "nam.le@gmail.com", wallet_address: "0x976EA74026E726554dB657fA54763abd0C3a0aa9" },
+  { id: 6, student_code: "HV2026-0002", full_name: "Phạm Minh Anh", email: "minhanh.pham@gmail.com", wallet_address: "0x2546BcD3c84621e976D8185a91A922aE77ECEc30" }
 ];
 
 export const INITIAL_COURSES = [

@@ -90,57 +90,87 @@ export default function DashboardPage({ wallet, setWallet, user }) {
         </div>
       </div>
 
-      {/* Web3 Alert Card */}
-      <div className="glass-panel" style={{
-        padding: "18px 22px",
-        marginBottom: "28px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        flexWrap: "wrap",
-        gap: "16px",
-        borderColor: wallet ? "rgba(16, 185, 129, 0.3)" : "rgba(245, 158, 11, 0.3)"
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+      {/* Role-based Workspace Banner */}
+      {user?.role === "ADMIN" ? (
+        <div className="glass-panel" style={{
+          padding: "18px 22px",
+          marginBottom: "28px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "16px",
+          borderColor: wallet ? "rgba(16, 185, 129, 0.3)" : "rgba(245, 158, 11, 0.3)"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+            <div style={{
+              background: wallet ? "var(--success-bg)" : "var(--warning-bg)",
+              borderRadius: "50%",
+              padding: "10px",
+              display: "flex",
+              color: wallet ? "var(--success-text)" : "var(--warning-text)"
+            }}>
+              <Wallet size={20} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>
+                {wallet ? `Ví Quản Trị Đã Kết Nối: ${shortenAddress(wallet.address)}` : "Chưa Kết Nối Ví MetaMask (Admin Signer)"}
+              </div>
+              <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                {wallet ? `Mạng: Hardhat / Testnet (ChainID: ${wallet.chainId}) • Số dư: ${wallet.balance} ETH` : "Vui lòng kết nối ví để ký đúc Soulbound NFT hoặc thu hồi bằng on-chain."}
+              </div>
+            </div>
+          </div>
+
+          {!wallet ? (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const acc = await connectMetaMask();
+                  setWallet(acc);
+                } catch (e) {
+                  alert(e.message);
+                }
+              }}
+              className="btn btn-primary"
+              style={{ fontSize: "13px" }}
+            >
+              <Sparkles size={15} /> Kết Nối Ví MetaMask
+            </button>
+          ) : (
+            <span className="badge badge-success">Sẵn sàng ký on-chain</span>
+          )}
+        </div>
+      ) : (
+        <div className="glass-panel" style={{
+          padding: "16px 20px",
+          marginBottom: "28px",
+          display: "flex",
+          alignItems: "center",
+          gap: "14px",
+          borderColor: "rgba(99, 102, 241, 0.25)",
+          background: "var(--bg-surface)"
+        }}>
           <div style={{
-            background: wallet ? "var(--success-bg)" : "var(--warning-bg)",
+            background: "rgba(99, 102, 241, 0.15)",
             borderRadius: "50%",
             padding: "10px",
             display: "flex",
-            color: wallet ? "var(--success-text)" : "var(--warning-text)"
+            color: "var(--primary)"
           }}>
-            <Wallet size={20} />
+            <Layers size={20} />
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>
-              {wallet ? `Ví Quản Trị Đã Kết Nối: ${shortenAddress(wallet.address)}` : "Chưa Kết Nối Ví MetaMask (Admin Signer)"}
+              Không Gian Khảo Thí & Quản Lý Điểm (Cán Bộ STAFF)
             </div>
             <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "2px" }}>
-              {wallet ? `Mạng: Hardhat / Testnet (ChainID: ${wallet.chainId}) • Số dư: ${wallet.balance} ETH` : "Vui lòng kết nối ví để ký đúc Soulbound NFT hoặc thu hồi bằng on-chain."}
+              Bạn có quyền nhập điểm, quản lý học viên và lưu bản nháp (PENDING). Quyền ký đúc Soulbound Token on-chain thuộc về Giám đốc / Admin.
             </div>
           </div>
         </div>
-
-        {!wallet ? (
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                const acc = await connectMetaMask();
-                setWallet(acc);
-              } catch (e) {
-                alert(e.message);
-              }
-            }}
-            className="btn btn-primary"
-            style={{ fontSize: "13px" }}
-          >
-            <Sparkles size={15} /> Kết Nối Ví MetaMask
-          </button>
-        ) : (
-          <span className="badge badge-success">Sẵn sàng ký on-chain</span>
-        )}
-      </div>
+      )}
 
       {/* 4 Overview Metric Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "18px", marginBottom: "28px" }}>

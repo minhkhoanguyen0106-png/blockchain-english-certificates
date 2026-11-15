@@ -204,55 +204,57 @@ export default function Navbar({ wallet, setWallet, user, setUser }) {
           {/* Minimalist Theme Toggle (Circle icon button) */}
           <ThemeToggle />
 
-          {/* Subtle Vertical Divider */}
-          <div style={{ width: "1px", height: "20px", background: "var(--border-subtle)" }} />
-
-          {/* MetaMask Status (Clean and proportional) */}
-          {wallet ? (
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "7px",
-              padding: "5px 12px",
-              background: "var(--success-bg)",
-              border: "1px solid rgba(16, 185, 129, 0.25)",
-              borderRadius: "var(--radius-full)",
-              fontSize: "12px"
-            }}>
-              <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--success-color)" }} />
-              <span style={{ fontWeight: 600, color: "var(--success-text)" }}>{shortenAddress(wallet.address)}</span>
-            </div>
-          ) : (
-            <button
-              onClick={handleConnectWallet}
-              disabled={connecting}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "7px 13px",
-                borderRadius: "var(--radius-md)",
-                fontSize: "13px",
-                fontWeight: 600,
-                background: "transparent",
-                border: "1px solid var(--border-subtle)",
-                color: "var(--text-secondary)",
-                cursor: "pointer",
-                transition: "all var(--transition-fast)"
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "var(--primary)";
-                e.currentTarget.style.color = "var(--primary)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "var(--border-subtle)";
-                e.currentTarget.style.color = "var(--text-secondary)";
-              }}
-              title="Kết nối ví Web3 để ký giao dịch"
-            >
-              <Wallet size={15} />
-              <span>{connecting ? "Đang kết nối..." : "Ví MetaMask"}</span>
-            </button>
+          {/* MetaMask Connector (Chỉ hiển thị với ADMIN để ký duyệt on-chain) */}
+          {user?.role === "ADMIN" && (
+            <>
+              <div style={{ width: "1px", height: "20px", background: "var(--border-subtle)" }} />
+              {wallet ? (
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  padding: "5px 12px",
+                  background: "var(--success-bg)",
+                  border: "1px solid rgba(16, 185, 129, 0.25)",
+                  borderRadius: "var(--radius-full)",
+                  fontSize: "12px"
+                }}>
+                  <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--success-color)" }} />
+                  <span style={{ fontWeight: 600, color: "var(--success-text)" }}>{shortenAddress(wallet.address)}</span>
+                </div>
+              ) : (
+                <button
+                  onClick={handleConnectWallet}
+                  disabled={connecting}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "7px 13px",
+                    borderRadius: "var(--radius-md)",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    background: "transparent",
+                    border: "1px solid var(--border-subtle)",
+                    color: "var(--text-secondary)",
+                    cursor: "pointer",
+                    transition: "all var(--transition-fast)"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "var(--primary)";
+                    e.currentTarget.style.color = "var(--primary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "var(--border-subtle)";
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                  }}
+                  title="Kết nối ví Web3 Quản trị viên để ký giao dịch on-chain"
+                >
+                  <Wallet size={15} />
+                  <span>{connecting ? "Đang kết nối..." : "Ví MetaMask (Admin)"}</span>
+                </button>
+              )}
+            </>
           )}
 
           {/* User Profile Capsule (Unified avatar, username, role and logout) */}

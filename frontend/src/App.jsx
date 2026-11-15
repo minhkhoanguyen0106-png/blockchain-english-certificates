@@ -59,7 +59,7 @@ export default function App() {
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
-            <Route path="/verify" element={<VerifyPage />} />
+            <Route path="/verify" element={<VerifyPage user={user} />} />
             <Route path="/scanner" element={<ScannerPage />} />
             <Route path="/login" element={<LoginPage setUser={setUser} />} />
 

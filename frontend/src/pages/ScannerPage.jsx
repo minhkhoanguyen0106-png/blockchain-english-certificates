@@ -50,13 +50,21 @@ export default function ScannerPage() {
   }, []);
 
   const handleScanSuccess = (text) => {
-    let certCode = text;
+    let certCode = (text || "").trim();
     try {
-      if (text.includes("code=")) {
-        const url = new URL(text);
-        certCode = url.searchParams.get("code") || text;
+      if (certCode.startsWith("http://") || certCode.startsWith("https://")) {
+        const url = new URL(certCode);
+        if (url.searchParams.get("code")) {
+          certCode = url.searchParams.get("code");
+        } else {
+          const segments = url.pathname.split("/").filter(Boolean);
+          const last = segments[segments.length - 1];
+          if (last && last !== "verify") {
+            certCode = last;
+          }
+        }
       }
-    } catch (e) {
+    } catch {
       certCode = text;
     }
 

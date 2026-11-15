@@ -177,19 +177,61 @@ export const getCertificateByCode = async (code) => {
   return list.find((c) => c.certificate_code.trim().toUpperCase() === cleanCode) || null;
 };
 
+// Tự động chuyển mạng MetaMask sang đúng chainId của Smart Contract
+export const ensureCorrectNetwork = async (walletSigner) => {
+  if (!walletSigner?.signer?.provider) return;
+  const targetChainId = Number(contractJson.chainId || 31337);
+  let network = await walletSigner.signer.provider.getNetwork();
+
+  if (Number(network.chainId) !== targetChainId) {
+    if (typeof window !== "undefined" && window.ethereum) {
+      const hexChainId = "0x" + targetChainId.toString(16);
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: hexChainId }]
+        });
+      } catch (switchError) {
+        if (switchError.code === 4902 || switchError.data?.originalError?.code === 4902) {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: hexChainId,
+                chainName: "Hardhat Localhost",
+                rpcUrls: ["http://127.0.0.1:8545"],
+                nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 }
+              }
+            ]
+          });
+        } else {
+          throw new Error(`MetaMask đang ở chain ${network.chainId}; hãy chuyển sang chain ${targetChainId} của contract trong MetaMask.`);
+        }
+      }
+      const newProvider = new ethers.BrowserProvider(window.ethereum);
+      const newSigner = await newProvider.getSigner();
+      walletSigner.provider = newProvider;
+      walletSigner.signer = newSigner;
+      network = await newProvider.getNetwork();
+    }
+  }
+
+  if (Number(network.chainId) !== targetChainId) {
+    throw new Error(`MetaMask đang ở chain ${network.chainId}; hãy chuyển sang chain ${targetChainId} của contract.`);
+  }
+};
+
 // 7. Cấp chứng chỉ mới (Tích hợp: Backend MySQL Draft -> Smart Contract Soulbound -> Backend Confirm)
 export const issueCertificateOnChain = async (certData, walletSigner) => {
   if (!walletSigner?.signer) throw new Error("Hãy kết nối MetaMask trước khi phát hành.");
-  if (!certData.wallet_address || !ethers.isAddress(certData.wallet_address)) {
-    throw new Error("Địa chỉ ví của học viên không hợp lệ.");
-  }
 
-  const network = await walletSigner.signer.provider.getNetwork();
-  if (contractJson.chainId && Number(network.chainId) !== Number(contractJson.chainId)) {
-    throw new Error(`MetaMask đang ở chain ${network.chainId}; hãy chuyển sang chain ${contractJson.chainId} của contract.`);
+  const rawRecipient = (certData.wallet_address || "").trim();
+  if (!rawRecipient || !ethers.isAddress(rawRecipient.toLowerCase())) {
+    throw new Error("Địa chỉ ví của học viên không hợp lệ (cần địa chỉ Ethereum 42 ký tự).");
   }
+  const recipientAddress = ethers.getAddress(rawRecipient.toLowerCase());
 
-  const recipientAddress = certData.wallet_address;
+  await ensureCorrectNetwork(walletSigner);
 
   // B1: Tính toán mã băm Keccak256 chuẩn mật mã toàn vẹn dữ liệu
   const canonicalData = JSON.stringify({
@@ -321,10 +363,7 @@ export const revokeCertificateOnChain = async (certCode, reason, certId, tokenId
   if (!walletSigner?.signer) throw new Error("Hãy kết nối ví ADMIN trước khi thu hồi.");
   if (!certId || !tokenId) throw new Error("Chứng chỉ thiếu ID hoặc Token ID; không thể thu hồi an toàn.");
 
-  const network = await walletSigner.signer.provider.getNetwork();
-  if (contractJson.chainId && Number(network.chainId) !== Number(contractJson.chainId)) {
-    throw new Error(`MetaMask đang ở chain ${network.chainId}; hãy chuyển sang chain ${contractJson.chainId} của contract.`);
-  }
+  await ensureCorrectNetwork(walletSigner);
 
   const contract = getCertificateContract(walletSigner.signer);
   const tx = await contract.revokeCertificate(tokenId, reason);

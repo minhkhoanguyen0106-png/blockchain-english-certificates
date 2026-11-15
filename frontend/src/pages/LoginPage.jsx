@@ -85,6 +85,7 @@ export default function LoginPage({ setUser }) {
               <input
                 type="text"
                 required
+                placeholder="VD: admin_khoa, staff_long, student_yen"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="form-input"
@@ -100,12 +101,67 @@ export default function LoginPage({ setUser }) {
               <input
                 type="password"
                 required
+                placeholder="Mật khẩu mặc định: 123456"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="form-input"
                 style={{ paddingLeft: "38px" }}
               />
               <Lock size={16} color="var(--text-muted)" style={{ position: "absolute", left: "12px", top: "14px" }} />
+            </div>
+          </div>
+
+          {/* Quick Demo Fill Buttons (Hỗ trợ chấm thi & kiểm thử nhanh qua API thật) */}
+          <div style={{ marginBottom: "18px" }}>
+            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "6px", fontWeight: 600 }}>
+              Điền nhanh tài khoản kiểm thử (Mật khẩu: 123456):
+            </div>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => { setUsername("admin_khoa"); setPassword("123456"); }}
+                style={{
+                  fontSize: "11px",
+                  padding: "4px 8px",
+                  borderRadius: "var(--radius-sm)",
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-subtle)",
+                  color: "var(--text-secondary)",
+                  cursor: "pointer"
+                }}
+              >
+                🛡️ Admin: admin_khoa
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUsername("staff_long"); setPassword("123456"); }}
+                style={{
+                  fontSize: "11px",
+                  padding: "4px 8px",
+                  borderRadius: "var(--radius-sm)",
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-subtle)",
+                  color: "var(--text-secondary)",
+                  cursor: "pointer"
+                }}
+              >
+                💼 Staff: staff_long
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUsername("student_yen"); setPassword("123456"); }}
+                style={{
+                  fontSize: "11px",
+                  padding: "4px 8px",
+                  borderRadius: "var(--radius-sm)",
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-subtle)",
+                  color: "var(--text-secondary)",
+                  cursor: "pointer"
+                }}
+              >
+                🎓 Student: student_yen
+              </button>
             </div>
           </div>
 

@@ -338,32 +338,38 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
             {/* Light / Dark Mode Toggle */}
             <ThemeToggle />
 
-            {/* MetaMask Connector */}
-            {wallet ? (
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "6px 12px",
-                background: "var(--success-bg)",
-                border: "1px solid rgba(16, 185, 129, 0.3)",
-                borderRadius: "var(--radius-full)",
-                fontSize: "12px"
-              }}>
-                <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--success-color)", boxShadow: "0 0 6px var(--success-color)" }} />
-                <span style={{ fontWeight: 600, color: "var(--success-text)" }}>{shortenAddress(wallet.address)}</span>
-                <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>({wallet.balance} ETH)</span>
-              </div>
+            {/* MetaMask Connector (Chỉ hiển thị cho ADMIN ký duyệt on-chain) */}
+            {user?.role === "ADMIN" ? (
+              wallet ? (
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "6px 12px",
+                  background: "var(--success-bg)",
+                  border: "1px solid rgba(16, 185, 129, 0.3)",
+                  borderRadius: "var(--radius-full)",
+                  fontSize: "12px"
+                }}>
+                  <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--success-color)", boxShadow: "0 0 6px var(--success-color)" }} />
+                  <span style={{ fontWeight: 600, color: "var(--success-text)" }}>{shortenAddress(wallet.address)}</span>
+                  <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>({wallet.balance} ETH)</span>
+                </div>
+              ) : (
+                <button
+                  onClick={handleConnectWallet}
+                  disabled={connecting}
+                  className="btn btn-primary"
+                  style={{ fontSize: "12px", padding: "7px 14px" }}
+                >
+                  <Wallet size={15} />
+                  {connecting ? "Đang kết nối..." : "Ví MetaMask (Admin)"}
+                </button>
+              )
             ) : (
-              <button
-                onClick={handleConnectWallet}
-                disabled={connecting}
-                className="btn btn-primary"
-                style={{ fontSize: "12px", padding: "7px 14px" }}
-              >
-                <Wallet size={15} />
-                {connecting ? "Đang kết nối..." : "Ví MetaMask"}
-              </button>
+              <span className="badge badge-warning" style={{ fontSize: "11px", padding: "5px 10px" }}>
+                💼 Khảo Thí (Staff)
+              </span>
             )}
 
             {/* Logout Button */}

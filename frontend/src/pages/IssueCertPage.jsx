@@ -921,23 +921,31 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
             </div>
 
             <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
-              <Link to={`/verify?code=${successCert.certificate_code}`} className="btn btn-primary">
-                Xem Cổng Thẩm Định
-              </Link>
+              <button
+                type="button"
+                onClick={() => { setSuccessCert(null); navigate("/admin/certificates"); }}
+                className="btn btn-primary"
+                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+              >
+                <CheckCircle2 size={16} /> Về Danh Sách Chứng Chỉ
+              </button>
               <button
                 type="button"
                 onClick={() => window.open(`http://localhost:5000/api/public/pdf/${successCert.certificate_code}`, "_blank")}
                 className="btn btn-gold"
+                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
               >
                 <Download size={15} /> Tải PDF Thật
               </button>
-              <button
-                type="button"
-                onClick={() => { setSuccessCert(null); navigate("/admin/certificates"); }}
+              <a
+                href={`/verify?code=${successCert.certificate_code}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="btn btn-outline"
+                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
               >
-                Về Danh Sách
-              </button>
+                <ExternalLink size={14} /> Mở Trang Tra Cứu (Tab Mới)
+              </a>
             </div>
           </div>
         </div>

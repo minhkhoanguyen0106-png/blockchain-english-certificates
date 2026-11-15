@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2, Sparkles } from "lucide-react";
+import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2, Sparkles, X, Award, ExternalLink } from "lucide-react";
 import { getAllCertificates, revokeCertificateOnChain, shortenAddress } from "../services/web3Service";
 import { certificateApi } from "../services/apiService";
+import CertificateCard from "../components/CertificateCard";
 
 export default function CertificatesListPage({ wallet, user }) {
   const [searchParams] = useSearchParams();
@@ -13,6 +14,9 @@ export default function CertificatesListPage({ wallet, user }) {
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [courseFilter, setCourseFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
+
+  // Detail Modal state
+  const [selectedCert, setSelectedCert] = useState(null);
 
   // Revoke Modal state
   const [revokeTarget, setRevokeTarget] = useState(null);
@@ -29,17 +33,10 @@ export default function CertificatesListPage({ wallet, user }) {
       });
       if (res.success && Array.isArray(res.data)) {
         const mapped = res.data.map(d => ({
-          id: d.id,
-          certificate_code: d.certificate_code,
-          student_name: d.student_name,
-          student_code: d.student_code,
-          course_name: d.course_name,
-          course_code: d.course_code,
+          ...d,
           score: d.score_overall,
           issue_date: d.issue_date ? d.issue_date.slice(0, 10) : "",
-          status: d.status,
-          token_id: d.token_id,
-          tx_hash: d.tx_hash,
+          expiry_date: d.expiry_date ? d.expiry_date.slice(0, 10) : "",
           pdf_url: `http://localhost:5000/api/public/pdf/${d.certificate_code}`
         }));
         setCerts(mapped);
@@ -260,15 +257,16 @@ export default function CertificatesListPage({ wallet, user }) {
 
                     <td style={{ textAlign: "right" }}>
                       <div style={{ display: "inline-flex", gap: "8px" }}>
-                        <Link
-                          to={`/verify?code=${c.certificate_code}`}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCert(c)}
                           className="btn btn-outline"
-                          style={{ padding: "6px 12px", fontSize: "12px" }}
-                          title="Xem trên trang thẩm định công khai"
+                          style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                          title="Xem hồ sơ chứng chỉ chi tiết trực tiếp"
                         >
                           <Eye size={14} />
                           Xem
-                        </Link>
+                        </button>
 
                         <button
                           type="button"
@@ -446,6 +444,94 @@ export default function CertificatesListPage({ wallet, user }) {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Certificate Preview Modal (Xem trực tiếp trong Admin, không cần thoát ra ngoài) */}
+      {selectedCert && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "var(--bg-modal-backdrop)",
+          backdropFilter: "blur(8px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 999,
+          padding: "20px"
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: "840px",
+            width: "100%",
+            maxHeight: "92vh",
+            overflowY: "auto",
+            padding: "28px",
+            background: "var(--bg-surface-elevated)",
+            border: "1px solid var(--border-subtle)",
+            borderRadius: "var(--radius-lg)"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <Award size={22} color="var(--primary)" />
+                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)" }}>
+                  Hồ Sơ Chứng Chỉ: <span style={{ color: "var(--primary)" }}>{selectedCert.certificate_code}</span>
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedCert(null)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-muted)",
+                  padding: "6px",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+                title="Đóng"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ marginBottom: "24px" }}>
+              <CertificateCard cert={selectedCert} />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap", paddingTop: "16px", borderTop: "1px solid var(--border-subtle)" }}>
+              <a
+                href={`/verify?code=${selectedCert.certificate_code}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-outline"
+                style={{ fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              >
+                <ExternalLink size={14} /> Mở Trang Tra Cứu Công Khai (Tab Mới)
+              </a>
+
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button
+                  type="button"
+                  onClick={() => window.open(`http://localhost:5000/api/public/pdf/${selectedCert.certificate_code}`, "_blank")}
+                  className="btn btn-gold"
+                  style={{ fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  <Download size={14} /> Tải Bản In PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCert(null)}
+                  className="btn btn-primary"
+                  style={{ fontSize: "13px" }}
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

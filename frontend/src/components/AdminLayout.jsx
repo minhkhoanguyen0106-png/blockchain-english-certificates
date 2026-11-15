@@ -127,7 +127,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
           alignItems: "center",
           justifyContent: "space-between"
         }}>
-          <Link to="/" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <Link to="/admin/dashboard" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div style={{
               width: "38px",
               height: "38px",
@@ -223,8 +223,10 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
             LIÊN KẾT NGOÀI
           </div>
 
-          <Link
-            to="/verify"
+          <a
+            href="/verify"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               display: "flex",
               alignItems: "center",
@@ -232,15 +234,23 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
               padding: "9px 14px",
               borderRadius: "var(--radius-md)",
               fontSize: "13px",
-              color: "var(--text-secondary)"
+              color: "var(--text-secondary)",
+              textDecoration: "none",
+              transition: "color var(--transition-fast)"
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--primary)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; }}
+            title="Mở cổng thẩm định công khai trên tab mới"
           >
             <Globe size={16} />
             <span>Cổng Thẩm Định Công Khai</span>
-          </Link>
+            <ExternalLink size={12} style={{ marginLeft: "auto", opacity: 0.6 }} />
+          </a>
 
-          <Link
-            to="/scanner"
+          <a
+            href="/scanner"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               display: "flex",
               alignItems: "center",
@@ -248,12 +258,18 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
               padding: "9px 14px",
               borderRadius: "var(--radius-md)",
               fontSize: "13px",
-              color: "var(--text-secondary)"
+              color: "var(--text-secondary)",
+              textDecoration: "none",
+              transition: "color var(--transition-fast)"
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--primary)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; }}
+            title="Mở bộ quét mã QR trên tab mới"
           >
             <Layers size={16} />
             <span>Bộ Quét Mã QR</span>
-          </Link>
+            <ExternalLink size={12} style={{ marginLeft: "auto", opacity: 0.6 }} />
+          </a>
         </nav>
 
         {/* Sidebar Footer - System & Network status */}

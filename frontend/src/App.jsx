@@ -52,16 +52,40 @@ export default function App() {
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
         
         {/* Global Public Navigation Bar (Automatically hides inside /admin) */}
-        <Navbar wallet={wallet} setWallet={setWallet} user={user} setUser={setUser} />
+        <Navbar user={user} setUser={setUser} />
 
         {/* Main Content Area */}
         <main style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<HomePage />} />
+            {/* Public Routes - Auto-redirect logged-in Admin/Staff to Admin Workspace */}
+            <Route
+              path="/"
+              element={
+                authChecking ? (
+                  <div style={{ minHeight: "75vh", display: "grid", placeItems: "center", color: "var(--text-secondary)" }}>
+                    Đang tải hệ thống...
+                  </div>
+                ) : user && (user.role === "ADMIN" || user.role === "STAFF") ? (
+                  <Navigate to="/admin/dashboard" replace />
+                ) : (
+                  <HomePage />
+                )
+              }
+            />
             <Route path="/verify" element={<VerifyPage user={user} />} />
             <Route path="/scanner" element={<ScannerPage />} />
-            <Route path="/login" element={<LoginPage setUser={setUser} />} />
+            <Route
+              path="/login"
+              element={
+                user && (user.role === "ADMIN" || user.role === "STAFF") ? (
+                  <Navigate to="/admin/dashboard" replace />
+                ) : user && user.role === "STUDENT" ? (
+                  <Navigate to="/verify" replace />
+                ) : (
+                  <LoginPage setUser={setUser} />
+                )
+              }
+            />
 
             {/* Admin & Staff Protected Routes with Enterprise AdminLayout */}
             <Route
@@ -106,7 +130,16 @@ export default function App() {
             />
 
             {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route
+              path="*"
+              element={
+                user && (user.role === "ADMIN" || user.role === "STAFF") ? (
+                  <Navigate to="/admin/dashboard" replace />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
           </Routes>
         </main>
 

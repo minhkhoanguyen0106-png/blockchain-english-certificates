@@ -32,6 +32,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
   const [loading, setLoading] = useState(false);
   const [successCert, setSuccessCert] = useState(null);
+  const [allowAdminEdit, setAllowAdminEdit] = useState(false);
 
   // Load students and courses from MySQL
   useEffect(() => {
@@ -245,58 +246,126 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Điểm số Overall</label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                <label className="form-label" style={{ marginBottom: 0 }}>Điểm số Overall</label>
+                <span style={{ fontSize: "11px", color: "var(--success-text, #10b981)", fontWeight: 600 }}>
+                  🔒 Tự động tính toán (Không thể sửa tay)
+                </span>
+              </div>
               <input
                 type="text"
-                required
-                placeholder="VD: 7.5 Overall hoặc 850/990"
+                readOnly
                 value={formData.score}
-                onChange={(e) => setFormData({ ...formData, score: e.target.value })}
                 className="form-input"
+                style={{
+                  background: "var(--bg-card-subtle, rgba(255,255,255,0.05))",
+                  cursor: "not-allowed",
+                  fontWeight: 700,
+                  color: "var(--primary, #3b82f6)",
+                  borderColor: "rgba(59, 130, 246, 0.3)"
+                }}
+                title="Điểm số Overall được tự động tính toán từ 4 kỹ năng theo quy chế thi, không thể chỉnh sửa thủ công."
               />
             </div>
 
             {/* Sub-scores 4 skills with auto-calculated overall */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", marginBottom: "20px" }}>
-              <div>
-                <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Listening</label>
-                <input
-                  type="text"
-                  value={formData.listening}
-                  onChange={(e) => handleSubScoreChange("listening", e.target.value)}
-                  className="form-input"
-                  style={{ padding: "8px 10px", textAlign: "center" }}
-                />
+            <div style={{ marginBottom: "20px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <label className="form-label" style={{ marginBottom: 0, fontSize: "12px" }}>Điểm số các kỹ năng thành phần</label>
+                {user?.role === "ADMIN" && (
+                  <label style={{ fontSize: "11px", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", color: allowAdminEdit ? "#f59e0b" : "var(--text-muted)" }}>
+                    <input
+                      type="checkbox"
+                      checked={allowAdminEdit}
+                      onChange={(e) => setAllowAdminEdit(e.target.checked)}
+                    />
+                    <span>Mở khóa sửa điểm khẩn cấp (Sẽ ghi Audit Log)</span>
+                  </label>
+                )}
               </div>
-              <div>
-                <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Reading</label>
-                <input
-                  type="text"
-                  value={formData.reading}
-                  onChange={(e) => handleSubScoreChange("reading", e.target.value)}
-                  className="form-input"
-                  style={{ padding: "8px 10px", textAlign: "center" }}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Writing</label>
-                <input
-                  type="text"
-                  value={formData.writing}
-                  onChange={(e) => handleSubScoreChange("writing", e.target.value)}
-                  className="form-input"
-                  style={{ padding: "8px 10px", textAlign: "center" }}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Speaking</label>
-                <input
-                  type="text"
-                  value={formData.speaking}
-                  onChange={(e) => handleSubScoreChange("speaking", e.target.value)}
-                  className="form-input"
-                  style={{ padding: "8px 10px", textAlign: "center" }}
-                />
+
+              {user?.role === "ADMIN" && !allowAdminEdit && (
+                <div style={{
+                  background: "rgba(59, 130, 246, 0.08)",
+                  border: "1px solid rgba(59, 130, 246, 0.25)",
+                  padding: "8px 12px",
+                  borderRadius: "var(--radius-sm)",
+                  fontSize: "12px",
+                  color: "var(--primary, #3b82f6)",
+                  marginBottom: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px"
+                }}>
+                  <span>🔒 <strong>Nguyên tắc Bốn Mắt (Four-Eyes):</strong> Dữ liệu điểm do Cán bộ Khảo thí nhập liệu đã được niêm phong. Admin có quyền đối soát và ký phát hành on-chain, không được tùy tiện sửa điểm.</span>
+                </div>
+              )}
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
+                <div>
+                  <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Listening</label>
+                  <input
+                    type="text"
+                    readOnly={user?.role === "ADMIN" && !allowAdminEdit}
+                    value={formData.listening}
+                    onChange={(e) => handleSubScoreChange("listening", e.target.value)}
+                    className="form-input"
+                    style={{
+                      padding: "8px 10px",
+                      textAlign: "center",
+                      background: (user?.role === "ADMIN" && !allowAdminEdit) ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
+                      cursor: (user?.role === "ADMIN" && !allowAdminEdit) ? "not-allowed" : undefined
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Reading</label>
+                  <input
+                    type="text"
+                    readOnly={user?.role === "ADMIN" && !allowAdminEdit}
+                    value={formData.reading}
+                    onChange={(e) => handleSubScoreChange("reading", e.target.value)}
+                    className="form-input"
+                    style={{
+                      padding: "8px 10px",
+                      textAlign: "center",
+                      background: (user?.role === "ADMIN" && !allowAdminEdit) ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
+                      cursor: (user?.role === "ADMIN" && !allowAdminEdit) ? "not-allowed" : undefined
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Writing</label>
+                  <input
+                    type="text"
+                    readOnly={user?.role === "ADMIN" && !allowAdminEdit}
+                    value={formData.writing}
+                    onChange={(e) => handleSubScoreChange("writing", e.target.value)}
+                    className="form-input"
+                    style={{
+                      padding: "8px 10px",
+                      textAlign: "center",
+                      background: (user?.role === "ADMIN" && !allowAdminEdit) ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
+                      cursor: (user?.role === "ADMIN" && !allowAdminEdit) ? "not-allowed" : undefined
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Speaking</label>
+                  <input
+                    type="text"
+                    readOnly={user?.role === "ADMIN" && !allowAdminEdit}
+                    value={formData.speaking}
+                    onChange={(e) => handleSubScoreChange("speaking", e.target.value)}
+                    className="form-input"
+                    style={{
+                      padding: "8px 10px",
+                      textAlign: "center",
+                      background: (user?.role === "ADMIN" && !allowAdminEdit) ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
+                      cursor: (user?.role === "ADMIN" && !allowAdminEdit) ? "not-allowed" : undefined
+                    }}
+                  />
+                </div>
               </div>
             </div>
 

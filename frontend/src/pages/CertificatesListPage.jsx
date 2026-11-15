@@ -281,24 +281,36 @@ export default function CertificatesListPage({ wallet, user }) {
                         </button>
 
                         {c.status === "PENDING" && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteDraft(c)}
-                            className="btn btn-outline"
-                            style={{
-                              padding: "6px 12px",
-                              fontSize: "12px",
-                              color: "var(--danger-text)",
-                              borderColor: "rgba(239, 68, 68, 0.4)",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px"
-                            }}
-                            title="Xóa bỏ bản nháp này"
-                          >
-                            <Trash2 size={13} />
-                            Bỏ Nháp
-                          </button>
+                          user?.role === "ADMIN" ? (
+                            <Link
+                              to={`/admin/certificates/issue?code=${c.certificate_code}`}
+                              className="btn btn-gold"
+                              style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                              title="Đối soát và ký phát hành on-chain"
+                            >
+                              <Sparkles size={13} />
+                              Duyệt & Cấp
+                            </Link>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteDraft(c)}
+                              className="btn btn-outline"
+                              style={{
+                                padding: "6px 12px",
+                                fontSize: "12px",
+                                color: "var(--danger-text)",
+                                borderColor: "rgba(239, 68, 68, 0.4)",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px"
+                              }}
+                              title="Xóa bỏ bản nháp này"
+                            >
+                              <Trash2 size={13} />
+                              Bỏ Nháp
+                            </button>
+                          )
                         )}
 
                         {c.status === "ISSUED_ON_CHAIN" && (

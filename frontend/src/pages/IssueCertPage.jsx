@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { FileCheck, Sparkles, CheckCircle2, RefreshCw, Download, ExternalLink } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { FileCheck, Sparkles, CheckCircle2, RefreshCw, Download, ExternalLink, AlertTriangle } from "lucide-react";
 import confetti from "canvas-confetti";
 import { issueCertificateOnChain, INITIAL_STUDENTS, INITIAL_COURSES, connectMetaMask, isMetaMaskInstalled } from "../services/web3Service";
 import { certificateApi, studentApi, courseApi } from "../services/apiService";
@@ -9,22 +9,26 @@ import CertificateCard from "../components/CertificateCard";
 
 export default function IssueCertPage({ wallet, setWallet, user }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [studentsList, setStudentsList] = useState(INITIAL_STUDENTS);
   const [coursesList, setCoursesList] = useState(INITIAL_COURSES);
+  const [pendingDrafts, setPendingDrafts] = useState([]);
+  const [selectedDraftCode, setSelectedDraftCode] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState("");
 
   const [formData, setFormData] = useState({
     certificate_code: `CERT-IELTS-2026-${Math.floor(100 + Math.random() * 900)}`,
-    student_name: "Phạm Quốc Hưng",
-    student_code: "HV2026-0199",
-    email: "quochung.pham@gmail.com",
-    wallet_address: "0x9965507d1a55bcc2695c58ba16Fb37D819b0A4dF",
+    student_name: "",
+    student_code: "",
+    email: "",
+    wallet_address: "",
     course_code: "IELTS-ACAD",
     course_name: "IELTS Academic Master",
-    score: "7.5 Overall",
-    listening: "8.0",
-    reading: "7.5",
-    writing: "7.0",
-    speaking: "7.5",
+    score: "",
+    listening: "",
+    reading: "",
+    writing: "",
+    speaking: "",
     issue_date: new Date().toISOString().slice(0, 10),
     expiry_date: "2028-10-29",
     status: "DRAFT"
@@ -34,13 +38,36 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   const [successCert, setSuccessCert] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Load students and courses from MySQL
+  const loadDraftIntoForm = (draft) => {
+    setSelectedDraftCode(draft.certificate_code);
+    setFormData({
+      id: draft.id,
+      certificate_code: draft.certificate_code,
+      student_name: draft.student_name || "",
+      student_code: draft.student_code || "",
+      email: draft.email || "",
+      wallet_address: draft.wallet_address || "",
+      course_code: draft.course_code || "IELTS-ACAD",
+      course_name: draft.course_name || "IELTS Academic Master",
+      score: draft.score_overall || draft.score || "",
+      listening: draft.score_listening || "",
+      reading: draft.score_reading || "",
+      writing: draft.score_writing || "",
+      speaking: draft.score_speaking || "",
+      issue_date: draft.issue_date || new Date().toISOString().slice(0, 10),
+      expiry_date: draft.expiry_date || "",
+      status: draft.status || "PENDING"
+    });
+  };
+
+  // Load students, courses, and pending drafts from MySQL
   useEffect(() => {
     async function loadOptions() {
       try {
-        const [stuRes, crsRes] = await Promise.allSettled([
+        const [stuRes, crsRes, draftRes] = await Promise.allSettled([
           studentApi.getStudents(),
-          courseApi.getCourses()
+          courseApi.getCourses(),
+          certificateApi.getCertificates({ status: "PENDING", limit: 50 })
         ]);
         if (stuRes.status === "fulfilled" && stuRes.value?.success && Array.isArray(stuRes.value.data) && stuRes.value.data.length > 0) {
           setStudentsList(stuRes.value.data);
@@ -48,12 +75,24 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         if (crsRes.status === "fulfilled" && crsRes.value?.success && Array.isArray(crsRes.value.data) && crsRes.value.data.length > 0) {
           setCoursesList(crsRes.value.data);
         }
+        if (draftRes.status === "fulfilled" && draftRes.value?.success && Array.isArray(draftRes.value.data)) {
+          setPendingDrafts(draftRes.value.data);
+
+          // Kiểm tra nếu có query param ?code=... từ URL
+          const codeParam = searchParams.get("code");
+          if (codeParam) {
+            const draft = draftRes.value.data.find(d => d.certificate_code === codeParam);
+            if (draft) {
+              loadDraftIntoForm(draft);
+            }
+          }
+        }
       } catch {
         // fallback to initial
       }
     }
     loadOptions();
-  }, []);
+  }, [searchParams]);
 
   const handleSubScoreChange = (field, val) => {
     const updated = { ...formData, [field]: val };
@@ -76,17 +115,84 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     });
   };
 
+  const handleDraftSelect = (e) => {
+    const code = e.target.value;
+    setSelectedDraftCode(code);
+    if (!code) {
+      setSelectedStudentId("");
+      setFormData({
+        certificate_code: `CERT-IELTS-2026-${Math.floor(100 + Math.random() * 900)}`,
+        student_name: "",
+        student_code: "",
+        email: "",
+        wallet_address: "",
+        course_code: "IELTS-ACAD",
+        course_name: "IELTS Academic Master",
+        score: "",
+        listening: "",
+        reading: "",
+        writing: "",
+        speaking: "",
+        issue_date: new Date().toISOString().slice(0, 10),
+        expiry_date: "2028-10-29",
+        status: "DRAFT"
+      });
+      return;
+    }
+    const draft = pendingDrafts.find(d => d.certificate_code === code);
+    if (draft) {
+      loadDraftIntoForm(draft);
+      const matchStu = studentsList.find(s => s.student_code === draft.student_code);
+      if (matchStu) setSelectedStudentId(matchStu.id);
+    }
+  };
+
   const handleStudentSelect = (e) => {
     const studentId = Number(e.target.value);
+    setSelectedStudentId(studentId || "");
     const found = studentsList.find(s => s.id === studentId);
     if (found) {
       setFormData(prev => ({
         ...prev,
         student_name: found.full_name,
         student_code: found.student_code,
-        email: found.email,
-        wallet_address: found.wallet_address || prev.wallet_address
+        email: found.email || "",
+        wallet_address: found.wallet_address || ""
       }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        student_name: "",
+        student_code: "",
+        email: "",
+        wallet_address: ""
+      }));
+    }
+  };
+
+  const handleRejectDraft = async () => {
+    if (!selectedDraftCode) {
+      alert("Vui lòng chọn hồ sơ nháp cần từ chối.");
+      return;
+    }
+    const reason = prompt("Nhập lý do từ chối hồ sơ nháp (chuyển lại cho Cán bộ khảo thí điều chỉnh):", "Điểm số các kỹ năng chưa chính xác với biên bản chấm thi.");
+    if (!reason) return;
+
+    try {
+      setLoading(true);
+      const cert = pendingDrafts.find(d => d.certificate_code === selectedDraftCode);
+      if (!cert?.id) throw new Error("Không tìm thấy ID của bản nháp.");
+      const res = await certificateApi.rejectDraft(cert.id, reason);
+      if (res?.success) {
+        alert(`Đã từ chối bản nháp ${selectedDraftCode} thành công. Hồ sơ đã được chuyển lại cho Cán bộ khảo thí.`);
+        navigate("/admin/certificates");
+      } else {
+        alert("Lỗi khi từ chối: " + (res?.message || "Không xác định"));
+      }
+    } catch (err) {
+      alert("Lỗi khi từ chối bản nháp: " + (err.message || err));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -113,6 +219,16 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
   const handleIssue = async (e) => {
     e.preventDefault();
+
+    if (!formData.student_name || !formData.student_code) {
+      alert("Vui lòng chọn học viên từ CSDL hoặc nhập đầy đủ họ tên và mã học viên.");
+      return;
+    }
+
+    if (!formData.wallet_address) {
+      alert("Vui lòng nhập hoặc liên kết địa chỉ ví MetaMask của học viên trước khi tiếp tục.");
+      return;
+    }
 
     const validation = validateSubScores(formData.course_code, formData);
     if (!validation.isValid) {
@@ -215,10 +331,45 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
           </h3>
 
           <form onSubmit={handleIssue}>
+
+            {/* Nếu là ADMIN: Hiển thị bộ chọn hồ sơ nháp chờ duyệt */}
+            {user?.role === "ADMIN" && (
+              <div className="form-group" style={{
+                background: "rgba(59, 130, 246, 0.08)",
+                border: "1px dashed rgba(59, 130, 246, 0.35)",
+                padding: "14px",
+                borderRadius: "var(--radius-sm)",
+                marginBottom: "18px"
+              }}>
+                <label className="form-label" style={{ color: "var(--primary)", fontWeight: 700, marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span>📋 Chọn hồ sơ nháp chờ duyệt (PENDING)</span>
+                  {pendingDrafts.length > 0 && (
+                    <span className="badge badge-warning" style={{ fontSize: "11px", padding: "2px 8px" }}>
+                      {pendingDrafts.length} hồ sơ chờ duyệt
+                    </span>
+                  )}
+                </label>
+                <select
+                  value={selectedDraftCode}
+                  onChange={handleDraftSelect}
+                  className="form-select"
+                >
+                  <option value="">-- Chọn hồ sơ nháp để đối soát & phê duyệt --</option>
+                  {pendingDrafts.map(d => (
+                    <option key={d.id} value={d.certificate_code}>
+                      {d.certificate_code} — {d.student_name} ({d.course_name}: {d.score_overall || d.score})
+                    </option>
+                  ))}
+                </select>
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px", display: "block" }}>
+                  Theo nguyên tắc Four-Eyes, Admin đối soát điểm do Khảo thí nhập trước khi ký phát hành on-chain.
+                </span>
+              </div>
+            )}
             
             <div className="form-group">
               <label className="form-label">Chọn học viên từ CSDL</label>
-              <select onChange={handleStudentSelect} className="form-select">
+              <select value={selectedStudentId} onChange={handleStudentSelect} className="form-select">
                 <option value="">-- Chọn học viên có sẵn --</option>
                 {studentsList.map(s => (
                   <option key={s.id} value={s.id}>{s.full_name} ({s.student_code})</option>
@@ -232,8 +383,12 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 <input
                   type="text"
                   required
+                  placeholder="Chọn học viên hoặc nhập họ tên..."
                   value={formData.student_name}
-                  onChange={(e) => setFormData({ ...formData, student_name: e.target.value })}
+                  onChange={(e) => {
+                    setSelectedStudentId("");
+                    setFormData({ ...formData, student_name: e.target.value });
+                  }}
                   className="form-input"
                 />
               </div>
@@ -242,8 +397,12 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 <input
                   type="text"
                   required
+                  placeholder="HV2026-XXXX..."
                   value={formData.student_code}
-                  onChange={(e) => setFormData({ ...formData, student_code: e.target.value })}
+                  onChange={(e) => {
+                    setSelectedStudentId("");
+                    setFormData({ ...formData, student_code: e.target.value });
+                  }}
                   className="form-input"
                 />
               </div>
@@ -268,6 +427,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
               <input
                 type="text"
                 readOnly
+                placeholder="Chưa có điểm..."
                 value={formData.score}
                 className="form-input"
                 style={{
@@ -315,6 +475,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   <input
                     type="text"
                     readOnly={user?.role === "ADMIN"}
+                    placeholder="—"
                     value={formData.listening}
                     onChange={(e) => handleSubScoreChange("listening", e.target.value)}
                     className="form-input"
@@ -331,6 +492,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   <input
                     type="text"
                     readOnly={user?.role === "ADMIN"}
+                    placeholder="—"
                     value={formData.reading}
                     onChange={(e) => handleSubScoreChange("reading", e.target.value)}
                     className="form-input"
@@ -347,6 +509,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   <input
                     type="text"
                     readOnly={user?.role === "ADMIN"}
+                    placeholder="—"
                     value={formData.writing}
                     onChange={(e) => handleSubScoreChange("writing", e.target.value)}
                     className="form-input"
@@ -363,6 +526,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   <input
                     type="text"
                     readOnly={user?.role === "ADMIN"}
+                    placeholder="—"
                     value={formData.speaking}
                     onChange={(e) => handleSubScoreChange("speaking", e.target.value)}
                     className="form-input"
@@ -406,6 +570,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
               <label className="form-label">Địa chỉ ví MetaMask học viên</label>
               <input
                 type="text"
+                placeholder="0x... (Địa chỉ ví MetaMask học viên)"
                 value={formData.wallet_address}
                 onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
                 className="form-input"
@@ -438,24 +603,44 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 </button>
               </div>
             ) : (
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn btn-gold"
-                style={{ width: "100%", padding: "14px", fontSize: "15px", marginTop: "10px" }}
-              >
-                {loading ? (
-                  <>
-                    <RefreshCw size={18} className="animate-spin" />
-                    Đang đúc Smart Contract & Lưu MySQL...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={18} />
-                    Ký MetaMask & Cấp Bằng On-Chain
-                  </>
+              <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn btn-gold"
+                  style={{ flex: 1, padding: "14px", fontSize: "15px" }}
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw size={18} className="animate-spin" />
+                      Đang đúc Smart Contract & Lưu MySQL...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={18} />
+                      Ký MetaMask & Cấp Bằng On-Chain
+                    </>
+                  )}
+                </button>
+                {selectedDraftCode && (
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={handleRejectDraft}
+                    className="btn btn-outline"
+                    style={{
+                      padding: "14px 18px",
+                      fontSize: "14px",
+                      color: "var(--danger-text)",
+                      borderColor: "rgba(239, 68, 68, 0.4)",
+                      whiteSpace: "nowrap"
+                    }}
+                    title="Từ chối bản nháp và chuyển trả cho Khảo thí chỉnh sửa"
+                  >
+                    Từ Chối Nháp
+                  </button>
                 )}
-              </button>
+              </div>
             )}
 
           </form>

@@ -136,9 +136,10 @@ export async function getCertificates(req, res) {
     // Lấy danh sách bản ghi
     const [rows] = await pool.query(`
       SELECT 
-        c.id, c.certificate_code, c.score_overall, c.issue_date, c.expiry_date,
+        c.id, c.certificate_code, c.score_overall, c.score_listening, c.score_reading, c.score_writing, c.score_speaking,
+        c.issue_date, c.expiry_date,
         c.token_id, c.tx_hash, c.status, c.pdf_url, c.created_at,
-        s.student_code, s.full_name AS student_name, s.citizen_id,
+        s.student_code, s.full_name AS student_name, s.citizen_id, s.email, s.wallet_address,
         co.course_code, co.course_name
       FROM certificates c
       JOIN students s ON c.student_id = s.id

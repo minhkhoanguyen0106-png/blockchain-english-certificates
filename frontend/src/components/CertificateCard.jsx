@@ -81,13 +81,14 @@ export default function CertificateCard({ cert, isPreview = false }) {
           fontFamily: "var(--font-serif)",
           fontSize: "30px",
           fontWeight: 700,
-          color: "#38bdf8",
+          color: cert.student_name ? "#38bdf8" : "#64748b",
+          fontStyle: cert.student_name ? "normal" : "italic",
           margin: "8px 0"
         }}>
-          {cert.student_name || "Họ Tên Học Viên"}
+          {cert.student_name || "[Chưa chọn học viên]"}
         </h3>
         <p style={{ color: "#94a3b8", fontSize: "13px" }}>
-          Mã học viên: <strong style={{ color: "#f8fafc" }}>{cert.student_code || "HV-2026-XXXX"}</strong>
+          Mã học viên: <strong style={{ color: cert.student_code ? "#f8fafc" : "#64748b" }}>{cert.student_code || "[Chưa có mã]"}</strong>
         </p>
       </div>
 
@@ -103,31 +104,39 @@ export default function CertificateCard({ cert, isPreview = false }) {
         <div style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "4px" }}>
           Đã hoàn thành xuất sắc kỳ thi:
         </div>
-        <div style={{ fontSize: "18px", fontWeight: 700, color: "#fde68a", marginBottom: "12px" }}>
-          {cert.course_name || "IELTS Academic Master"}
+        <div style={{ fontSize: "18px", fontWeight: 700, color: cert.course_name ? "#fde68a" : "#64748b", marginBottom: "12px" }}>
+          {cert.course_name || "[Chưa chọn khóa học / kỳ thi]"}
         </div>
         
         {/* Scores Table */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px", marginTop: "12px" }}>
           <div style={{ background: "rgba(0,0,0,0.3)", padding: "8px", borderRadius: "8px", border: "1px solid rgba(56, 189, 248, 0.3)" }}>
             <div style={{ fontSize: "11px", color: "#38bdf8", fontWeight: 600 }}>OVERALL</div>
-            <div style={{ fontSize: "18px", fontWeight: 800, color: "#38bdf8" }}>{cert.score || "7.5"}</div>
+            <div style={{ fontSize: "18px", fontWeight: 800, color: cert.score ? "#38bdf8" : "#64748b" }}>{cert.score || "—"}</div>
           </div>
           <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px", borderRadius: "8px" }}>
             <div style={{ fontSize: "11px", color: "#94a3b8" }}>Listening</div>
-            <div style={{ fontSize: "15px", fontWeight: 700, color: "#f8fafc" }}>{cert.listening || "8.0"}</div>
+            <div style={{ fontSize: "15px", fontWeight: 700, color: (cert.listening || cert.score_listening) ? "#f8fafc" : "#64748b" }}>
+              {cert.listening || cert.score_listening || "—"}
+            </div>
           </div>
           <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px", borderRadius: "8px" }}>
             <div style={{ fontSize: "11px", color: "#94a3b8" }}>Reading</div>
-            <div style={{ fontSize: "15px", fontWeight: 700, color: "#f8fafc" }}>{cert.reading || "7.5"}</div>
+            <div style={{ fontSize: "15px", fontWeight: 700, color: (cert.reading || cert.score_reading) ? "#f8fafc" : "#64748b" }}>
+              {cert.reading || cert.score_reading || "—"}
+            </div>
           </div>
           <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px", borderRadius: "8px" }}>
             <div style={{ fontSize: "11px", color: "#94a3b8" }}>Writing</div>
-            <div style={{ fontSize: "15px", fontWeight: 700, color: "#f8fafc" }}>{cert.writing || "7.0"}</div>
+            <div style={{ fontSize: "15px", fontWeight: 700, color: (cert.writing || cert.score_writing) ? "#f8fafc" : "#64748b" }}>
+              {cert.writing || cert.score_writing || "—"}
+            </div>
           </div>
           <div style={{ background: "rgba(0,0,0,0.2)", padding: "8px", borderRadius: "8px" }}>
             <div style={{ fontSize: "11px", color: "#94a3b8" }}>Speaking</div>
-            <div style={{ fontSize: "15px", fontWeight: 700, color: "#f8fafc" }}>{cert.speaking || "7.5"}</div>
+            <div style={{ fontSize: "15px", fontWeight: 700, color: (cert.speaking || cert.score_speaking) ? "#f8fafc" : "#64748b" }}>
+              {cert.speaking || cert.score_speaking || "—"}
+            </div>
           </div>
         </div>
       </div>

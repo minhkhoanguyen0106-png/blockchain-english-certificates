@@ -359,8 +359,8 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
                 <button
                   onClick={handleConnectWallet}
                   disabled={connecting}
-                  className="btn btn-primary"
-                  style={{ fontSize: "12px", padding: "7px 14px" }}
+                  className="btn btn-outline"
+                  style={{ fontSize: "12px", padding: "6px 14px", display: "inline-flex", alignItems: "center", gap: "6px" }}
                 >
                   <Wallet size={15} />
                   {connecting ? "Đang kết nối..." : "Ví MetaMask (Admin)"}

@@ -61,116 +61,26 @@ export default function DashboardPage({ wallet, setWallet, user }) {
   return (
     <div>
       {/* Top Welcome Title */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "28px", flexWrap: "wrap", gap: "16px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
         <div>
-          <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-primary)" }}>
+          <h1 style={{ fontSize: "24px", fontWeight: 800, color: "var(--text-primary)" }}>
             Bảng Điều Khiển <span className="text-gradient">Quản Trị</span>
           </h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>
+          <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "4px" }}>
             Xin chào, <strong>{user?.full_name || "Quản trị viên"}</strong> • Thẩm quyền:{" "}
-            <span className={`badge ${user?.role === "ADMIN" ? "badge-success" : "badge-warning"}`}>
+            <span className={`badge ${user?.role === "ADMIN" ? "badge-success" : "badge-warning"}`} style={{ fontSize: "11px", padding: "2px 8px" }}>
               {user?.role || "ADMIN"}
             </span>
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <Link to="/admin/certificates/issue" className="btn btn-primary">
-            <FilePlus size={16} />
-            {user?.role === "ADMIN" ? "Cấp Bằng On-Chain" : "Soạn Bản Nháp Mới"}
-          </Link>
-          <Link to="/admin/certificates" className="btn btn-outline">
-            <ListFilter size={16} />
-            Danh Sách Bằng
-          </Link>
-          <Link to="/admin/data-management" className="btn btn-outline">
-            <Users size={16} />
-            Dữ Liệu Khảo Thí
+        <div>
+          <Link to="/admin/certificates/issue" className="btn btn-primary" style={{ padding: "8px 16px", fontSize: "13px" }}>
+            <FilePlus size={15} />
+            {user?.role === "ADMIN" ? "Cấp Bằng Mới" : "Soạn Bản Nháp"}
           </Link>
         </div>
       </div>
-
-      {/* Role-based Workspace Banner */}
-      {user?.role === "ADMIN" ? (
-        <div className="glass-panel" style={{
-          padding: "18px 22px",
-          marginBottom: "28px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "16px",
-          borderColor: wallet ? "rgba(16, 185, 129, 0.3)" : "rgba(245, 158, 11, 0.3)"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-            <div style={{
-              background: wallet ? "var(--success-bg)" : "var(--warning-bg)",
-              borderRadius: "50%",
-              padding: "10px",
-              display: "flex",
-              color: wallet ? "var(--success-text)" : "var(--warning-text)"
-            }}>
-              <Wallet size={20} />
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>
-                {wallet ? `Ví Quản Trị Đã Kết Nối: ${shortenAddress(wallet.address)}` : "Chưa Kết Nối Ví MetaMask (Admin Signer)"}
-              </div>
-              <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "2px" }}>
-                {wallet ? `Mạng: Hardhat / Testnet (ChainID: ${wallet.chainId}) • Số dư: ${wallet.balance} ETH` : "Vui lòng kết nối ví để ký đúc Soulbound NFT hoặc thu hồi bằng on-chain."}
-              </div>
-            </div>
-          </div>
-
-          {!wallet ? (
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const acc = await connectMetaMask();
-                  setWallet(acc);
-                } catch (e) {
-                  alert(e.message);
-                }
-              }}
-              className="btn btn-primary"
-              style={{ fontSize: "13px" }}
-            >
-              <Sparkles size={15} /> Kết Nối Ví MetaMask
-            </button>
-          ) : (
-            <span className="badge badge-success">Sẵn sàng ký on-chain</span>
-          )}
-        </div>
-      ) : (
-        <div className="glass-panel" style={{
-          padding: "16px 20px",
-          marginBottom: "28px",
-          display: "flex",
-          alignItems: "center",
-          gap: "14px",
-          borderColor: "rgba(99, 102, 241, 0.25)",
-          background: "var(--bg-surface)"
-        }}>
-          <div style={{
-            background: "rgba(99, 102, 241, 0.15)",
-            borderRadius: "50%",
-            padding: "10px",
-            display: "flex",
-            color: "var(--primary)"
-          }}>
-            <Layers size={20} />
-          </div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>
-              Không Gian Khảo Thí & Quản Lý Điểm (Cán Bộ STAFF)
-            </div>
-            <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "2px" }}>
-              Bạn có quyền nhập điểm, quản lý học viên và lưu bản nháp (PENDING). Quyền ký đúc Soulbound Token on-chain thuộc về Giám đốc / Admin.
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 4 Overview Metric Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "18px", marginBottom: "28px" }}>

@@ -2,6 +2,13 @@ import React from "react";
 import { ShieldCheck, Award, QrCode, ExternalLink, Calendar, Hash, CheckCircle2, XCircle } from "lucide-react";
 import { shortenAddress } from "../services/web3Service";
 
+const formatDate = (d) => {
+  if (!d) return "—";
+  const str = String(d).slice(0, 10);
+  const p = str.split("-");
+  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str;
+};
+
 export default function CertificateCard({ cert, isPreview = false }) {
   if (!cert) return null;
 
@@ -176,7 +183,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
             Mã bằng: <span style={{ color: "#f8fafc", fontWeight: 600 }}>{cert.certificate_code}</span>
           </div>
           <div style={{ fontSize: "11px", color: "#94a3b8" }}>
-            Ngày dự kiến: <span style={{ color: "#f8fafc" }}>{cert.issue_date}</span>
+            Ngày cấp: <span style={{ color: "#f8fafc" }}>{formatDate(cert.issue_date)}</span>
           </div>
         </div>
 

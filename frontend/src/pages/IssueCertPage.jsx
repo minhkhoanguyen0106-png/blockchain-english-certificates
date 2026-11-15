@@ -39,6 +39,16 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isManualMode, setIsManualMode] = useState(false);
 
+  const formatDateDisplay = (val) => {
+    if (!val) return "—";
+    const str = String(val).slice(0, 10);
+    const parts = str.split("-");
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return str;
+  };
+
   const loadDraftIntoForm = (draft) => {
     setSelectedDraftCode(draft.certificate_code);
     setFormData({
@@ -55,8 +65,8 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       reading: draft.score_reading || "",
       writing: draft.score_writing || "",
       speaking: draft.score_speaking || "",
-      issue_date: draft.issue_date || new Date().toISOString().slice(0, 10),
-      expiry_date: draft.expiry_date || "",
+      issue_date: draft.issue_date ? String(draft.issue_date).slice(0, 10) : new Date().toISOString().slice(0, 10),
+      expiry_date: draft.expiry_date ? String(draft.expiry_date).slice(0, 10) : "",
       status: draft.status || "PENDING"
     });
   };
@@ -363,14 +373,15 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 {/* 2. Thẻ tóm tắt thông tin đối soát gọn gàng (Khi đã chọn hồ sơ nháp) */}
                 {formData.student_name ? (
                   <div style={{
-                    background: "rgba(15, 23, 42, 0.65)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
-                    borderRadius: "10px",
-                    padding: "16px",
-                    marginBottom: "18px"
+                    background: "var(--bg-surface)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "12px",
+                    padding: "18px",
+                    marginBottom: "18px",
+                    boxShadow: "var(--shadow-sm)"
                   }}>
                     {/* Học viên */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px", paddingBottom: "10px", borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px", paddingBottom: "10px", borderBottom: "1px solid var(--border-subtle)" }}>
                       <div>
                         <div style={{ fontSize: "17px", fontWeight: 700, color: "var(--text-primary)" }}>{formData.student_name}</div>
                         <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
@@ -382,7 +393,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     </div>
 
                     {/* Khóa thi & Điểm */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "13px", marginBottom: "14px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "13px", marginBottom: "14px" }}>
                       <div>
                         <div style={{ color: "var(--text-muted)", fontSize: "11px" }}>Kỳ thi / Khóa học</div>
                         <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{formData.course_name}</div>
@@ -393,36 +404,42 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                       </div>
                       <div>
                         <div style={{ color: "var(--text-muted)", fontSize: "11px" }}>Ngày cấp bằng</div>
-                        <div style={{ color: "var(--text-secondary)" }}>{formData.issue_date}</div>
+                        <div style={{ color: "var(--text-secondary)", fontWeight: 600 }}>{formatDateDisplay(formData.issue_date)}</div>
                       </div>
                       <div>
                         <div style={{ color: "var(--text-muted)", fontSize: "11px" }}>Hạn hiệu lực</div>
-                        <div style={{ color: "var(--text-secondary)" }}>{formData.expiry_date || "Vô thời hạn"}</div>
+                        <div style={{ color: "var(--text-secondary)", fontWeight: 600 }}>{formData.expiry_date ? formatDateDisplay(formData.expiry_date) : "Vô thời hạn"}</div>
                       </div>
                     </div>
 
                     {/* Bảng điểm 4 kỹ năng */}
-                    <div style={{ background: "rgba(0, 0, 0, 0.25)", padding: "10px 12px", borderRadius: "8px", marginBottom: "14px" }}>
+                    <div style={{
+                      background: "var(--bg-surface-elevated)",
+                      border: "1px solid var(--border-subtle)",
+                      padding: "12px",
+                      borderRadius: "10px",
+                      marginBottom: "16px"
+                    }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                        <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Điểm 4 kỹ năng thành phần</span>
+                        <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>Điểm 4 kỹ năng thành phần</span>
                         <span style={{ fontSize: "11px", color: "var(--primary)", fontWeight: 600 }}>🔒 Đã niêm phong</span>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "6px", textAlign: "center" }}>
-                        <div style={{ background: "rgba(255, 255, 255, 0.04)", padding: "6px 4px", borderRadius: "6px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", textAlign: "center" }}>
+                        <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", padding: "8px 4px", borderRadius: "8px" }}>
                           <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>Listening</div>
-                          <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>{formData.listening || "—"}</div>
+                          <div style={{ fontWeight: 700, fontSize: "15px", color: "var(--text-primary)", marginTop: "2px" }}>{formData.listening || "—"}</div>
                         </div>
-                        <div style={{ background: "rgba(255, 255, 255, 0.04)", padding: "6px 4px", borderRadius: "6px" }}>
+                        <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", padding: "8px 4px", borderRadius: "8px" }}>
                           <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>Reading</div>
-                          <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>{formData.reading || "—"}</div>
+                          <div style={{ fontWeight: 700, fontSize: "15px", color: "var(--text-primary)", marginTop: "2px" }}>{formData.reading || "—"}</div>
                         </div>
-                        <div style={{ background: "rgba(255, 255, 255, 0.04)", padding: "6px 4px", borderRadius: "6px" }}>
+                        <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", padding: "8px 4px", borderRadius: "8px" }}>
                           <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>Writing</div>
-                          <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>{formData.writing || "—"}</div>
+                          <div style={{ fontWeight: 700, fontSize: "15px", color: "var(--text-primary)", marginTop: "2px" }}>{formData.writing || "—"}</div>
                         </div>
-                        <div style={{ background: "rgba(255, 255, 255, 0.04)", padding: "6px 4px", borderRadius: "6px" }}>
+                        <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", padding: "8px 4px", borderRadius: "8px" }}>
                           <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>Speaking</div>
-                          <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>{formData.speaking || "—"}</div>
+                          <div style={{ fontWeight: 700, fontSize: "15px", color: "var(--text-primary)", marginTop: "2px" }}>{formData.speaking || "—"}</div>
                         </div>
                       </div>
                     </div>
@@ -446,7 +463,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   <div style={{
                     padding: "24px 16px",
                     textAlign: "center",
-                    border: "1px dashed rgba(255, 255, 255, 0.15)",
+                    border: "1px dashed var(--border-subtle)",
                     borderRadius: "10px",
                     color: "var(--text-muted)",
                     fontSize: "13px",
@@ -813,7 +830,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--text-muted)" }}>Ngày cấp & Hiệu lực:</span>
-                <span>{formData.issue_date} (Hạn: {formData.expiry_date || "Vô thời hạn"})</span>
+                <span>{formatDateDisplay(formData.issue_date)} (Hạn: {formData.expiry_date ? formatDateDisplay(formData.expiry_date) : "Vô thời hạn"})</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ color: "var(--text-muted)" }}>Địa chỉ ví định danh:</span>

@@ -54,10 +54,10 @@ export default function VerifyPage({ user }) {
         {/* Page Title */}
         <div style={{ textAlign: "center", marginBottom: "36px" }}>
           <h1 style={{ fontSize: "32px", fontWeight: 800, marginBottom: "8px", color: "var(--text-primary)" }}>
-            Tra Cứu & Xác Thực <span className="text-gradient">On-Chain</span>
+            Tra Cứu & Xác Thực <span className="text-gradient">Chứng Chỉ Số</span>
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "15px" }}>
-            Kiểm tra tính toàn vẹn và thẩm quyền cấp bằng trực tiếp từ Smart Contract trên sổ cái Blockchain.
+            Kiểm tra tính toàn vẹn và thẩm quyền cấp bằng trực tiếp trên hệ thống xác thực điện tử.
           </p>
         </div>
 
@@ -195,8 +195,8 @@ export default function VerifyPage({ user }) {
         {loading && (
           <div className="glass-panel" style={{ padding: "44px 20px", textAlign: "center" }}>
             <div style={{ width: "48px", height: "48px", border: "4px solid var(--border-subtle)", borderTopColor: "var(--primary)", borderRadius: "50%", margin: "0 auto 16px", animation: "spinSlow 1s linear infinite" }} />
-            <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-primary)" }}>Đang đối soát sổ cái Blockchain...</h3>
-            <p style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "4px" }}>Xác thực chữ ký Smart Contract Soulbound Token và CID phân tán trên IPFS</p>
+            <h3 style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-primary)" }}>Đang đối soát chứng chỉ điện tử...</h3>
+            <p style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "4px" }}>Xác thực chữ ký số và dữ liệu chứng chỉ trên hệ thống</p>
           </div>
         )}
 
@@ -269,7 +269,7 @@ export default function VerifyPage({ user }) {
                 <div>
                   <h4 style={{ color: "#d97706", fontWeight: 800, fontSize: "16px" }}>CẢNH BÁO: SAI LỆCH DỮ LIỆU TÀI LIỆU (TAMPERED)</h4>
                   <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "2px" }}>
-                    Nội dung phôi bằng không trùng khớp với mã băm toàn vẹn đã cam kết trên Smart Contract. Dấu hiệu phôi bằng đã bị chỉnh sửa điểm số hoặc thông tin trái phép!
+                    Nội dung phôi bằng không trùng khớp với mã băm toàn vẹn đã cam kết trên hệ thống. Dấu hiệu phôi bằng đã bị chỉnh sửa điểm số hoặc thông tin trái phép!
                   </p>
                 </div>
               </div>

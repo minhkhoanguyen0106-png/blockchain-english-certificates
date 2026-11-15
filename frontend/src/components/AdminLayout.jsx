@@ -75,7 +75,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
   const getBreadcrumb = () => {
     if (location.pathname === "/admin/dashboard") return "Tổng quan hệ thống";
     if (location.pathname === "/admin/certificates") return "Danh sách & Thu hồi chứng chỉ";
-    if (location.pathname === "/admin/certificates/issue") return "Cấp chứng chỉ & Đúc Soulbound Token";
+    if (location.pathname === "/admin/certificates/issue") return "Cấp phát chứng chỉ số";
     if (location.pathname === "/admin/data-management") return "Quản trị học viên & danh mục kỳ thi";
     return "Phân hệ quản trị";
   };
@@ -282,15 +282,15 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
           fontSize: "11px"
         }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-            <span style={{ color: "var(--text-muted)" }}>Smart Contract:</span>
+            <span style={{ color: "var(--text-muted)" }}>Hệ thống xác thực:</span>
             <span style={{ color: "var(--success-text)", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
               <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--success-color)", display: "inline-block" }}></span>
-              Sepolia / Hardhat
+              Trực tuyến
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ color: "var(--text-muted)" }}>Lưu trữ dữ liệu:</span>
-            <span style={{ color: "var(--accent-gold)", fontWeight: 600 }}>IPFS Pinata Gateway</span>
+            <span style={{ color: "var(--accent-gold)", fontWeight: 600 }}>Bảo mật phân tán</span>
           </div>
         </div>
       </aside>

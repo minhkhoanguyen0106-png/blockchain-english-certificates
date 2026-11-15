@@ -314,10 +314,10 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       {/* Page Title */}
       <div style={{ marginBottom: "26px" }}>
         <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-primary)" }}>
-          Cấp Phát Chứng Chỉ & <span className="text-gradient">Đúc Soulbound Token On-Chain</span>
+          Cấp Phát & <span className="text-gradient">Xác Thực Chứng Chỉ Số</span>
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>
-          Thông tin khảo thí sẽ được ghi nhận vào Smart Contract và phôi bằng được lưu trữ bất biến trên IPFS.
+          Thông tin khảo thí và chứng chỉ điện tử được lưu trữ an toàn, minh bạch và xác thực bất biến.
         </p>
       </div>
 
@@ -328,7 +328,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         <div className="glass-panel" style={{ padding: "26px" }}>
           <h3 style={{ fontSize: "17px", fontWeight: 700, marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px", color: "var(--text-primary)" }}>
             <FileCheck size={19} color="var(--primary)" />
-            Thông Tin Khảo Thí & Học Viên (MySQL & Blockchain)
+            Thông Tin Khảo Thí & Học Viên
           </h3>
 
           <form onSubmit={handleIssue}>
@@ -378,7 +378,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                           {formData.email && <span> • {formData.email}</span>}
                         </div>
                       </div>
-                      <span className="badge badge-warning" style={{ fontSize: "11px" }}>Chờ duyệt on-chain</span>
+                      <span className="badge badge-warning" style={{ fontSize: "11px" }}>Chờ phê duyệt</span>
                     </div>
 
                     {/* Khóa thi & Điểm */}
@@ -430,7 +430,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     {/* Địa chỉ ví nhận NFT */}
                     <div>
                       <label className="form-label" style={{ fontSize: "11px", marginBottom: "4px" }}>
-                        Địa chỉ ví MetaMask học viên (nhận Soulbound NFT)
+                        Địa chỉ ví điện tử của học viên
                       </label>
                       <input
                         type="text"
@@ -452,7 +452,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     fontSize: "13px",
                     marginBottom: "18px"
                   }}>
-                    Vui lòng chọn một hồ sơ nháp đang chờ duyệt từ danh sách phía trên để đối soát và ký phát hành on-chain.
+                    Vui lòng chọn một hồ sơ nháp đang chờ duyệt từ danh sách phía trên để đối soát và ký phê duyệt phát hành.
                   </div>
                 )}
 
@@ -467,12 +467,12 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     {loading ? (
                       <>
                         <RefreshCw size={16} className="animate-spin" />
-                        Đang đúc Smart Contract & Lưu MySQL...
+                        Đang xử lý phát hành chứng chỉ...
                       </>
                     ) : (
                       <>
                         <Sparkles size={16} />
-                        Ký MetaMask & Cấp Bằng On-Chain
+                        Ký Xác Thực & Cấp Bằng
                       </>
                     )}
                   </button>
@@ -710,7 +710,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     className="btn btn-primary"
                     style={{ width: "100%", padding: "14px", fontSize: "15px" }}
                   >
-                    {loading ? "Đang lưu vào MySQL..." : "Lưu Bản Nháp (Gửi Admin Duyệt)"}
+                    {loading ? "Đang lưu hệ thống..." : "Lưu Bản Nháp (Gửi Admin Duyệt)"}
                   </button>
                 ) : (
                   <button
@@ -722,12 +722,12 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     {loading ? (
                       <>
                         <RefreshCw size={18} className="animate-spin" />
-                        Đang đúc Smart Contract...
+                        Đang xử lý phát hành...
                       </>
                     ) : (
                       <>
                         <Sparkles size={18} />
-                        Ký MetaMask & Cấp Bằng On-Chain
+                        Ký Xác Thực & Cấp Bằng
                       </>
                     )}
                   </button>
@@ -774,10 +774,10 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
             boxShadow: "0 25px 60px rgba(0,0,0,0.5)"
           }}>
             <h3 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "6px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span>🛡️</span> Đối Soát Dữ Liệu Trước Khi Phát Hành On-Chain
+              <span>🛡️</span> Đối Soát Dữ Liệu Trước Khi Ký Phát Hành
             </h3>
             <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "18px" }}>
-              Vui lòng kiểm tra kỹ lưỡng các thông số hồ sơ do Nhân viên Khảo thí lập trước khi kích hoạt giao dịch ký ví.
+              Vui lòng kiểm tra kỹ lưỡng các thông số hồ sơ do Nhân viên Khảo thí lập trước khi kích hoạt giao dịch ký số.
             </p>
 
             <div style={{
@@ -816,7 +816,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 <span>{formData.issue_date} (Hạn: {formData.expiry_date || "Vô thời hạn"})</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "var(--text-muted)" }}>Địa chỉ ví nhận:</span>
+                <span style={{ color: "var(--text-muted)" }}>Địa chỉ ví định danh:</span>
                 <code style={{ fontSize: "11px", color: "#38bdf8", background: "rgba(0,0,0,0.3)", padding: "2px 6px", borderRadius: "4px" }}>
                   {formData.wallet_address}
                 </code>
@@ -832,7 +832,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
               color: "#fca5a5",
               marginBottom: "20px"
             }}>
-              ⚠️ <strong>Cảnh báo tính bất biến:</strong> Sau khi ký MetaMask, Soulbound Token (ERC-721) sẽ được phát hành vĩnh viễn trên sổ cái Blockchain và không thể chỉnh sửa điểm.
+              ⚠️ <strong>Lưu ý:</strong> Sau khi ký xác thực, chứng chỉ sẽ được cấp chính thức vào hệ thống và không thể chỉnh sửa điểm.
             </div>
 
             <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
@@ -850,7 +850,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 className="btn btn-gold"
                 style={{ padding: "10px 22px", fontSize: "13px", fontWeight: 700 }}
               >
-                Xác Nhận & Mở Ví Ký MetaMask
+                Xác Nhận & Ký Phát Hành
               </button>
             </div>
           </div>
@@ -891,16 +891,16 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
               <CheckCircle2 size={36} color="var(--success-color)" />
             </div>
             <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--success-text)", marginBottom: "8px" }}>
-              Đúc Chứng Chỉ On-Chain Thành Công!
+              Phát Hành Chứng Chỉ Số Thành Công!
             </h3>
             <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "20px" }}>
-              Chứng chỉ <strong>{successCert.certificate_code}</strong> đã được ghi vĩnh viễn vào Smart Contract và cơ sở dữ liệu MySQL.
+              Chứng chỉ <strong>{successCert.certificate_code}</strong> đã được xác thực và lưu trữ thành công trên hệ thống.
             </p>
 
             <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", padding: "14px", borderRadius: "var(--radius-md)", fontSize: "12px", textAlign: "left", marginBottom: "24px" }}>
-              <div><strong>Tx Hash:</strong> <span style={{ color: "var(--primary)" }}>{successCert.tx_hash}</span></div>
-              <div style={{ marginTop: "4px" }}><strong>Token ID:</strong> <span style={{ color: "var(--accent-gold)" }}>#{successCert.token_id}</span></div>
-              <div style={{ marginTop: "4px" }}><strong>IPFS CID:</strong> <span style={{ color: "var(--accent-gold)" }}>{successCert.ipfs_hash}</span></div>
+              <div><strong>Mã giao dịch xác thực:</strong> <span style={{ color: "var(--primary)" }}>{successCert.tx_hash}</span></div>
+              <div style={{ marginTop: "4px" }}><strong>Mã số bằng:</strong> <span style={{ color: "var(--accent-gold)" }}>#{successCert.token_id}</span></div>
+              <div style={{ marginTop: "4px" }}><strong>Mã lưu trữ số:</strong> <span style={{ color: "var(--accent-gold)" }}>{successCert.ipfs_hash}</span></div>
             </div>
 
             <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>

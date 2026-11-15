@@ -122,7 +122,7 @@ export default function ScannerPage() {
             Quét Mã QR Xác Thực
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
-            Hướng camera vào mã QR in trên bằng giấy để đối soát trực tiếp tính hợp lệ với Smart Contract.
+            Hướng camera vào mã QR in trên bằng để đối soát trực tiếp tính hợp lệ trên hệ thống xác thực.
           </p>
         </div>
 

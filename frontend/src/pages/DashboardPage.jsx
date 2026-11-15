@@ -91,34 +91,34 @@ export default function DashboardPage({ wallet, setWallet, user }) {
             <Award size={18} color="var(--primary)" />
           </div>
           <div style={{ fontSize: "32px", fontWeight: 800, color: "var(--text-primary)" }}>{totalCount}</div>
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Toàn bộ hồ sơ trên hệ thống MySQL</div>
+          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Toàn bộ hồ sơ trên hệ thống</div>
         </Link>
 
         <Link to="/admin/certificates?status=ISSUED_ON_CHAIN" className="glass-panel" style={{ padding: "22px", display: "block" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <span style={{ fontSize: "13px", color: "var(--success-text)", fontWeight: 600 }}>ĐÃ ĐÚC ON-CHAIN</span>
+            <span style={{ fontSize: "13px", color: "var(--success-text)", fontWeight: 600 }}>ĐÃ PHÁT HÀNH</span>
             <CheckCircle2 size={18} color="var(--success-color)" />
           </div>
           <div style={{ fontSize: "32px", fontWeight: 800, color: "var(--success-text)" }}>{issuedCount}</div>
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Hợp lệ vĩnh viễn trên sổ cái</div>
+          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Chứng chỉ số hợp lệ vĩnh viễn</div>
         </Link>
 
         <Link to="/admin/certificates?status=REVOKED" className="glass-panel" style={{ padding: "22px", display: "block" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <span style={{ fontSize: "13px", color: "var(--danger-text)", fontWeight: 600 }}>ĐÃ THU HỒI (REVOKED)</span>
+            <span style={{ fontSize: "13px", color: "var(--danger-text)", fontWeight: 600 }}>ĐÃ THU HỒI</span>
             <XCircle size={18} color="var(--danger-color)" />
           </div>
           <div style={{ fontSize: "32px", fontWeight: 800, color: "var(--danger-text)" }}>{revokedCount}</div>
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Ghi nhận hủy hiệu lực</div>
+          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Đã ghi nhận hủy hiệu lực</div>
         </Link>
 
         <Link to="/admin/certificates?status=PENDING" className="glass-panel" style={{ padding: "22px", display: "block" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <span style={{ fontSize: "13px", color: "var(--warning-text)", fontWeight: 600 }}>BẢN NHÁP (DRAFT)</span>
+            <span style={{ fontSize: "13px", color: "var(--warning-text)", fontWeight: 600 }}>CHỜ DUYỆT (PENDING)</span>
             <Clock size={18} color="var(--warning-color)" />
           </div>
           <div style={{ fontSize: "32px", fontWeight: 800, color: "var(--warning-text)" }}>{pendingCount}</div>
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Chờ Quản trị viên ký on-chain</div>
+          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Hồ sơ đang chờ phê duyệt</div>
         </Link>
 
       </div>
@@ -128,7 +128,7 @@ export default function DashboardPage({ wallet, setWallet, user }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
           <div>
             <h3 style={{ fontSize: "17px", fontWeight: 700, color: "var(--text-primary)" }}>Chứng Chỉ Gần Đây</h3>
-            <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>Các hồ sơ cấp bằng hoặc dự thảo vừa được khởi tạo từ MySQL</p>
+            <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>Các hồ sơ cấp bằng hoặc dự thảo vừa được khởi tạo</p>
           </div>
           <Link to="/admin/certificates" style={{ color: "var(--primary)", fontSize: "13px", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px" }}>
             Xem toàn bộ danh sách <ArrowUpRight size={15} />
@@ -160,9 +160,9 @@ export default function DashboardPage({ wallet, setWallet, user }) {
                   </td>
                   <td style={{ color: "var(--text-secondary)" }}>{c.issue_date}</td>
                   <td>
-                    {c.status === "ISSUED_ON_CHAIN" && <span className="badge badge-success">On-Chain</span>}
-                    {c.status === "REVOKED" && <span className="badge badge-danger">Revoked</span>}
-                    {c.status === "PENDING" && <span className="badge badge-warning">Draft</span>}
+                    {c.status === "ISSUED_ON_CHAIN" && <span className="badge badge-success">Hợp Lệ</span>}
+                    {c.status === "REVOKED" && <span className="badge badge-danger">Đã Thu Hồi</span>}
+                    {c.status === "PENDING" && <span className="badge badge-warning">Chờ Duyệt</span>}
                   </td>
                 </tr>
               ))}

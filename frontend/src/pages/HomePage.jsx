@@ -65,7 +65,7 @@ export default function HomePage() {
             lineHeight: 1.65
           }}>
             Giải pháp cấp phát và đối soát chứng chỉ IELTS, TOEIC, VSTEP minh bạch. 
-            Mỗi chứng chỉ là một <strong>Soulbound Token (SBT)</strong> gắn liền danh tính học viên, 
+            Mỗi chứng chỉ là một <strong>bằng cấp số định danh</strong> gắn liền danh tính học viên, 
             không thể tẩy xóa hay chuyển nhượng.
           </p>
 
@@ -95,7 +95,7 @@ export default function HomePage() {
           }}>
             <div className="glass-panel" style={{ padding: "24px", textAlign: "center" }}>
               <div style={{ fontSize: "36px", fontWeight: 800, color: "var(--primary)" }}>{issuedCerts}</div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>Chứng chỉ On-Chain (MySQL)</div>
+              <div style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>Chứng chỉ số đã cấp</div>
             </div>
             <div className="glass-panel" style={{ padding: "24px", textAlign: "center" }}>
               <div style={{ fontSize: "36px", fontWeight: 800, color: "var(--accent-gold)" }}>{totalCourses}</div>
@@ -107,7 +107,7 @@ export default function HomePage() {
             </div>
             <div className="glass-panel" style={{ padding: "24px", textAlign: "center" }}>
               <div style={{ fontSize: "36px", fontWeight: 800, color: "var(--primary)" }}>&lt; 2s</div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>Tốc độ đối soát QR on-chain</div>
+              <div style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>Tốc độ đối soát mã QR</div>
             </div>
           </div>
         </div>
@@ -131,9 +131,9 @@ export default function HomePage() {
               <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: "var(--primary-bg)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "20px" }}>
                 <Lock size={24} color="var(--primary)" />
               </div>
-              <h3 style={{ fontSize: "19px", fontWeight: 700, marginBottom: "10px", color: "var(--text-primary)" }}>Soulbound Token (SBT)</h3>
+              <h3 style={{ fontSize: "19px", fontWeight: 700, marginBottom: "10px", color: "var(--text-primary)" }}>Định Danh Bất Biến (SBT)</h3>
               <p style={{ color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.65 }}>
-                Chứng chỉ được đúc theo chuẩn Soulbound: Gắn chặt vào danh tính học viên, khóa vĩnh viễn tính năng chuyển nhượng nhằm ngăn chặn triệt để hành vi mua bán bằng cấp.
+                Chứng chỉ được cấp theo chuẩn định danh độc bản: Gắn chặt vào danh tính học viên, khóa vĩnh viễn tính năng chuyển nhượng nhằm ngăn chặn triệt để hành vi mua bán bằng cấp.
               </p>
             </div>
 
@@ -141,9 +141,9 @@ export default function HomePage() {
               <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: "var(--accent-gold-bg)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "20px" }}>
                 <Globe size={24} color="var(--accent-gold)" />
               </div>
-              <h3 style={{ fontSize: "19px", fontWeight: 700, marginBottom: "10px", color: "var(--text-primary)" }}>Lưu Trữ Bất Biến IPFS</h3>
+              <h3 style={{ fontSize: "19px", fontWeight: 700, marginBottom: "10px", color: "var(--text-primary)" }}>Lưu Trữ Dữ Liệu Phân Tán</h3>
               <p style={{ color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.65 }}>
-                Phôi bằng PDF và metadata được đẩy lên mạng lưu trữ phân tán IPFS (Pinata), bảo đảm dữ liệu tồn tại vĩnh viễn không bị xóa mờ hay phụ thuộc vào một máy chủ duy nhất.
+                Phôi bằng PDF và dữ liệu xác thực được lưu trên mạng lưu trữ phân tán, bảo đảm thông tin tồn tại vĩnh viễn không bị xóa mờ hay phụ thuộc vào một máy chủ duy nhất.
               </p>
             </div>
 
@@ -153,7 +153,7 @@ export default function HomePage() {
               </div>
               <h3 style={{ fontSize: "19px", fontWeight: 700, marginBottom: "10px", color: "var(--text-primary)" }}>Thẩm Định Tức Thì Bằng QR</h3>
               <p style={{ color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.65 }}>
-                Nhà tuyển dụng chỉ cần dùng camera điện thoại quét mã QR in trên bằng giấy để đối soát trực tiếp với Smart Contract on-chain trong vòng chưa tới 2 giây.
+                Nhà tuyển dụng chỉ cần dùng camera điện thoại quét mã QR in trên bằng để đối soát trực tiếp với dữ liệu gốc của hệ thống trong vòng chưa tới 2 giây.
               </p>
             </div>
 
@@ -173,10 +173,10 @@ export default function HomePage() {
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px" }}>
             {[
-              { step: "01", title: "Khảo Thí & Nhập Điểm", desc: "Học viên hoàn thành bài thi IELTS/TOEIC, hội đồng khảo thí nhập kết quả vào hệ thống MySQL." },
+              { step: "01", title: "Khảo Thí & Nhập Điểm", desc: "Học viên hoàn thành bài thi IELTS/TOEIC, hội đồng khảo thí nhập kết quả vào hệ thống khảo thí." },
               { step: "02", title: "Tự Động Sinh PDF & QR", desc: "Hệ thống tự động kết xuất phôi bằng PDF chuẩn in ấn có nhúng mã QR định danh độc bản." },
-              { step: "03", title: "Ký & Đúc SBT On-Chain", desc: "Quản trị viên ký giao dịch qua MetaMask để ghi nhận chứng chỉ vĩnh viễn vào Blockchain & IPFS." },
-              { step: "04", title: "Xác Thực Công Khai", desc: "Bất kỳ ai cũng có thể quét QR hoặc tra mã on-chain để kiểm tra tính hợp pháp 100%." }
+              { step: "03", title: "Ký Xác Thực & Cấp Bằng", desc: "Quản trị viên ký số điện tử để cấp phát và ghi nhận chứng chỉ vĩnh viễn trên sổ cái bảo mật." },
+              { step: "04", title: "Xác Thực Công Khai", desc: "Bất kỳ ai cũng có thể quét QR hoặc tra mã bằng để kiểm tra tính hợp pháp tức thì." }
             ].map((item, idx) => (
               <div key={idx} className="glass-panel" style={{ padding: "24px", position: "relative" }}>
                 <div style={{ fontSize: "28px", fontWeight: 800, color: "var(--primary)", opacity: 0.85, marginBottom: "8px" }}>

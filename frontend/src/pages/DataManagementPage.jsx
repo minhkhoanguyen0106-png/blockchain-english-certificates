@@ -88,7 +88,7 @@ export default function DataManagementPage({ user }) {
 
     try {
       await studentApi.createStudent(newStudent);
-      alert("Đã lưu hồ sơ học viên thành công vào CSDL MySQL!");
+      alert("Đã lưu hồ sơ học viên thành công!");
       await loadData();
     } catch (err) {
       alert(`Không thể lưu học viên vào hệ thống: ${err.message || err}`);
@@ -121,7 +121,7 @@ export default function DataManagementPage({ user }) {
 
     try {
       await courseApi.createCourse(newCourse);
-      alert("Đã lưu khóa học thành công vào CSDL MySQL!");
+      alert("Đã lưu khóa học thành công!");
       await loadData();
     } catch (err) {
       alert(`Không thể lưu khóa học: ${err.message || err}`);
@@ -160,12 +160,12 @@ export default function DataManagementPage({ user }) {
             Quản Trị <span className="text-gradient">Học Viên & Khóa Học</span>
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>
-            Hệ cơ sở dữ liệu định danh học viên và danh mục các kỳ thi khảo thí tiếng Anh từ MySQL.
+            Cơ sở dữ liệu định danh học viên và danh mục các kỳ thi khảo thí tiếng Anh.
           </p>
         </div>
 
         <div style={{ display: "flex", gap: "10px" }}>
-          <button type="button" onClick={loadData} className="btn btn-outline" title="Làm mới từ MySQL">
+          <button type="button" onClick={loadData} className="btn btn-outline" title="Làm mới dữ liệu">
             <RefreshCw size={15} />
           </button>
           {activeTab === "STUDENTS" ? (
@@ -382,7 +382,7 @@ export default function DataManagementPage({ user }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Địa chỉ ví MetaMask (Nhận Soulbound NFT)</label>
+                <label className="form-label">Địa chỉ ví điện tử định danh học viên</label>
                 <input
                   type="text"
                   placeholder="0x..."
@@ -395,7 +395,7 @@ export default function DataManagementPage({ user }) {
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" }}>
                 <button type="button" onClick={() => setShowAddStudentModal(false)} className="btn btn-outline">Hủy Bỏ</button>
-                <button type="submit" className="btn btn-primary">Lưu Học Viên (MySQL)</button>
+                <button type="submit" className="btn btn-primary">Lưu Hồ Sơ Học Viên</button>
               </div>
             </form>
           </div>
@@ -442,7 +442,7 @@ export default function DataManagementPage({ user }) {
               </div>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" }}>
                 <button type="button" onClick={() => setShowAddCourseModal(false)} className="btn btn-outline">Hủy Bỏ</button>
-                <button type="submit" className="btn btn-gold">Lưu Khóa Học (MySQL)</button>
+                <button type="submit" className="btn btn-gold">Lưu Khóa Học</button>
               </div>
             </form>
           </div>

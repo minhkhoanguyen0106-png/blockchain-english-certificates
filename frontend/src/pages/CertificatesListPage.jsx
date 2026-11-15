@@ -130,7 +130,7 @@ export default function CertificatesListPage({ wallet, user }) {
       await loadCerts();
       setRevokeTarget(null);
       setRevokeReason("");
-      alert(`Đã ghi nhận thu hồi thành công chứng chỉ [${revokeTarget.certificate_code}] trên Smart Contract và MySQL!`);
+      alert(`Đã ghi nhận thu hồi thành công chứng chỉ [${revokeTarget.certificate_code}]!`);
     } catch (err) {
       alert("Lỗi khi thu hồi: " + (err.message || err));
     } finally {
@@ -147,7 +147,7 @@ export default function CertificatesListPage({ wallet, user }) {
             Danh Sách & <span className="text-gradient">Thu Hồi Chứng Chỉ</span>
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>
-            Quản lý toàn bộ hồ sơ chứng chỉ Soulbound Token đã phát hành on-chain và hủy hiệu lực khi có vi phạm.
+            Quản lý toàn bộ hồ sơ chứng chỉ điện tử đã phát hành và hủy hiệu lực khi có vi phạm.
           </p>
         </div>
 
@@ -176,8 +176,8 @@ export default function CertificatesListPage({ wallet, user }) {
 
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="form-select" style={{ minWidth: "180px" }}>
             <option value="ALL">Tất cả trạng thái ({certs.length})</option>
-            <option value="ISSUED_ON_CHAIN">Hợp lệ On-Chain ({certs.filter(c => c.status === "ISSUED_ON_CHAIN").length})</option>
-            <option value="PENDING">Chờ duyệt PENDING ({certs.filter(c => c.status === "PENDING").length})</option>
+            <option value="ISSUED_ON_CHAIN">Đã phát hành ({certs.filter(c => c.status === "ISSUED_ON_CHAIN").length})</option>
+            <option value="PENDING">Chờ duyệt ({certs.filter(c => c.status === "PENDING").length})</option>
             <option value="REJECTED">Bị từ chối ({certs.filter(c => c.status === "REJECTED").length})</option>
             <option value="REVOKED">Đã thu hồi ({certs.filter(c => c.status === "REVOKED").length})</option>
             <option value="EXPIRED">Đã hết hạn ({certs.filter(c => c.status === "EXPIRED").length})</option>
@@ -209,7 +209,7 @@ export default function CertificatesListPage({ wallet, user }) {
                 <th>KHÓA HỌC & ĐIỂM</th>
                 <th>NGÀY CẤP</th>
                 <th>TRẠNG THÁI</th>
-                <th>ON-CHAIN PROOF</th>
+                <th>THÔNG TIN XÁC THỰC</th>
                 <th style={{ textAlign: "right" }}>THAO TÁC</th>
               </tr>
             </thead>
@@ -252,9 +252,9 @@ export default function CertificatesListPage({ wallet, user }) {
                     </td>
 
                     <td style={{ fontSize: "11px" }}>
-                      <div>Token #{c.token_id || "N/A"}</div>
+                      <div>Mã số: #{c.token_id || "N/A"}</div>
                       <div style={{ color: "var(--text-muted)" }}>
-                        {c.tx_hash ? `Tx: ${shortenAddress(c.tx_hash)}` : "Chưa lên chuỗi"}
+                        {c.tx_hash ? `Mã: ${shortenAddress(c.tx_hash)}` : "Chưa phát hành"}
                       </div>
                     </td>
 
@@ -375,7 +375,7 @@ export default function CertificatesListPage({ wallet, user }) {
             </div>
 
             <p style={{ color: "var(--text-secondary)", fontSize: "13px", lineHeight: 1.5, marginBottom: "14px" }}>
-              Hành động này sẽ thực thi giao dịch gọi hàm <code>revokeCertificate()</code> trên Smart Contract và hủy bỏ vĩnh viễn tính hiệu lực của chứng chỉ trên toàn mạng lưới.
+              Hành động này sẽ hủy bỏ vĩnh viễn tính hiệu lực của chứng chỉ trên toàn hệ thống và không thể phục hồi.
             </p>
 
             {/* Checklist đối soát trước khi ký */}

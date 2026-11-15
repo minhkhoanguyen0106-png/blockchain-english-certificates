@@ -68,7 +68,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
           CERTIFICATE OF PROFICIENCY
         </h2>
         <p style={{ color: "#94a3b8", fontSize: "13px" }}>
-          Chứng Chỉ Khảo Thí Tiếng Anh Định Danh Trên Blockchain (Soulbound Token)
+          Chứng Chỉ Khảo Thí Tiếng Anh Điện Tử Định Danh Bất Biến
         </p>
       </div>
 
@@ -146,7 +146,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
         
         {/* Verification Status Badge */}
         <div>
-          <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "6px" }}>TRẠNG THÁI HIỆU LỰC ON-CHAIN</div>
+          <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "6px" }}>TRẠNG THÁI HIỆU LỰC</div>
           {isDraftOrPreview ? (
             <div className="badge badge-warning" style={{ fontSize: "12px", padding: "6px 14px", background: "rgba(245, 158, 11, 0.2)", color: "#f59e0b", border: "1px dashed rgba(245, 158, 11, 0.4)" }}>
               ⚠️ BẢN XEM TRƯỚC – CHƯA PHÁT HÀNH
@@ -192,7 +192,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
             <QrCode size={68} color="#000000" />
           </div>
           <div style={{ fontSize: "10px", color: "#fbbf24", marginTop: "4px", fontWeight: 600 }}>
-            {isDraftOrPreview ? "MÃ QR MÔ PHỎNG" : "QUÉT ĐỐI SOÁT ON-CHAIN"}
+            {isDraftOrPreview ? "MÃ QR MÔ PHỎNG" : "QUÉT ĐỐI SOÁT XÁC THỰC"}
           </div>
         </div>
 
@@ -209,9 +209,9 @@ export default function CertificateCard({ cert, isPreview = false }) {
         justifyContent: "space-between",
         color: "#94a3b8"
       }}>
-        <span>Token ID: <strong style={{ color: isDraftOrPreview ? "#94a3b8" : "#38bdf8" }}>{isDraftOrPreview ? "Chờ đúc on-chain" : (cert.token_id ? `#${cert.token_id}` : "N/A")}</strong></span>
-        <span>Tx Hash: <span style={{ color: "#cbd5e1" }}>{isDraftOrPreview ? "Chưa phát sinh" : shortenAddress(cert.tx_hash)}</span></span>
-        <span>IPFS: <span style={{ color: "#fbbf24" }}>{isDraftOrPreview ? "Chờ upload" : (cert.ipfs_hash ? `${cert.ipfs_hash.slice(0, 8)}...` : "QmPending")}</span></span>
+        <span>Mã số bằng: <strong style={{ color: isDraftOrPreview ? "#94a3b8" : "#38bdf8" }}>{isDraftOrPreview ? "Chưa phát hành" : (cert.token_id ? `#${cert.token_id}` : "N/A")}</strong></span>
+        <span>Mã xác thực: <span style={{ color: "#cbd5e1" }}>{isDraftOrPreview ? "Chưa phát sinh" : shortenAddress(cert.tx_hash)}</span></span>
+        <span>Mã lưu trữ: <span style={{ color: "#fbbf24" }}>{isDraftOrPreview ? "Chưa lưu trữ" : (cert.ipfs_hash ? `${cert.ipfs_hash.slice(0, 8)}...` : "—")}</span></span>
       </div>
 
     </div>

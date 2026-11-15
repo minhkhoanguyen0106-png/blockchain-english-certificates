@@ -54,7 +54,7 @@ export default function Footer() {
 
         <div style={{ textAlign: "center", paddingTop: "18px", borderTop: "1px solid var(--border-subtle)", fontSize: "12px", color: "var(--text-muted)" }}>
           Đề tài môn học: <strong>Blockchain & Ứng Dụng</strong> • 
-          Hệ Thống Quản Lý & Xác Thực Bằng Tiếng Anh Bằng SBT (Soulbound Token)
+          Hệ Thống Quản Lý & Xác Thực Bằng Tiếng Anh Định Danh Điện Tử
         </div>
       </div>
     </footer>

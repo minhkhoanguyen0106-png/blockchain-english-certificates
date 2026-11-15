@@ -37,6 +37,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   const [loading, setLoading] = useState(false);
   const [successCert, setSuccessCert] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isManualMode, setIsManualMode] = useState(false);
 
   const loadDraftIntoForm = (draft) => {
     setSelectedDraftCode(draft.certificate_code);
@@ -332,312 +333,403 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
           <form onSubmit={handleIssue}>
 
-            {/* Nếu là ADMIN: Hiển thị bộ chọn hồ sơ nháp chờ duyệt */}
-            {user?.role === "ADMIN" && (
-              <div className="form-group" style={{
-                background: "rgba(59, 130, 246, 0.08)",
-                border: "1px dashed rgba(59, 130, 246, 0.35)",
-                padding: "14px",
-                borderRadius: "var(--radius-sm)",
-                marginBottom: "18px"
-              }}>
-                <label className="form-label" style={{ color: "var(--primary)", fontWeight: 700, marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span>📋 Chọn hồ sơ nháp chờ duyệt (PENDING)</span>
-                  {pendingDrafts.length > 0 && (
-                    <span className="badge badge-warning" style={{ fontSize: "11px", padding: "2px 8px" }}>
-                      {pendingDrafts.length} hồ sơ chờ duyệt
-                    </span>
-                  )}
-                </label>
-                <select
-                  value={selectedDraftCode}
-                  onChange={handleDraftSelect}
-                  className="form-select"
-                >
-                  <option value="">-- Chọn hồ sơ nháp để đối soát & phê duyệt --</option>
-                  {pendingDrafts.map(d => (
-                    <option key={d.id} value={d.certificate_code}>
-                      {d.certificate_code} — {d.student_name} ({d.course_name}: {d.score_overall || d.score})
-                    </option>
-                  ))}
-                </select>
-                <span style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px", display: "block" }}>
-                  Theo nguyên tắc Four-Eyes, Admin đối soát điểm do Khảo thí nhập trước khi ký phát hành on-chain.
-                </span>
-              </div>
-            )}
-            
-            <div className="form-group">
-              <label className="form-label">Chọn học viên từ CSDL</label>
-              <select value={selectedStudentId} onChange={handleStudentSelect} className="form-select">
-                <option value="">-- Chọn học viên có sẵn --</option>
-                {studentsList.map(s => (
-                  <option key={s.id} value={s.id}>{s.full_name} ({s.student_code})</option>
-                ))}
-              </select>
-            </div>
+            {/* CHẾ ĐỘ 1: DÀNH CHO ADMIN DUYỆT HỒ SƠ NHÁP (Mặc định khi là Admin và không ở chế độ thủ công) */}
+            {user?.role === "ADMIN" && !isManualMode ? (
+              <div>
+                {/* 1. Bộ chọn duy nhất: Hồ sơ nháp chờ duyệt */}
+                <div className="form-group" style={{ marginBottom: "16px" }}>
+                  <label className="form-label" style={{ fontWeight: 700, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>📋 Chọn hồ sơ nháp chờ duyệt (PENDING)</span>
+                    {pendingDrafts.length > 0 && (
+                      <span className="badge badge-warning" style={{ fontSize: "11px", padding: "2px 8px" }}>
+                        {pendingDrafts.length} hồ sơ chờ duyệt
+                      </span>
+                    )}
+                  </label>
+                  <select
+                    value={selectedDraftCode}
+                    onChange={handleDraftSelect}
+                    className="form-select"
+                  >
+                    <option value="">-- Chọn hồ sơ nháp để đối soát & phê duyệt --</option>
+                    {pendingDrafts.map(d => (
+                      <option key={d.id} value={d.certificate_code}>
+                        {d.certificate_code} — {d.student_name} ({d.course_name}: {d.score_overall || d.score})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div className="form-group">
-                <label className="form-label">Họ tên học viên</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Chọn học viên hoặc nhập họ tên..."
-                  value={formData.student_name}
-                  onChange={(e) => {
-                    setSelectedStudentId("");
-                    setFormData({ ...formData, student_name: e.target.value });
-                  }}
-                  className="form-input"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Mã học viên</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="HV2026-XXXX..."
-                  value={formData.student_code}
-                  onChange={(e) => {
-                    setSelectedStudentId("");
-                    setFormData({ ...formData, student_code: e.target.value });
-                  }}
-                  className="form-input"
-                />
-              </div>
-            </div>
+                {/* 2. Thẻ tóm tắt thông tin đối soát gọn gàng (Khi đã chọn hồ sơ nháp) */}
+                {formData.student_name ? (
+                  <div style={{
+                    background: "rgba(15, 23, 42, 0.65)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "10px",
+                    padding: "16px",
+                    marginBottom: "18px"
+                  }}>
+                    {/* Học viên */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px", paddingBottom: "10px", borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                      <div>
+                        <div style={{ fontSize: "17px", fontWeight: 700, color: "var(--text-primary)" }}>{formData.student_name}</div>
+                        <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
+                          Mã HV: <strong style={{ color: "var(--text-primary)" }}>{formData.student_code}</strong>
+                          {formData.email && <span> • {formData.email}</span>}
+                        </div>
+                      </div>
+                      <span className="badge badge-warning" style={{ fontSize: "11px" }}>Chờ duyệt on-chain</span>
+                    </div>
 
-            <div className="form-group">
-              <label className="form-label">Khóa học / Kỳ thi tiếng Anh</label>
-              <select value={formData.course_code} onChange={handleCourseSelect} className="form-select">
-                {coursesList.map(c => (
-                  <option key={c.course_code} value={c.course_code}>{c.course_name}</option>
-                ))}
-              </select>
-            </div>
+                    {/* Khóa thi & Điểm */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "13px", marginBottom: "14px" }}>
+                      <div>
+                        <div style={{ color: "var(--text-muted)", fontSize: "11px" }}>Kỳ thi / Khóa học</div>
+                        <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{formData.course_name}</div>
+                      </div>
+                      <div>
+                        <div style={{ color: "var(--text-muted)", fontSize: "11px" }}>Điểm tổng (Overall)</div>
+                        <div style={{ fontWeight: 800, color: "var(--primary)", fontSize: "15px" }}>{formData.score}</div>
+                      </div>
+                      <div>
+                        <div style={{ color: "var(--text-muted)", fontSize: "11px" }}>Ngày cấp bằng</div>
+                        <div style={{ color: "var(--text-secondary)" }}>{formData.issue_date}</div>
+                      </div>
+                      <div>
+                        <div style={{ color: "var(--text-muted)", fontSize: "11px" }}>Hạn hiệu lực</div>
+                        <div style={{ color: "var(--text-secondary)" }}>{formData.expiry_date || "Vô thời hạn"}</div>
+                      </div>
+                    </div>
 
-            <div className="form-group">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                <label className="form-label" style={{ marginBottom: 0 }}>Điểm số Overall</label>
-                <span style={{ fontSize: "11px", color: "var(--success-text, #10b981)", fontWeight: 600 }}>
-                  🔒 Tự động tính toán (Không thể sửa tay)
-                </span>
-              </div>
-              <input
-                type="text"
-                readOnly
-                placeholder="Chưa có điểm..."
-                value={formData.score}
-                className="form-input"
-                style={{
-                  background: "var(--bg-card-subtle, rgba(255,255,255,0.05))",
-                  cursor: "not-allowed",
-                  fontWeight: 700,
-                  color: "var(--primary, #3b82f6)",
-                  borderColor: "rgba(59, 130, 246, 0.3)"
-                }}
-                title="Điểm số Overall được tự động tính toán từ 4 kỹ năng theo quy chế thi, không thể chỉnh sửa thủ công."
-              />
-            </div>
+                    {/* Bảng điểm 4 kỹ năng */}
+                    <div style={{ background: "rgba(0, 0, 0, 0.25)", padding: "10px 12px", borderRadius: "8px", marginBottom: "14px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                        <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>Điểm 4 kỹ năng thành phần</span>
+                        <span style={{ fontSize: "11px", color: "var(--primary)", fontWeight: 600 }}>🔒 Đã niêm phong</span>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "6px", textAlign: "center" }}>
+                        <div style={{ background: "rgba(255, 255, 255, 0.04)", padding: "6px 4px", borderRadius: "6px" }}>
+                          <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>Listening</div>
+                          <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>{formData.listening || "—"}</div>
+                        </div>
+                        <div style={{ background: "rgba(255, 255, 255, 0.04)", padding: "6px 4px", borderRadius: "6px" }}>
+                          <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>Reading</div>
+                          <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>{formData.reading || "—"}</div>
+                        </div>
+                        <div style={{ background: "rgba(255, 255, 255, 0.04)", padding: "6px 4px", borderRadius: "6px" }}>
+                          <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>Writing</div>
+                          <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>{formData.writing || "—"}</div>
+                        </div>
+                        <div style={{ background: "rgba(255, 255, 255, 0.04)", padding: "6px 4px", borderRadius: "6px" }}>
+                          <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>Speaking</div>
+                          <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>{formData.speaking || "—"}</div>
+                        </div>
+                      </div>
+                    </div>
 
-            {/* Sub-scores 4 skills with auto-calculated overall */}
-            <div style={{ marginBottom: "20px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                <label className="form-label" style={{ marginBottom: 0, fontSize: "12px" }}>Điểm số các kỹ năng thành phần</label>
-                {user?.role === "ADMIN" && (
-                  <span style={{ fontSize: "11px", color: "var(--primary, #3b82f6)", fontWeight: 600 }}>
-                    🔒 Dữ liệu đã niêm phong
-                  </span>
+                    {/* Địa chỉ ví nhận NFT */}
+                    <div>
+                      <label className="form-label" style={{ fontSize: "11px", marginBottom: "4px" }}>
+                        Địa chỉ ví MetaMask học viên (nhận Soulbound NFT)
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.wallet_address}
+                        onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
+                        className="form-input"
+                        style={{ fontSize: "12px", fontFamily: "monospace" }}
+                        placeholder="0x..."
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    padding: "24px 16px",
+                    textAlign: "center",
+                    border: "1px dashed rgba(255, 255, 255, 0.15)",
+                    borderRadius: "10px",
+                    color: "var(--text-muted)",
+                    fontSize: "13px",
+                    marginBottom: "18px"
+                  }}>
+                    Vui lòng chọn một hồ sơ nháp đang chờ duyệt từ danh sách phía trên để đối soát và ký phát hành on-chain.
+                  </div>
                 )}
-              </div>
 
-              {user?.role === "ADMIN" && (
-                <div style={{
-                  background: "rgba(59, 130, 246, 0.08)",
-                  border: "1px solid rgba(59, 130, 246, 0.25)",
-                  padding: "8px 12px",
-                  borderRadius: "var(--radius-sm)",
-                  fontSize: "12px",
-                  color: "var(--primary, #3b82f6)",
-                  marginBottom: "10px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px"
-                }}>
-                  <span>🔒 <strong>Nguyên tắc Bốn Mắt (Four-Eyes):</strong> Dữ liệu điểm do Nhân viên Khảo thí nhập liệu đã được niêm phong. Quản trị viên chỉ đối soát, phê duyệt và ký phát hành on-chain, không được tự ý sửa điểm. Nếu điểm sai, vui lòng từ chối bản nháp để Khảo thí điều chỉnh lại.</span>
-                </div>
-              )}
+                {/* Nút hành động */}
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    type="submit"
+                    disabled={loading || !formData.student_name}
+                    className="btn btn-gold"
+                    style={{ flex: 1, padding: "13px", fontSize: "14px" }}
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw size={16} className="animate-spin" />
+                        Đang đúc Smart Contract & Lưu MySQL...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={16} />
+                        Ký MetaMask & Cấp Bằng On-Chain
+                      </>
+                    )}
+                  </button>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
-                <div>
-                  <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Listening</label>
-                  <input
-                    type="text"
-                    readOnly={user?.role === "ADMIN"}
-                    placeholder="—"
-                    value={formData.listening}
-                    onChange={(e) => handleSubScoreChange("listening", e.target.value)}
-                    className="form-input"
-                    style={{
-                      padding: "8px 10px",
-                      textAlign: "center",
-                      background: user?.role === "ADMIN" ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
-                      cursor: user?.role === "ADMIN" ? "not-allowed" : undefined
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Reading</label>
-                  <input
-                    type="text"
-                    readOnly={user?.role === "ADMIN"}
-                    placeholder="—"
-                    value={formData.reading}
-                    onChange={(e) => handleSubScoreChange("reading", e.target.value)}
-                    className="form-input"
-                    style={{
-                      padding: "8px 10px",
-                      textAlign: "center",
-                      background: user?.role === "ADMIN" ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
-                      cursor: user?.role === "ADMIN" ? "not-allowed" : undefined
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Writing</label>
-                  <input
-                    type="text"
-                    readOnly={user?.role === "ADMIN"}
-                    placeholder="—"
-                    value={formData.writing}
-                    onChange={(e) => handleSubScoreChange("writing", e.target.value)}
-                    className="form-input"
-                    style={{
-                      padding: "8px 10px",
-                      textAlign: "center",
-                      background: user?.role === "ADMIN" ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
-                      cursor: user?.role === "ADMIN" ? "not-allowed" : undefined
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Speaking</label>
-                  <input
-                    type="text"
-                    readOnly={user?.role === "ADMIN"}
-                    placeholder="—"
-                    value={formData.speaking}
-                    onChange={(e) => handleSubScoreChange("speaking", e.target.value)}
-                    className="form-input"
-                    style={{
-                      padding: "8px 10px",
-                      textAlign: "center",
-                      background: user?.role === "ADMIN" ? "var(--bg-card-subtle, rgba(255,255,255,0.04))" : undefined,
-                      cursor: user?.role === "ADMIN" ? "not-allowed" : undefined
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Date pickers with 2-year auto validity */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
-              <div>
-                <label className="form-label" style={{ fontSize: "12px" }}>Ngày thi / cấp bằng</label>
-                <input
-                  type="date"
-                  value={formData.issue_date}
-                  onChange={(e) => handleDateChange(e.target.value)}
-                  className="form-input"
-                />
-              </div>
-              <div>
-                <label className="form-label" style={{ fontSize: "12px" }}>
-                  Hạn hiệu lực {formData.expiry_date ? "(Theo chuẩn khóa học)" : "(Vô thời hạn)"}
-                </label>
-                <input
-                  type={formData.expiry_date ? "date" : "text"}
-                  readOnly
-                  value={formData.expiry_date || "Vô thời hạn (Vĩnh viễn)"}
-                  className="form-input"
-                  style={{ opacity: 0.85 }}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Địa chỉ ví MetaMask học viên</label>
-              <input
-                type="text"
-                placeholder="0x... (Địa chỉ ví MetaMask học viên)"
-                value={formData.wallet_address}
-                onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
-                className="form-input"
-                style={{ fontSize: "12px" }}
-              />
-            </div>
-
-            {/* Role-based Action Buttons */}
-            {user?.role === "STAFF" ? (
-              <div>
-                <div style={{
-                  background: "var(--warning-bg)",
-                  border: "1px solid rgba(245, 158, 11, 0.3)",
-                  padding: "10px 14px",
-                  borderRadius: "var(--radius-sm)",
-                  fontSize: "12px",
-                  color: "var(--warning-text)",
-                  marginBottom: "14px"
-                }}>
-                  ⚠️ <strong>Thẩm quyền Cán bộ (STAFF):</strong> Bạn có quyền soạn thảo bản nháp (Draft). Quản trị viên (ADMIN) sẽ là người duyệt và ký giao dịch MetaMask để đúc On-Chain.
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn btn-primary"
-                  style={{ width: "100%", padding: "14px", fontSize: "15px" }}
-                >
-                  {loading ? "Đang lưu vào MySQL..." : "Lưu Bản Nháp (Chờ Admin Ký On-Chain)"}
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn btn-gold"
-                  style={{ flex: 1, padding: "14px", fontSize: "15px" }}
-                >
-                  {loading ? (
-                    <>
-                      <RefreshCw size={18} className="animate-spin" />
-                      Đang đúc Smart Contract & Lưu MySQL...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={18} />
-                      Ký MetaMask & Cấp Bằng On-Chain
-                    </>
+                  {selectedDraftCode && (
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={handleRejectDraft}
+                      className="btn btn-outline"
+                      style={{
+                        padding: "13px 16px",
+                        fontSize: "13px",
+                        color: "var(--danger-text)",
+                        borderColor: "rgba(239, 68, 68, 0.4)",
+                        whiteSpace: "nowrap"
+                      }}
+                      title="Từ chối bản nháp và chuyển trả cho Khảo thí chỉnh sửa"
+                    >
+                      Từ Chối Nháp
+                    </button>
                   )}
-                </button>
-                {selectedDraftCode && (
+                </div>
+
+                {/* Nút chuyển chế độ thủ công */}
+                <div style={{ textAlign: "center", marginTop: "14px" }}>
                   <button
                     type="button"
-                    disabled={loading}
-                    onClick={handleRejectDraft}
-                    className="btn btn-outline"
+                    onClick={() => setIsManualMode(true)}
                     style={{
-                      padding: "14px 18px",
-                      fontSize: "14px",
-                      color: "var(--danger-text)",
-                      borderColor: "rgba(239, 68, 68, 0.4)",
-                      whiteSpace: "nowrap"
+                      background: "none",
+                      border: "none",
+                      color: "var(--text-muted)",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      textDecoration: "underline"
                     }}
-                    title="Từ chối bản nháp và chuyển trả cho Khảo thí chỉnh sửa"
                   >
-                    Từ Chối Nháp
+                    Hoặc tạo mới chứng chỉ thủ công
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* CHẾ ĐỘ 2: DÀNH CHO CÁN BỘ KHẢO THÍ (STAFF) HOẶC ADMIN NHẬP THỦ CÔNG */
+              <div>
+                {user?.role === "ADMIN" && isManualMode && (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                    <span className="badge badge-info" style={{ fontSize: "11px" }}>Chế độ nhập mới thủ công</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsManualMode(false)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--primary)",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                        textDecoration: "underline"
+                      }}
+                    >
+                      Quay lại duyệt hồ sơ nháp
+                    </button>
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label className="form-label">Chọn học viên từ CSDL</label>
+                  <select value={selectedStudentId} onChange={handleStudentSelect} className="form-select">
+                    <option value="">-- Chọn học viên có sẵn --</option>
+                    {studentsList.map(s => (
+                      <option key={s.id} value={s.id}>{s.full_name} ({s.student_code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div className="form-group">
+                    <label className="form-label">Họ tên học viên</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Nhập họ tên học viên..."
+                      value={formData.student_name}
+                      onChange={(e) => {
+                        setSelectedStudentId("");
+                        setFormData({ ...formData, student_name: e.target.value });
+                      }}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Mã học viên</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="HV2026-XXXX..."
+                      value={formData.student_code}
+                      onChange={(e) => {
+                        setSelectedStudentId("");
+                        setFormData({ ...formData, student_code: e.target.value });
+                      }}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Khóa học / Kỳ thi tiếng Anh</label>
+                  <select value={formData.course_code} onChange={handleCourseSelect} className="form-select">
+                    {coursesList.map(c => (
+                      <option key={c.course_code} value={c.course_code}>{c.course_name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label className="form-label" style={{ marginBottom: 0 }}>Điểm số Overall</label>
+                    <span style={{ fontSize: "11px", color: "var(--primary)", fontWeight: 600 }}>
+                      (Tự động tính)
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    readOnly
+                    placeholder="Chưa có điểm..."
+                    value={formData.score}
+                    className="form-input"
+                    style={{
+                      background: "var(--bg-card-subtle, rgba(255,255,255,0.05))",
+                      cursor: "not-allowed",
+                      fontWeight: 700,
+                      color: "var(--primary, #3b82f6)",
+                      borderColor: "rgba(59, 130, 246, 0.3)"
+                    }}
+                  />
+                </div>
+
+                {/* Sub-scores 4 skills */}
+                <div style={{ marginBottom: "18px" }}>
+                  <label className="form-label" style={{ fontSize: "12px", marginBottom: "8px", display: "block" }}>
+                    Điểm số các kỹ năng thành phần
+                  </label>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
+                    <div>
+                      <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Listening</label>
+                      <input
+                        type="text"
+                        placeholder="—"
+                        value={formData.listening}
+                        onChange={(e) => handleSubScoreChange("listening", e.target.value)}
+                        className="form-input"
+                        style={{ padding: "8px 10px", textAlign: "center" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Reading</label>
+                      <input
+                        type="text"
+                        placeholder="—"
+                        value={formData.reading}
+                        onChange={(e) => handleSubScoreChange("reading", e.target.value)}
+                        className="form-input"
+                        style={{ padding: "8px 10px", textAlign: "center" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Writing</label>
+                      <input
+                        type="text"
+                        placeholder="—"
+                        value={formData.writing}
+                        onChange={(e) => handleSubScoreChange("writing", e.target.value)}
+                        className="form-input"
+                        style={{ padding: "8px 10px", textAlign: "center" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Speaking</label>
+                      <input
+                        type="text"
+                        placeholder="—"
+                        value={formData.speaking}
+                        onChange={(e) => handleSubScoreChange("speaking", e.target.value)}
+                        className="form-input"
+                        style={{ padding: "8px 10px", textAlign: "center" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ngày thi / hạn hiệu lực */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: "12px" }}>Ngày thi / cấp bằng</label>
+                    <input
+                      type="date"
+                      value={formData.issue_date}
+                      onChange={(e) => handleDateChange(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: "12px" }}>
+                      Hạn hiệu lực
+                    </label>
+                    <input
+                      type={formData.expiry_date ? "date" : "text"}
+                      readOnly
+                      value={formData.expiry_date || "Vô thời hạn (Vĩnh viễn)"}
+                      className="form-input"
+                      style={{ opacity: 0.85 }}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Địa chỉ ví MetaMask học viên</label>
+                  <input
+                    type="text"
+                    placeholder="0x... (Địa chỉ ví MetaMask học viên)"
+                    value={formData.wallet_address}
+                    onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
+                    className="form-input"
+                    style={{ fontSize: "12px" }}
+                  />
+                </div>
+
+                {/* Nút lưu hoặc phát hành */}
+                {user?.role === "STAFF" ? (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn btn-primary"
+                    style={{ width: "100%", padding: "14px", fontSize: "15px" }}
+                  >
+                    {loading ? "Đang lưu vào MySQL..." : "Lưu Bản Nháp (Gửi Admin Duyệt)"}
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={loading || !formData.student_name}
+                    className="btn btn-gold"
+                    style={{ width: "100%", padding: "14px", fontSize: "15px" }}
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw size={18} className="animate-spin" />
+                        Đang đúc Smart Contract...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={18} />
+                        Ký MetaMask & Cấp Bằng On-Chain
+                      </>
+                    )}
                   </button>
                 )}
               </div>

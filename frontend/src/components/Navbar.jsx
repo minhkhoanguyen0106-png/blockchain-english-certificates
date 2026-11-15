@@ -1,32 +1,21 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ShieldCheck, QrCode, Search, LayoutDashboard, Wallet, LogOut, AlertCircle, Award } from "lucide-react";
+import { ShieldCheck, QrCode, Search, LayoutDashboard, LogOut } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
-import { connectMetaMask, shortenAddress } from "../services/web3Service";
 import { authApi } from "../services/apiService";
 
-export default function Navbar({ wallet, setWallet, user, setUser }) {
+export default function Navbar({ user, setUser }) {
   const location = useLocation();
-  const [connecting, setConnecting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-
-  const handleConnectWallet = async () => {
-    try {
-      setConnecting(true);
-      setErrorMsg("");
-      const account = await connectMetaMask();
-      setWallet(account);
-    } catch (err) {
-      setErrorMsg(err.message || "Không thể kết nối MetaMask");
-    } finally {
-      setConnecting(false);
-    }
-  };
 
   const handleLogout = () => {
     setUser(null);
     authApi.logout();
   };
+
+  const displayName = user?.full_name
+    ? user.full_name.replace(/\s*\([^)]*\)/g, "")
+    : (user?.username || "");
+  const roleName = user?.role === "ADMIN" ? "Quản trị viên" : user?.role === "STAFF" ? "Khảo thí" : "Học viên";
 
   const isActive = (path) => location.pathname === path;
 
@@ -157,113 +146,55 @@ export default function Navbar({ wallet, setWallet, user, setUser }) {
             )}
           </Link>
 
-          {/* Student Specific Link: Elegant text link */}
-          {user && user.role === "STUDENT" && (
-            <Link
-              to="/verify"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                fontSize: "14px",
-                fontWeight: location.search.includes("CERT-IELTS") ? 700 : 600,
-                color: "var(--accent-gold)",
-                transition: "opacity var(--transition-fast)",
-                padding: "6px 0"
-              }}
-            >
-              <Award size={15} />
-              Tra Cứu Chứng Chỉ
-            </Link>
-          )}
+        </nav>
 
-          {/* Admin / Staff Quick Link */}
+        {/* Zone 3: Unified Action Bar (Theme, Admin Entry, User Profile) */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
+          
+          {/* Admin / Staff Workspace Button */}
           {user && (user.role === "ADMIN" || user.role === "STAFF") && (
             <Link
               to="/admin/dashboard"
               style={{
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
                 gap: "6px",
-                fontSize: "14px",
+                padding: "6px 14px",
+                borderRadius: "var(--radius-md)",
+                fontSize: "13px",
                 fontWeight: 600,
+                background: "rgba(2, 132, 199, 0.08)",
+                border: "1px solid rgba(2, 132, 199, 0.25)",
                 color: "var(--primary)",
-                padding: "6px 0"
+                textDecoration: "none",
+                transition: "all var(--transition-fast)"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--primary)";
+                e.currentTarget.style.color = "#ffffff";
+                e.currentTarget.style.borderColor = "var(--primary)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(2, 132, 199, 0.08)";
+                e.currentTarget.style.color = "var(--primary)";
+                e.currentTarget.style.borderColor = "rgba(2, 132, 199, 0.25)";
               }}
             >
               <LayoutDashboard size={15} />
-              Vào Quản Trị
+              <span>Trang Quản Trị</span>
             </Link>
           )}
 
-        </nav>
-
-        {/* Zone 3: Unified Action Bar (Theme, Wallet, User Profile) */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
-          
-          {/* Minimalist Theme Toggle (Circle icon button) */}
+          {/* Theme Toggle */}
           <ThemeToggle />
 
-          {/* MetaMask Connector (Chỉ hiển thị với ADMIN để ký duyệt on-chain) */}
-          {user?.role === "ADMIN" && (
-            <>
-              <div style={{ width: "1px", height: "20px", background: "var(--border-subtle)" }} />
-              {wallet ? (
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "7px",
-                  padding: "5px 12px",
-                  background: "var(--success-bg)",
-                  border: "1px solid rgba(16, 185, 129, 0.25)",
-                  borderRadius: "var(--radius-full)",
-                  fontSize: "12px"
-                }}>
-                  <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--success-color)" }} />
-                  <span style={{ fontWeight: 600, color: "var(--success-text)" }}>{shortenAddress(wallet.address)}</span>
-                </div>
-              ) : (
-                <button
-                  onClick={handleConnectWallet}
-                  disabled={connecting}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    padding: "7px 13px",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    background: "transparent",
-                    border: "1px solid var(--border-subtle)",
-                    color: "var(--text-secondary)",
-                    cursor: "pointer",
-                    transition: "all var(--transition-fast)"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "var(--primary)";
-                    e.currentTarget.style.color = "var(--primary)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "var(--border-subtle)";
-                    e.currentTarget.style.color = "var(--text-secondary)";
-                  }}
-                  title="Kết nối ví Quản trị viên để xác thực phát hành"
-                >
-                  <Wallet size={15} />
-                  <span>{connecting ? "Đang kết nối..." : "Ví Quản Trị (Admin)"}</span>
-                </button>
-              )}
-            </>
-          )}
-
-          {/* User Profile Capsule (Unified avatar, username, role and logout) */}
+          {/* User Profile Capsule (Unified avatar, full name, role and logout) */}
           {user ? (
             <div style={{
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              padding: "4px 6px 4px 10px",
+              padding: "4px 8px 4px 6px",
               background: "var(--bg-surface)",
               border: "1px solid var(--border-subtle)",
               borderRadius: "var(--radius-full)",
@@ -271,31 +202,38 @@ export default function Navbar({ wallet, setWallet, user, setUser }) {
             }}>
               {/* Avatar circle with first letter */}
               <div style={{
-                width: "24px",
-                height: "24px",
+                width: "26px",
+                height: "26px",
                 borderRadius: "50%",
-                background: user.role === "ADMIN" ? "linear-gradient(135deg, #0284c7, #38bdf8)" : user.role === "STAFF" ? "linear-gradient(135deg, #d97706, #f59e0b)" : "linear-gradient(135deg, #6366f1, #818cf8)",
+                background: user.role === "ADMIN" 
+                  ? "linear-gradient(135deg, #0284c7, #38bdf8)" 
+                  : user.role === "STAFF" 
+                  ? "linear-gradient(135deg, #d97706, #f59e0b)" 
+                  : "linear-gradient(135deg, #6366f1, #818cf8)",
                 color: "#ffffff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontWeight: 700,
-                fontSize: "11px"
+                fontSize: "12px",
+                flexShrink: 0
               }}>
-                {user.username ? user.username.charAt(0).toUpperCase() : "U"}
+                {displayName ? displayName.charAt(0).toUpperCase() : "U"}
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{user.username}</span>
+                <span style={{ fontWeight: 600, color: "var(--text-primary)", maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {displayName}
+                </span>
                 <span style={{
-                  fontSize: "9px",
+                  fontSize: "10px",
                   fontWeight: 700,
-                  padding: "1px 6px",
-                  borderRadius: "4px",
+                  padding: "2px 7px",
+                  borderRadius: "var(--radius-full)",
                   background: user.role === "ADMIN" ? "rgba(16, 185, 129, 0.15)" : user.role === "STAFF" ? "rgba(245, 158, 11, 0.15)" : "rgba(99, 102, 241, 0.15)",
                   color: user.role === "ADMIN" ? "var(--success-text)" : user.role === "STAFF" ? "var(--warning-text)" : "var(--primary)"
                 }}>
-                  {user.role === "ADMIN" ? "Quản trị viên" : user.role === "STAFF" ? "Khảo thí" : "Học viên"}
+                  {roleName}
                 </span>
               </div>
 
@@ -317,14 +255,14 @@ export default function Navbar({ wallet, setWallet, user, setUser }) {
                 onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-muted)"; }}
                 title="Đăng xuất"
               >
-                <LogOut size={13} />
+                <LogOut size={14} />
               </button>
             </div>
           ) : (
             <Link
               to="/login"
               className="btn btn-primary"
-              style={{ padding: "8px 16px", fontSize: "13px" }}
+              style={{ padding: "8px 18px", fontSize: "13px" }}
             >
               Đăng Nhập
             </Link>
@@ -333,23 +271,6 @@ export default function Navbar({ wallet, setWallet, user, setUser }) {
         </div>
 
       </div>
-
-      {errorMsg && (
-        <div style={{
-          background: "var(--danger-bg)",
-          color: "var(--danger-text)",
-          padding: "6px 20px",
-          textAlign: "center",
-          fontSize: "12px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "8px"
-        }}>
-          <AlertCircle size={14} />
-          {errorMsg}
-        </div>
-      )}
     </header>
   );
 }

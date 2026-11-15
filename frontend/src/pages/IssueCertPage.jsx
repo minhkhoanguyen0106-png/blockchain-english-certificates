@@ -436,22 +436,6 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
               <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
               ĐÃ ĐẨY LÊN BLOCKCHAIN THÀNH CÔNG (CONFIRMED)
             </div>
-            <div style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "5px 14px",
-              background: "rgba(16, 185, 129, 0.15)",
-              border: "1px solid rgba(16, 185, 129, 0.35)",
-              borderRadius: "var(--radius-full)",
-              color: "var(--success-text)",
-              fontWeight: 800,
-              fontSize: "12px",
-              marginBottom: "12px"
-            }}>
-              <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
-              ĐÃ ĐẨY LÊN BLOCKCHAIN THÀNH CÔNG (CONFIRMED)
-            </div>
             <h3 style={{ fontSize: "22px", fontWeight: 800, color: "var(--success-text)", marginBottom: "8px" }}>
               Đúc Chứng Chỉ On-Chain Thành Công!
             </h3>
@@ -460,9 +444,14 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
             </p>
 
             <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", padding: "14px", borderRadius: "var(--radius-md)", fontSize: "12px", textAlign: "left", marginBottom: "24px" }}>
-              <div><strong>Tx Hash:</strong> <span style={{ color: "var(--primary)" }}>{successCert.tx_hash}</span></div>
-              <div style={{ marginTop: "4px" }}><strong>Token ID:</strong> <span style={{ color: "var(--accent-gold)" }}>#{successCert.token_id}</span></div>
-              <div style={{ marginTop: "4px" }}><strong>IPFS CID:</strong> <span style={{ color: "var(--accent-gold)" }}>{successCert.ipfs_hash}</span></div>
+              <div>
+                <strong>Tx Hash (Mã Giao Dịch):</strong>
+                <div style={{ color: "var(--primary)", wordBreak: "break-all", fontFamily: "monospace", fontSize: "11px", marginTop: "3px", background: "rgba(0,0,0,0.12)", padding: "5px 8px", borderRadius: "4px" }}>
+                  {successCert.tx_hash}
+                </div>
+              </div>
+              <div style={{ marginTop: "8px" }}><strong>Token ID:</strong> <span style={{ color: "var(--accent-gold)", fontWeight: 700 }}>#{successCert.token_id} (Soulbound Token)</span></div>
+              <div style={{ marginTop: "6px" }}><strong>IPFS CID:</strong> <span style={{ color: "var(--accent-gold)", wordBreak: "break-all" }}>{successCert.ipfs_hash}</span></div>
             </div>
 
             <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>

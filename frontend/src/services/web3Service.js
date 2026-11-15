@@ -20,6 +20,45 @@ export const isMetaMaskInstalled = () => {
   return typeof window !== "undefined" && Boolean(window.ethereum);
 };
 
+// Tự động chuyển MetaMask sang mạng Hardhat Localhost (Chain ID 31337)
+export const switchToHardhatNetwork = async () => {
+  if (typeof window === "undefined" || !window.ethereum) return false;
+  const HARDHAT_CHAIN_ID_HEX = "0x7a69"; // 31337
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: HARDHAT_CHAIN_ID_HEX }],
+    });
+    return true;
+  } catch (switchError) {
+    // Mã lỗi 4902: mạng chưa tồn tại trong danh sách của MetaMask -> tự động thêm
+    if (switchError.code === 4902) {
+      try {
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [
+            {
+              chainId: HARDHAT_CHAIN_ID_HEX,
+              chainName: "Hardhat Localhost",
+              rpcUrls: ["http://127.0.0.1:8545"],
+              nativeCurrency: {
+                name: "ETH",
+                symbol: "ETH",
+                decimals: 18,
+              },
+            },
+          ],
+        });
+        return true;
+      } catch (addError) {
+        console.warn("Không thể thêm mạng Hardhat Localhost:", addError);
+        return false;
+      }
+    }
+    return false;
+  }
+};
+
 // 2. Kết nối ví MetaMask (Tự động kết nối ví thật nếu có, hoặc kích hoạt Ví Quản Trị Demo nếu chưa cài tiện ích)
 export const connectMetaMask = async () => {
   if (!isMetaMaskInstalled()) {
@@ -35,15 +74,24 @@ export const connectMetaMask = async () => {
   }
 
   try {
-    const provider = new ethers.BrowserProvider(window.ethereum);
+    // Kiểm tra và yêu cầu chuyển sang mạng Hardhat nếu đang ở Ethereum Mainnet
+    let provider = new ethers.BrowserProvider(window.ethereum);
+    let network = await provider.getNetwork();
+    if (Number(network.chainId) !== 31337) {
+      const switched = await switchToHardhatNetwork();
+      if (switched) {
+        provider = new ethers.BrowserProvider(window.ethereum);
+        network = await provider.getNetwork();
+      }
+    }
+
     const accounts = await provider.send("eth_requestAccounts", []);
     const signer = await provider.getSigner();
     const address = accounts[0];
-    const network = await provider.getNetwork();
 
     // Lấy số dư ETH/MATIC
     const balanceRaw = await provider.getBalance(address);
-    const balance = ethers.formatEther(balanceRaw).slice(0, 6);
+    const balance = ethers.formatEther(balanceRaw).slice(0, 7);
 
     return {
       provider,
@@ -230,6 +278,19 @@ export const issueCertificateOnChain = async (certData, walletSigner) => {
   // B3: Thực thi giao dịch Smart Contract (SBT) qua ví MetaMask nếu có signer
   if (walletSigner?.signer) {
     try {
+      // Đảm bảo đang đứng ở mạng Hardhat Localhost (Chain ID 31337) trước khi gửi tx
+      if (typeof window !== "undefined" && window.ethereum) {
+        try {
+          const checkProvider = new ethers.BrowserProvider(window.ethereum);
+          const currentNet = await checkProvider.getNetwork();
+          if (Number(currentNet.chainId) !== 31337) {
+            await switchToHardhatNetwork();
+          }
+        } catch (netErr) {
+          console.warn("Chuyển mạng trước khi gửi tx:", netErr);
+        }
+      }
+
       const contract = getCertificateContract(walletSigner.signer);
       const expiryTimestamp = certData.expiry_date
         ? Math.floor(new Date(certData.expiry_date).getTime() / 1000)

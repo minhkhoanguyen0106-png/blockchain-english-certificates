@@ -5,8 +5,6 @@ import { ethers } from "ethers";
 import confetti from "canvas-confetti";
 import {
   issueCertificateOnChain,
-  INITIAL_STUDENTS,
-  INITIAL_COURSES,
   connectMetaMask,
   isMetaMaskInstalled,
   ensureCorrectNetwork,
@@ -47,8 +45,8 @@ function clearPendingReconcile(certificateCode) {
 export default function IssueCertPage({ wallet, setWallet, user }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [studentsList, setStudentsList] = useState(INITIAL_STUDENTS);
-  const [coursesList, setCoursesList] = useState(INITIAL_COURSES);
+  const [studentsList, setStudentsList] = useState([]);
+  const [coursesList, setCoursesList] = useState([]);
   const [pendingDrafts, setPendingDrafts] = useState([]);
   const [selectedDraftCode, setSelectedDraftCode] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
@@ -197,8 +195,8 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
           courseApi.getCourses(),
           certificateApi.getCertificates({ status: "ALL", limit: 100 })
         ]);
-        let loadedStudents = INITIAL_STUDENTS;
-        let loadedCourses = INITIAL_COURSES;
+        let loadedStudents = [];
+        let loadedCourses = [];
 
         if (stuRes.status === "fulfilled" && stuRes.value?.success && Array.isArray(stuRes.value.data) && stuRes.value.data.length > 0) {
           loadedStudents = stuRes.value.data;

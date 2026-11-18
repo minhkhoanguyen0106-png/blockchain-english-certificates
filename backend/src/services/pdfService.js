@@ -36,7 +36,7 @@ export async function generateQrDataUrl(text) {
 export async function generateCertificatePdf(certData) {
   const fileName = `${certData.certificate_code}.pdf`;
   const filePath = path.join(uploadsDir, fileName);
-  const verifyUrl = `${process.env.PUBLIC_VERIFY_BASE_URL || 'http://localhost:5173/verify'}?code=${certData.certificate_code}`;
+  const verifyUrl = `${process.env.PUBLIC_VERIFY_BASE_URL || 'http://localhost:3000/verify'}?code=${certData.certificate_code}`;
 
   // Sinh buffer mã QR
   const qrBuffer = await QRCode.toBuffer(verifyUrl, { width: 130, margin: 1 });

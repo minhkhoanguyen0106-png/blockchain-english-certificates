@@ -7,6 +7,27 @@ const STORAGE_KEY_CERTS = "certchain_certificates";
 
 export const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || contractJson.address || "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 export const CONTRACT_ABI = contractJson.abi;
+const READONLY_RPC_URL = import.meta.env.VITE_RPC_URL || "http://127.0.0.1:8545";
+
+const maskCitizenId = (cid) => {
+  if (!cid) return null;
+  const s = String(cid).trim();
+  if (s.length <= 6) return "***";
+  return `${s.slice(0, 3)}${"*".repeat(Math.max(3, s.length - 6))}${s.slice(-3)}`;
+};
+
+const getReadOnlyContract = () => {
+  try {
+    const provider = new ethers.JsonRpcProvider(READONLY_RPC_URL);
+    return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+  } catch {
+    if (isMetaMaskInstalled()) {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+    }
+    return null;
+  }
+};
 
 // Khởi tạo LocalStorage nếu chưa có
 export const initStorage = () => {
@@ -93,23 +114,25 @@ export const getAllCertificates = () => {
   return raw ? JSON.parse(raw) : INITIAL_CERTIFICATES;
 };
 
-// 6. Tra cứu chứng chỉ theo mã (On-chain & Database kết hợp)
+// 6. Tra cứu chứng chỉ theo mã (Kết hợp Backend API + Đối soát trực tiếp Smart Contract chống TAMPERED)
 export const getCertificateByCode = async (code) => {
   if (!code) return null;
   const cleanCode = code.trim().toUpperCase();
 
-  // B1: Gọi Backend API lấy dữ liệu thật từ MySQL
+  let dbCert = null;
+
+  // B1: Gọi Backend API lấy dữ liệu chi tiết từ MySQL
   try {
     const res = await certificateApi.verifyPublic(cleanCode);
     if (res.success && res.data) {
       const d = res.data;
-      return {
+      dbCert = {
         id: d.id,
         certificate_code: d.certificate_code,
         student_name: d.student_name,
         student_code: d.student_code,
         email: d.student_email || d.email || "",
-        citizen_id: d.citizen_id,
+        citizen_id: maskCitizenId(d.citizen_id),
         course_name: d.course_name,
         course_code: d.course_code,
         score: d.score_overall,
@@ -134,17 +157,45 @@ export const getCertificateByCode = async (code) => {
       };
     }
   } catch {
-    // Backend offline -> tra cứu Smart Contract on-chain hoặc fallback cache
+    // Backend offline hoặc không có trong MySQL -> kiểm tra trực tiếp Smart Contract
   }
 
-  // B2: Tra cứu on-chain qua Smart Contract nếu có MetaMask
-  if (isMetaMaskInstalled()) {
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const contract = getCertificateContract(provider);
-      const onchainResult = await contract.verifyByCertificateCode(cleanCode);
+  // B2: Đối soát trực tiếp On-chain qua Smart Contract (Không cần MetaMask, dùng Read-Only RPC)
+  try {
+    const contract = getReadOnlyContract();
+    if (contract) {
+      const lookupCode = dbCert?.certificate_code || cleanCode;
+      const onchainResult = await contract.verifyByCertificateCode(lookupCode);
       if (onchainResult && onchainResult.exists) {
         const cert = onchainResult.cert;
+
+        if (dbCert) {
+          dbCert.onchain_verified = true;
+          const mismatches = [];
+          if (String(cert.recipientName || "").trim() !== String(dbCert.student_name || "").trim()) {
+            mismatches.push(`Tên học viên (CSDL: "${dbCert.student_name}" ≠ Sổ cái: "${cert.recipientName}")`);
+          }
+          if (String(cert.score || "").trim() !== String(dbCert.score || "").trim()) {
+            mismatches.push(`Điểm số (CSDL: "${dbCert.score}" ≠ Sổ cái: "${cert.score}")`);
+          }
+          if (String(cert.studentCode || "").trim() !== String(dbCert.student_code || "").trim()) {
+            mismatches.push(`Mã học viên (CSDL: "${dbCert.student_code}" ≠ Sổ cái: "${cert.studentCode}")`);
+          }
+          if (String(cert.courseCode || "").trim() !== String(dbCert.course_code || "").trim()) {
+            mismatches.push(`Mã khóa học (CSDL: "${dbCert.course_code}" ≠ Sổ cái: "${cert.courseCode}")`);
+          }
+
+          if (mismatches.length > 0) {
+            dbCert.status = "TAMPERED";
+            dbCert.tamper_details = mismatches.join("; ");
+          } else if (cert.isRevoked && dbCert.status !== "REVOKED") {
+            dbCert.status = "REVOKED";
+            dbCert.revoked_reason = cert.revokeReason || dbCert.revoked_reason || "Đã bị thu hồi trên Blockchain";
+          }
+          return dbCert;
+        }
+
+        // Không có trong MySQL nhưng tồn tại trực tiếp trên Smart Contract
         return {
           id: Number(onchainResult.tokenId),
           certificate_code: cert.certificateCode,
@@ -167,13 +218,16 @@ export const getCertificateByCode = async (code) => {
           ipfs_hash: cert.ipfsHash,
           pdf_url: `http://localhost:5000/api/public/pdf/${cert.certificateCode}`,
           revoked_reason: cert.revokeReason || null,
-          revoked_at: null
+          revoked_at: null,
+          onchain_verified: true
         };
       }
-    } catch (e) {
-      console.warn("Tra cứu on-chain fallback:", e.message);
     }
+  } catch (e) {
+    console.warn("Tra cứu on-chain fallback:", e.message);
   }
+
+  if (dbCert) return dbCert;
 
   // B3: Fallback danh sách LocalStorage
   initStorage();
@@ -398,80 +452,80 @@ export const revokeCertificateOnChain = async (certCode, reason, certId, tokenId
   return null;
 };
 
-// 9. Tra cứu toàn bộ chứng chỉ theo địa chỉ ví học viên (Web3 Student Wallet Lookup - Phương án 1)
+// 9. Tra cứu toàn bộ chứng chỉ theo địa chỉ ví học viên (Đọc trực tiếp Smart Contract Web3 - Phương án 1)
 export const getCertificatesByStudentWallet = async (walletAddress) => {
   if (!walletAddress || !ethers.isAddress(walletAddress.trim())) {
     throw new Error("Địa chỉ ví Ethereum không hợp lệ (cần 42 ký tự bắt đầu bằng 0x).");
   }
   const cleanAddress = ethers.getAddress(walletAddress.trim());
+  const byCode = new Map();
 
-  // B1: Gọi Backend (đã tự đối soát chéo với Smart Contract on-chain)
+  // B1: Đọc trực tiếp toàn bộ Soulbound Certificate NFT từ Smart Contract (Read-Only RPC hoặc MetaMask)
+  try {
+    const contract = getReadOnlyContract();
+    if (contract) {
+      const tokenIds = await contract.getCertificatesByStudent(cleanAddress);
+      for (const tid of tokenIds) {
+        const cert = await contract.getCertificateDetails(tid);
+        byCode.set(cert.certificateCode, {
+          id: Number(cert.tokenId),
+          certificate_code: cert.certificateCode,
+          student_name: cert.recipientName,
+          student_code: cert.studentCode,
+          course_name: cert.courseName,
+          course_code: cert.courseCode,
+          score: cert.score,
+          issue_date: new Date(Number(cert.issueDate) * 1000).toISOString().slice(0, 10),
+          expiry_date: Number(cert.expiryDate) > 0 ? new Date(Number(cert.expiryDate) * 1000).toISOString().slice(0, 10) : null,
+          status: cert.isRevoked ? "REVOKED" : "ISSUED_ON_CHAIN",
+          wallet_address: cert.recipientAddress,
+          token_id: cert.tokenId.toString(),
+          tx_hash: cert.certHash,
+          ipfs_hash: cert.ipfsHash,
+          pdf_url: `http://localhost:5000/api/public/pdf/${cert.certificateCode}`,
+          revoked_reason: cert.revokeReason || null,
+          onchain_verified: true
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("Đọc trực tiếp Smart Contract theo ví:", err.message);
+  }
+
+  // B2: Bổ sung thêm dữ liệu nếu Backend có endpoint /public/wallet/:address
   try {
     const res = await certificateApi.getPublicByWallet(cleanAddress);
     if (res?.success && Array.isArray(res.data)) {
-      return res.data.map((d) => ({
-        id: d.id,
-        certificate_code: d.certificate_code,
-        student_name: d.student_name,
-        student_code: d.student_code,
-        citizen_id: d.citizen_id,
-        course_name: d.course_name,
-        course_code: d.course_code,
-        score: d.score_overall,
-        listening: d.score_listening || "-",
-        reading: d.score_reading || "-",
-        writing: d.score_writing || "-",
-        speaking: d.score_speaking || "-",
-        issue_date: d.issue_date ? String(d.issue_date).slice(0, 10) : "",
-        expiry_date: d.expiry_date ? String(d.expiry_date).slice(0, 10) : null,
-        status: d.status,
-        wallet_address: d.student_wallet || cleanAddress,
-        token_id: d.token_id,
-        tx_hash: d.tx_hash,
-        revoke_tx_hash: d.revoke_tx_hash || null,
-        ipfs_hash: d.ipfs_hash || null,
-        pdf_url: `http://localhost:5000/api/public/pdf/${d.certificate_code}`,
-        revoked_reason: d.revoke_reason || null,
-        revoked_at: d.revoked_at ? String(d.revoked_at).slice(0, 10) : null,
-        onchain_verified: Boolean(d.onchain_verified)
-      }));
+      for (const d of res.data) {
+        if (!byCode.has(d.certificate_code)) {
+          byCode.set(d.certificate_code, {
+            id: d.id,
+            certificate_code: d.certificate_code,
+            student_name: d.student_name,
+            student_code: d.student_code,
+            citizen_id: maskCitizenId(d.citizen_id),
+            course_name: d.course_name,
+            course_code: d.course_code,
+            score: d.score_overall,
+            issue_date: d.issue_date ? String(d.issue_date).slice(0, 10) : "",
+            expiry_date: d.expiry_date ? String(d.expiry_date).slice(0, 10) : null,
+            status: d.status,
+            wallet_address: d.student_wallet || cleanAddress,
+            token_id: d.token_id,
+            tx_hash: d.tx_hash,
+            ipfs_hash: d.ipfs_hash || null,
+            pdf_url: `http://localhost:5000/api/public/pdf/${d.certificate_code}`,
+            revoked_reason: d.revoke_reason || null,
+            onchain_verified: Boolean(d.onchain_verified)
+          });
+        }
+      }
     }
-  } catch (err) {
-    console.warn("Fallback đọc trực tiếp Smart Contract theo ví:", err.message);
+  } catch {
+    // Bỏ qua nếu Backend chưa có endpoint /public/wallet
   }
 
-  // B2: Fallback đọc trực tiếp Smart Contract qua MetaMask nếu backend offline
-  if (isMetaMaskInstalled()) {
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const contract = getCertificateContract(provider);
-    const tokenIds = await contract.getCertificatesByStudent(cleanAddress);
-    const results = [];
-    for (const tid of tokenIds) {
-      const cert = await contract.getCertificateDetails(tid);
-      results.push({
-        id: Number(cert.tokenId),
-        certificate_code: cert.certificateCode,
-        student_name: cert.recipientName,
-        student_code: cert.studentCode,
-        course_name: cert.courseName,
-        course_code: cert.courseCode,
-        score: cert.score,
-        issue_date: new Date(Number(cert.issueDate) * 1000).toISOString().slice(0, 10),
-        expiry_date: Number(cert.expiryDate) > 0 ? new Date(Number(cert.expiryDate) * 1000).toISOString().slice(0, 10) : null,
-        status: cert.isRevoked ? "REVOKED" : "ISSUED_ON_CHAIN",
-        wallet_address: cert.recipientAddress,
-        token_id: cert.tokenId.toString(),
-        tx_hash: cert.certHash,
-        ipfs_hash: cert.ipfsHash,
-        pdf_url: `http://localhost:5000/api/public/pdf/${cert.certificateCode}`,
-        revoked_reason: cert.revokeReason || null,
-        onchain_verified: true
-      });
-    }
-    return results;
-  }
-
-  return [];
+  return Array.from(byCode.values());
 };
 
 export { INITIAL_STUDENTS, INITIAL_COURSES };

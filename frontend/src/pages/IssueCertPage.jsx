@@ -193,9 +193,18 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       setLoading(true);
       const cert = pendingDrafts.find(d => d.certificate_code === selectedDraftCode);
       if (!cert?.id) throw new Error("Không tìm thấy ID của bản nháp.");
-      const res = await certificateApi.rejectDraft(cert.id, reason);
+      let res;
+      try {
+        res = await certificateApi.rejectDraft(cert.id, reason);
+      } catch (rejectErr) {
+        if (rejectErr?.status === 404) {
+          res = await certificateApi.deleteCertificate(cert.id);
+        } else {
+          throw rejectErr;
+        }
+      }
       if (res?.success) {
-        alert(`Đã từ chối bản nháp ${selectedDraftCode} thành công. Hồ sơ đã được chuyển lại cho Cán bộ khảo thí.`);
+        alert(`Đã từ chối bản nháp ${selectedDraftCode} thành công.`);
         navigate("/admin/certificates");
       } else {
         alert("Lỗi khi từ chối: " + (res?.message || "Không xác định"));

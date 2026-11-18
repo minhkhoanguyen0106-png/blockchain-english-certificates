@@ -11,21 +11,21 @@ export const USERS_DB = [
     id: 1,
     username: "admin_khoa",
     password_hash: HASHED_PASSWORD_DEFAULT,
-    full_name: "Nguyễn Thị Minh Khoa",
+    full_name: "Nguyễn Thị Minh Khoa (Giám Đốc)",
     role: "ADMIN"
   },
   {
     id: 2,
     username: "staff_long",
     password_hash: HASHED_PASSWORD_DEFAULT,
-    full_name: "Trần Bảo Long",
+    full_name: "Trần Bảo Long (Cán Bộ Khảo Thí)",
     role: "STAFF"
   },
   {
     id: 3,
     username: "student_yen",
     password_hash: HASHED_PASSWORD_DEFAULT,
-    full_name: "Lê Hoàng Yến",
+    full_name: "Lê Hoàng Yến (Học Viên IELTS)",
     role: "STUDENT"
   }
 ];

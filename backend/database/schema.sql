@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS certificates (
     pdf_url VARCHAR(255) DEFAULT NULL COMMENT 'Đường dẫn file PDF có sẵn QR xác thực',
     
     -- Trạng thái chứng chỉ (Khớp F02-02, F02-04, F07-02)
-    status ENUM('PENDING', 'ISSUED_ON_CHAIN', 'REVOKED', 'REJECTED', 'EXPIRED', 'DRAFT') NOT NULL DEFAULT 'PENDING',
+    status ENUM('PENDING', 'ISSUED_ON_CHAIN', 'REVOKED') NOT NULL DEFAULT 'PENDING',
     
     -- Thông tin thu hồi nếu có (Khớp F02-04, F07-04, F07-05)
     revoke_reason TEXT DEFAULT NULL COMMENT 'Lý do thu hồi chứng chỉ',
@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS issue_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     certificate_id INT NOT NULL,
     action_by INT NOT NULL,
-    action VARCHAR(50) NOT NULL COMMENT 'Loại hành động: CREATE_DRAFT, MINT_BLOCKCHAIN, REVOKE, REJECT_DRAFT, UPDATE',
+    action ENUM('CREATE_DRAFT', 'MINT_BLOCKCHAIN', 'REVOKE', 'UPDATE') NOT NULL,
     action_detail VARCHAR(255) DEFAULT NULL,
     note TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

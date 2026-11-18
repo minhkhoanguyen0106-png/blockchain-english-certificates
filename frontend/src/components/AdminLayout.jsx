@@ -314,7 +314,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
           </header>
 
           {/* Main Content Body */}
-          <main style={{ flex: 1, padding: "24px 28px 40px" }}>
+          <main style={{ flex: 1, padding: "20px 28px 60px" }}>
             {children}
           </main>
         </div>

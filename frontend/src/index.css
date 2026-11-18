@@ -1366,7 +1366,8 @@ html {
   box-shadow: none;
   display: flex;
   flex-direction: row;
-  overflow: clip;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 [data-theme="dark"] .admin-shell-frame {

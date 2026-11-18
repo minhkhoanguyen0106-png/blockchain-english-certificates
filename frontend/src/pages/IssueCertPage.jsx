@@ -667,7 +667,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   const executeMintOnChain = async () => {
     setShowConfirmModal(false);
     setLoading(true);
-    setMintStageLabel("Đang kết nối ví MetaMask & kiểm tra mạng...");
+    setMintStageLabel("Đang kết nối ví MetaMask...");
 
     try {
       if (!isMetaMaskInstalled()) {
@@ -699,7 +699,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       // Bước 1: Đảm bảo đã có dữ liệu chuẩn bị (PDF + SHA-256 + IPFS CID + Metadata URI)
       let currentPrepared = preparedData;
       if (!currentPrepared?.ipfs_hash || !currentPrepared?.data_commitment_hash || !currentPrepared?.token_uri) {
-        setMintStageLabel("Bước 1/3: Tạo PDF + SHA-256 & Upload lên IPFS...");
+        setMintStageLabel("B1: Chuẩn bị IPFS...");
         let dbCertId = formData.id;
         if (!dbCertId) {
           const { payload } = buildNormalizedDraftPayload();
@@ -731,7 +731,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       }
 
       // Bước 2: ADMIN ký MetaMask -> Smart Contract kiểm tra quyền -> Mint SBT + Event
-      setMintStageLabel("Bước 2/3: Đang chờ ADMIN ký MetaMask & Mint SBT on-chain...");
+      setMintStageLabel("B2: Đang chờ ký ví...");
       const contract = getCertificateContract(activeWallet.signer);
       const expiryTimestamp = formData.expiry_date
         ? Math.floor(new Date(formData.expiry_date).getTime() / 1000)
@@ -762,7 +762,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       const tokenId = onchainResult.tokenId.toString();
 
       // Bước 3: Backend xác minh giao dịch -> ISSUED_ON_CHAIN hoặc Ghi nhận giao dịch chờ đối soát
-      setMintStageLabel("Bước 3/3: Backend đang xác minh giao dịch, event & SHA-256 PDF...");
+      setMintStageLabel("B3: Xác minh On-chain...");
       try {
         await certificateApi.confirmMint({
           certificate_id: currentPrepared.certificate_id,
@@ -837,15 +837,15 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   return (
     <div className="admin-page admin-issue">
       {/* Page Title */}
-      <div className="admin-page-heading" style={{ marginBottom: "26px" }}>
-        <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-primary)" }}>
+      <div className="admin-page-heading" style={{ marginBottom: "18px" }}>
+        <h1 style={{ fontSize: "24px", fontWeight: 800, color: "var(--text-primary)" }}>
           {user?.role === "ADMIN" ? (
             <>Duyệt &amp; <span className="text-gradient">Cấp Phát Chứng Chỉ Số</span></>
           ) : (
             <>Soạn <span className="text-gradient">Hồ Sơ Nháp Chứng Chỉ</span></>
           )}
         </h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>
+        <p style={{ color: "var(--text-secondary)", fontSize: "13.5px", marginTop: "3px" }}>
           {user?.role === "ADMIN"
             ? "Đối soát hồ sơ khảo thí, ký xác thực và phát hành chứng chỉ điện tử bất biến."
             : "Nhập điểm khảo thí và lập bản nháp chứng chỉ để trình Quản trị viên kiểm duyệt."}
@@ -856,10 +856,10 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       <div className="issue-split-grid">
         
         {/* Left Column: Input Form */}
-        <div className="glass-panel" style={{ padding: "26px" }}>
-          <h3 style={{ fontSize: "17px", fontWeight: 700, marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px", color: "var(--text-primary)" }}>
-            <FileCheck size={19} color="var(--primary)" />
-            Thông Tin Khảo Thí & Học Viên
+        <div className="glass-panel" style={{ padding: "20px 22px" }}>
+          <h3 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px", color: "var(--text-primary)" }}>
+            <FileCheck size={18} color="var(--primary)" />
+            Thông Tin Khảo Thí &amp; Học Viên
           </h3>
 
           <form onSubmit={handleIssue}>
@@ -868,8 +868,8 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
             {user?.role === "ADMIN" && !isManualMode ? (
               <div>
                 {/* 1. Bộ chọn duy nhất: Hồ sơ nháp chờ duyệt */}
-                <div className="form-group" style={{ marginBottom: "16px" }}>
-                  <label className="form-label" style={{ fontWeight: 700, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div className="form-group" style={{ marginBottom: "12px" }}>
+                  <label className="form-label" style={{ fontWeight: 700, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                     <span>Chọn hồ sơ nháp chờ phê duyệt</span>
                     {pendingDrafts.length > 0 && (
                       <span className="badge badge-warning" style={{ fontSize: "11px", padding: "2px 8px" }}>
@@ -882,7 +882,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     onChange={handleDraftSelect}
                     className="form-select"
                   >
-                    <option value="">-- Chọn hồ sơ nháp để đối soát & phê duyệt --</option>
+                    <option value="">-- Chọn hồ sơ nháp để đối soát &amp; phê duyệt --</option>
                     {pendingDrafts.map(d => (
                       <option key={d.id} value={d.certificate_code}>
                         {d.certificate_code} — {d.student_name} ({d.course_name}: {d.score_overall || d.score})
@@ -897,14 +897,14 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     background: "var(--bg-surface)",
                     border: "1px solid var(--border-subtle)",
                     borderRadius: "12px",
-                    padding: "18px",
-                    marginBottom: "18px",
+                    padding: "14px 16px",
+                    marginBottom: "14px",
                     boxShadow: "var(--shadow-sm)"
                   }}>
                     {/* Học viên */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px", paddingBottom: "10px", borderBottom: "1px solid var(--border-subtle)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px", paddingBottom: "8px", borderBottom: "1px solid var(--border-subtle)" }}>
                       <div>
-                        <div style={{ fontSize: "17px", fontWeight: 700, color: "var(--text-primary)" }}>{formData.student_name}</div>
+                        <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-primary)" }}>{formData.student_name}</div>
                         <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
                           Mã HV: <strong style={{ color: "var(--text-primary)" }}>{formData.student_code}</strong>
                           {formData.email && <span> • {formData.email}</span>}
@@ -923,7 +923,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     </div>
 
                     {/* Thanh tiến độ 4 bước tinh gọn (Circular Connected Stepper) */}
-                    <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px", marginBottom: "18px", paddingTop: "2px" }}>
+                    <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px", marginBottom: "14px", paddingTop: "2px" }}>
                       {/* Horizontal Connector Rail */}
                       <div style={{
                         position: "absolute",
@@ -1161,25 +1161,25 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     className="btn btn-outline"
                     style={{
                       width: "100%",
-                      padding: "11px 14px",
-                      fontSize: "13.5px",
+                      padding: "10px 14px",
+                      fontSize: "13px",
                       borderColor: preparedData ? "rgba(16, 185, 129, 0.45)" : "rgba(14, 165, 233, 0.45)",
                       color: preparedData ? "var(--success-text)" : "var(--primary)"
                     }}
                   >
                     {preparing ? (
                       <>
-                        <RefreshCw size={15} className="animate-spin" />
+                        <RefreshCw size={14} className="animate-spin" />
                         Đang tạo PDF + SHA-256 &amp; Upload IPFS...
                       </>
                     ) : preparedData ? (
                       <>
-                        <CheckCircle2 size={15} />
+                        <CheckCircle2 size={14} />
                         Đã Chuẩn Bị IPFS (READY_TO_MINT) — Tạo Lại Nếu Cần
                       </>
                     ) : (
                       <>
-                        <UploadCloud size={16} />
+                        <UploadCloud size={15} />
                         Bước 1: Chuẩn Bị Phát Hành (PDF + SHA-256 + IPFS)
                       </>
                     )}
@@ -1190,16 +1190,16 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                       type="submit"
                       disabled={loading || preparing || !formData.student_name || Boolean(reconcilePending)}
                       className="btn btn-gold"
-                      style={{ flex: 1, padding: "13px", fontSize: "14px" }}
+                      style={{ flex: 1, padding: "11px 14px", fontSize: "13.5px", minHeight: "42px" }}
                     >
                       {loading ? (
                         <>
-                          <RefreshCw size={16} className="animate-spin" />
-                          {mintStageLabel || "Đang xử lý phát hành chứng chỉ..."}
+                          <RefreshCw size={15} className="animate-spin" />
+                          {mintStageLabel || "Đang xử lý..."}
                         </>
                       ) : (
                         <>
-                          <Sparkles size={16} />
+                          <Sparkles size={15} />
                           Bước 2: Ký MetaMask &amp; Mint SBT
                         </>
                       )}
@@ -1212,7 +1212,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                         onClick={handleRejectDraft}
                         className="btn btn-outline"
                         style={{
-                          padding: "13px 16px",
+                          padding: "11px 14px",
                           fontSize: "13px",
                           color: "var(--danger-text)",
                           borderColor: "rgba(239, 68, 68, 0.4)",
@@ -1227,7 +1227,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 </div>
 
                 {/* Nút chuyển chế độ thủ công */}
-                <div style={{ textAlign: "center", marginTop: "14px" }}>
+                <div style={{ textAlign: "center", marginTop: "12px", marginBottom: "4px" }}>
                   <button
                     type="button"
                     onClick={() => {

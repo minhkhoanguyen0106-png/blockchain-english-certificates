@@ -95,8 +95,8 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     return str;
   };
 
-  const loadDraftIntoForm = (draft) => {
-    setSelectedDraftCode(draft.certificate_code);
+  const applyDraftFields = (draft, studentsPool = studentsList) => {
+    const matchedStudent = studentsPool.find((s) => s.student_code === draft.student_code);
     const pendingMap = readPendingReconcileMap();
     const savedReconcile = pendingMap[draft.certificate_code] || null;
     setReconcilePending(savedReconcile);
@@ -115,22 +115,39 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     setFormData({
       id: draft.id,
       certificate_code: draft.certificate_code,
-      student_name: draft.student_name || "",
+      student_name: draft.student_name || matchedStudent?.full_name || "",
       student_code: draft.student_code || "",
-      email: draft.email || "",
-      wallet_address: draft.wallet_address || draft.student_wallet || "",
+      email: draft.student_email || draft.email || matchedStudent?.email || "",
+      wallet_address: draft.student_wallet || draft.wallet_address || matchedStudent?.wallet_address || "",
       course_code: draft.course_code || "IELTS-ACAD",
       course_name: draft.course_name || "IELTS Academic Master",
       score: draft.score_overall || draft.score || "",
-      listening: draft.score_listening || "",
-      reading: draft.score_reading || "",
-      writing: draft.score_writing || "",
-      speaking: draft.score_speaking || "",
+      listening: draft.score_listening ?? draft.listening ?? "",
+      reading: draft.score_reading ?? draft.reading ?? "",
+      writing: draft.score_writing ?? draft.writing ?? "",
+      speaking: draft.score_speaking ?? draft.speaking ?? "",
       issue_date: draft.issue_date ? String(draft.issue_date).slice(0, 10) : new Date().toISOString().slice(0, 10),
       expiry_date: draft.expiry_date ? String(draft.expiry_date).slice(0, 10) : "",
       ipfs_hash: draft.ipfs_hash || null,
       status: draft.status === "READY_TO_MINT" || draft.ipfs_hash ? "READY_TO_MINT" : (draft.status || "PENDING")
     });
+  };
+
+  const loadDraftIntoForm = async (draft, studentsPool = studentsList) => {
+    setSelectedDraftCode(draft.certificate_code);
+    applyDraftFields(draft, studentsPool);
+
+    // Gọi API chi tiết GET /api/certificates/:id để lấy đủ 4 điểm thành phần, ví học viên và IPFS CID
+    if (draft?.id) {
+      try {
+        const detailRes = await certificateApi.getCertificateById(draft.id);
+        if (detailRes?.success && detailRes.data) {
+          applyDraftFields({ ...draft, ...detailRes.data }, studentsPool);
+        }
+      } catch {
+        // Giữ dữ liệu đã map từ danh sách & studentsPool nếu gọi chi tiết lỗi
+      }
+    }
   };
 
   // Load students, courses, and pending/ready-to-mint drafts from MySQL
@@ -166,7 +183,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
           if (codeParam) {
             const draft = actionables.find(d => d.certificate_code === codeParam);
             if (draft) {
-              loadDraftIntoForm(draft);
+              await loadDraftIntoForm(draft, loadedStudents);
               return;
             }
           }
@@ -233,6 +250,8 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     setSelectedDraftCode(code);
     if (!code) {
       setSelectedStudentId("");
+      setPreparedData(null);
+      setReconcilePending(null);
       setFormData({
         certificate_code: `CERT-IELTS-2026-${Math.floor(100 + Math.random() * 900)}`,
         student_name: "",
@@ -937,16 +956,21 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
                     {/* Địa chỉ ví nhận NFT */}
                     <div>
-                      <label className="form-label" style={{ fontSize: "11px", marginBottom: "4px" }}>
-                        Địa chỉ ví điện tử của học viên
-                      </label>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+                        <label className="form-label" style={{ fontSize: "11.5px", marginBottom: 0 }}>
+                          Địa chỉ ví nhận chứng chỉ của học viên
+                        </label>
+                        <span style={{ fontSize: "11px", color: formData.wallet_address ? "var(--success-text)" : "var(--warning-text)", fontWeight: 600 }}>
+                          {formData.wallet_address ? "Tự động từ hồ sơ học viên" : "Học viên chưa có ví"}
+                        </span>
+                      </div>
                       <input
                         type="text"
                         value={formData.wallet_address}
                         onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
                         className="form-input"
                         style={{ fontSize: "12px", fontFamily: "monospace" }}
-                        placeholder="0x..."
+                        placeholder="0x... (tự động điền từ hồ sơ học viên)"
                       />
                     </div>
                   </div>

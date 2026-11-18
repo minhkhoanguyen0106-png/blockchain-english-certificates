@@ -454,7 +454,7 @@ export default function DashboardPage({ user }) {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
               <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>Đã phát hành</span>
-              <span style={{ width: "30px", height: "30px", borderRadius: "50%", background: "#eef0ff", color: "#5b4df7", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ width: "30px", height: "30px", borderRadius: "50%", background: "#e0f2fe", color: "#0284c7", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                 <CheckCircle2 size={15} />
               </span>
             </div>
@@ -462,7 +462,7 @@ export default function DashboardPage({ user }) {
               <span style={{ fontSize: "28px", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.8px" }}>{issuedCount}</span>
               <span style={{ fontSize: "13px", color: "var(--text-muted)", fontWeight: 500 }}>chứng chỉ</span>
             </div>
-            <div style={{ fontSize: "11.5px", color: "#5b4df7", fontWeight: 600, marginTop: "4px" }}>
+            <div style={{ fontSize: "11.5px", color: "#0284c7", fontWeight: 600, marginTop: "4px" }}>
               {expiredCount > 0
                 ? `${activeIssuedCount} còn hạn • ${expiredCount} hết hạn`
                 : "Đang có hiệu lực công khai"}
@@ -484,9 +484,9 @@ export default function DashboardPage({ user }) {
                   minHeight: bar.count > 0 ? "10px" : "4px",
                   borderRadius: "9999px",
                   background: bar.isPeak
-                    ? "linear-gradient(180deg, #5b4df7 0%, #818cf8 100%)"
+                    ? "linear-gradient(180deg, #0284c7 0%, #38bdf8 100%)"
                     : bar.count > 0
-                    ? "#a5b4fc"
+                    ? "#7dd3fc"
                     : "var(--border-subtle)"
                 }} />
                 <span style={{ fontSize: "9.5px", color: "var(--text-muted)", fontWeight: 600 }}>{bar.label}</span>
@@ -525,7 +525,7 @@ export default function DashboardPage({ user }) {
                 width: `${validRetentionRate}%`,
                 height: "100%",
                 borderRadius: "9999px",
-                background: "linear-gradient(90deg, #06b6d4 0%, #5b4df7 100%)",
+                background: "linear-gradient(90deg, #0ea5e9 0%, #14b8a6 100%)",
                 transition: "width 0.35s ease"
               }} />
             </div>
@@ -549,7 +549,7 @@ export default function DashboardPage({ user }) {
                 gap: "4px",
                 padding: "5px 12px",
                 borderRadius: "9999px",
-                background: "#151626",
+                background: "#102e44",
                 color: "#ffffff",
                 fontSize: "11.5px",
                 fontWeight: 600,
@@ -562,12 +562,12 @@ export default function DashboardPage({ user }) {
 
           <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "12px" }}>
             <span style={{ fontSize: "28px", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.8px" }}>{totalCount}</span>
-            <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "9999px", background: "#eef0ff", color: "#5b4df7" }}>
+            <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "9999px", background: "#e0f2fe", color: "#0284c7" }}>
               Toàn hệ thống
             </span>
           </div>
 
-          {/* Top 3 Exam Channels — #1 Largest Highlighted in Electric Indigo */}
+          {/* Top 3 Exam Channels — #1 Largest Highlighted in Koheni Ocean Sky-Teal */}
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${topExamChannels.length}, minmax(0, 1fr))`, gap: "8px" }}>
             {topExamChannels.map((ch, idx) => {
               const isTop = idx === 0 && ch.count > 0;
@@ -579,9 +579,9 @@ export default function DashboardPage({ user }) {
                       ? {
                           padding: "9px 10px",
                           borderRadius: "13px",
-                          background: "linear-gradient(135deg, #5b4df7 0%, #6d5ff9 100%)",
+                          background: "linear-gradient(135deg, #0284c7 0%, #0ea5e9 55%, #38a8c7 100%)",
                           color: "#ffffff",
-                          boxShadow: "0 8px 18px -6px rgba(91, 77, 247, 0.55)"
+                          boxShadow: "0 8px 18px -6px rgba(2, 132, 199, 0.45)"
                         }
                       : {
                           padding: "9px 10px",
@@ -689,7 +689,7 @@ export default function DashboardPage({ user }) {
                         width: "36px",
                         height: "36px",
                         borderRadius: "50%",
-                        background: isSelected ? "rgba(255, 255, 255, 0.22)" : "rgba(91, 77, 247, 0.22)",
+                        background: isSelected ? "rgba(255, 255, 255, 0.22)" : "rgba(56, 189, 248, 0.2)",
                         color: "#ffffff",
                         display: "flex",
                         alignItems: "center",
@@ -717,7 +717,7 @@ export default function DashboardPage({ user }) {
                         fontSize: "11px",
                         fontWeight: 700,
                         background: isSelected ? "#ffffff" : sm.darkBg,
-                        color: isSelected ? "#151626" : sm.darkColor
+                        color: isSelected ? "#0e2a3f" : sm.darkColor
                       }}>
                         {sm.label}
                       </span>
@@ -968,7 +968,7 @@ export default function DashboardPage({ user }) {
                           onClick={() => navigate(`/admin/certificates/issue?code=${activeCert.certificate_code}`)}
                           className="finnova-white-cta"
                         >
-                          <Sparkles size={15} color="#5b4df7" />
+                          <Sparkles size={15} color="#0284c7" />
                           Duyệt &amp; Ký Cấp Ngay
                         </button>
                       ) : !isAdmin && activeCert.status === "REJECTED" ? (
@@ -981,7 +981,7 @@ export default function DashboardPage({ user }) {
                           }
                           className="finnova-white-cta"
                         >
-                          <FileText size={15} color="#5b4df7" />
+                          <FileText size={15} color="#0284c7" />
                           Soạn Lại Hồ Sơ
                         </button>
                       ) : (
@@ -1008,7 +1008,7 @@ export default function DashboardPage({ user }) {
         <div className="finnova-kpi-card" style={{ marginTop: "20px", padding: "22px 24px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ width: "30px", height: "30px", borderRadius: "50%", background: "#eef0ff", color: "#5b4df7", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ width: "30px", height: "30px", borderRadius: "50%", background: "#e0f2fe", color: "#0284c7", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                 <History size={15} />
               </span>
               <h3 style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-primary)" }}>
@@ -1044,8 +1044,8 @@ export default function DashboardPage({ user }) {
                         fontSize: "10.5px",
                         padding: "1px 6px",
                         borderRadius: "6px",
-                        background: "rgba(91, 77, 247, 0.1)",
-                        color: "#5b4df7",
+                        background: "rgba(2, 132, 199, 0.1)",
+                        color: "#0284c7",
                         fontWeight: 700
                       }}>
                         {log.certificate_code}

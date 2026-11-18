@@ -1337,24 +1337,25 @@ html {
 }
 
 /* ==========================================================================
-   FINNOVA-Inspired Logged-In Admin Workspace (Floating Pill Nav + Dual-Tone)
+   Koheni Ocean-Navy & Sky-Teal Logged-In Admin Workspace
+   (Harmonized with LoginPage #14364d/#38a8c7 & Public Verify #0284c7/#f4f8fb)
    ========================================================================== */
 .admin-shell-outer {
   min-height: 100vh;
   width: 100%;
   padding: 0;
-  background: #f6f7fb;
+  background: #f4f8fb;
 }
 
 [data-theme="dark"] .admin-shell-outer {
-  background: #0e1420;
+  background: #09131d;
 }
 
 .admin-shell-frame {
   width: 100%;
   min-height: 100vh;
   margin: 0;
-  background: #f6f7fb;
+  background: #f4f8fb;
   border-radius: 0;
   border: none;
   box-shadow: none;
@@ -1364,16 +1365,16 @@ html {
 }
 
 [data-theme="dark"] .admin-shell-frame {
-  background: #0e1420;
+  background: #09131d;
   border-color: transparent;
   box-shadow: none;
 }
 
-/* FINNOVA-Styled Deep Midnight Sidebar */
+/* Koheni Deep Ocean-Slate Sidebar (echoes LoginPage #102e44 -> #0b2030) */
 .finnova-sidebar {
   width: 244px;
   flex-shrink: 0;
-  background: #151626;
+  background: linear-gradient(180deg, #102d42 0%, #0c2233 100%);
   color: #ffffff;
   display: flex;
   flex-direction: column;
@@ -1382,10 +1383,11 @@ html {
   top: 0;
   height: 100vh;
   z-index: 95;
+  border-right: 1px solid rgba(148, 197, 224, 0.09);
   transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Topbar User Profile + Logout Pill (Old Layout Rhythm) */
+/* Topbar User Profile + Logout Pill */
 .admin-user-pill {
   display: inline-flex;
   align-items: center;
@@ -1394,7 +1396,7 @@ html {
   border-radius: 9999px;
   background: var(--bg-surface-elevated);
   border: 1px solid var(--border-subtle);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 2px 8px rgba(15, 42, 62, 0.05);
 }
 
 .admin-logout-icon-btn {
@@ -1425,22 +1427,22 @@ html {
   border-radius: 14px;
   font-size: 13.5px;
   font-weight: 500;
-  color: #9fa3b8;
+  color: rgba(186, 214, 230, 0.78);
   transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
   text-decoration: none;
 }
 
 .finnova-sidebar-link:hover {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(92, 196, 216, 0.12);
   transform: translateX(2px);
 }
 
 .finnova-sidebar-link.is-active {
-  background: linear-gradient(135deg, #5b4df7 0%, #6d5ff9 100%);
+  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 55%, #2bb3c9 100%);
   color: #ffffff;
   font-weight: 600;
-  box-shadow: 0 10px 22px -6px rgba(91, 77, 247, 0.68);
+  box-shadow: 0 10px 22px -6px rgba(14, 165, 233, 0.52);
 }
 
 .finnova-sidebar-close {
@@ -1458,24 +1460,24 @@ html {
   position: sticky;
   top: 0;
   z-index: 80;
-  background: rgba(246, 247, 251, 0.88);
+  background: rgba(244, 248, 251, 0.9);
   backdrop-filter: blur(16px);
-  border-bottom: 1px solid #eaebf4;
+  border-bottom: 1px solid #e2ecf3;
 }
 
 [data-theme="dark"] .admin-topbar {
-  background: rgba(14, 20, 32, 0.88);
-  border-bottom-color: rgba(255, 255, 255, 0.07);
+  background: rgba(9, 19, 29, 0.9);
+  border-bottom-color: rgba(148, 197, 224, 0.1);
 }
 
 .admin-floating-pill-nav {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: #151626;
+  background: #102d42;
   padding: 5px;
   border-radius: 9999px;
-  box-shadow: 0 10px 26px -10px rgba(21, 22, 38, 0.45);
+  box-shadow: 0 10px 26px -10px rgba(12, 34, 51, 0.45);
 }
 
 .admin-pill-link {
@@ -1486,21 +1488,21 @@ html {
   border-radius: 9999px;
   font-size: 13px;
   font-weight: 500;
-  color: #9fa3b8;
+  color: rgba(186, 214, 230, 0.78);
   transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
   white-space: nowrap;
 }
 
 .admin-pill-link:hover {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(92, 196, 216, 0.12);
 }
 
 .admin-pill-link.is-active {
-  background: linear-gradient(135deg, #5b4df7 0%, #6d5ff9 100%);
+  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
   color: #ffffff;
   font-weight: 600;
-  box-shadow: 0 6px 16px -4px rgba(91, 77, 247, 0.65);
+  box-shadow: 0 6px 16px -4px rgba(14, 165, 233, 0.5);
 }
 
 .finnova-icon-circle {
@@ -1508,8 +1510,8 @@ html {
   height: 38px;
   border-radius: 50%;
   background: #ffffff;
-  border: 1px solid #eaebf4;
-  color: #3f445c;
+  border: 1px solid #dce8f1;
+  color: #3b556b;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1519,15 +1521,15 @@ html {
 }
 
 .finnova-icon-circle:hover {
-  border-color: #5b4df7;
-  color: #5b4df7;
+  border-color: #0284c7;
+  color: #0284c7;
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px -4px rgba(91, 77, 247, 0.22);
+  box-shadow: 0 6px 14px -4px rgba(2, 132, 199, 0.22);
 }
 
 [data-theme="dark"] .finnova-icon-circle {
-  background: #171e2e;
-  border-color: rgba(255, 255, 255, 0.1);
+  background: #102334;
+  border-color: rgba(148, 197, 224, 0.14);
   color: #cbd5e1;
 }
 
@@ -1538,21 +1540,21 @@ html {
   padding: 10px 20px;
   border-radius: 9999px;
   border: none;
-  background: linear-gradient(135deg, #5b4df7 0%, #6b5bff 100%);
+  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 55%, #38a8c7 100%);
   color: #ffffff;
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 10px 22px -6px rgba(91, 77, 247, 0.55);
+  box-shadow: 0 10px 22px -6px rgba(2, 132, 199, 0.45);
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
 }
 
 .finnova-cta-pill:hover {
   transform: translateY(-1.5px);
-  box-shadow: 0 14px 28px -6px rgba(91, 77, 247, 0.68);
+  box-shadow: 0 14px 28px -6px rgba(2, 132, 199, 0.58);
 }
 
-/* 4-Column Bento KPI Strip (Col 4 is 1.35x wider like reference) */
+/* 4-Column Bento KPI Strip */
 .finnova-kpi-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1.38fr;
@@ -1562,10 +1564,10 @@ html {
 
 .finnova-kpi-card {
   background: #ffffff;
-  border: 1px solid #eaebf4;
+  border: 1px solid #e2ecf3;
   border-radius: 22px;
   padding: 18px 20px;
-  box-shadow: 0 4px 20px rgba(22, 23, 38, 0.035);
+  box-shadow: 0 4px 20px rgba(15, 42, 62, 0.04);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1574,24 +1576,25 @@ html {
 
 .finnova-kpi-card:hover {
   transform: translateY(-3px);
-  border-color: #d7daf0;
-  box-shadow: 0 14px 30px -12px rgba(22, 23, 38, 0.1);
+  border-color: #bae0f5;
+  box-shadow: 0 14px 30px -12px rgba(2, 132, 199, 0.14);
 }
 
 [data-theme="dark"] .finnova-kpi-card {
-  background: #151c2b;
-  border-color: rgba(255, 255, 255, 0.08);
+  background: #0f2030;
+  border-color: rgba(148, 197, 224, 0.12);
   box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
 }
 
-/* Signature Deep Midnight Bottom Master-Detail Container */
+/* Deep Ocean-Slate Bottom Master-Detail Stage (echoes LoginPage #14364d -> #0b2030) */
 .finnova-dark-stage {
   position: relative;
-  background: #151626;
+  background: linear-gradient(160deg, #102e44 0%, #0b2030 100%);
   border-radius: 28px;
   padding: 20px 22px 24px;
   color: #ffffff;
-  box-shadow: 0 24px 50px -18px rgba(15, 16, 36, 0.55);
+  border: 1px solid rgba(125, 211, 252, 0.1);
+  box-shadow: 0 24px 50px -18px rgba(9, 29, 45, 0.5);
 }
 
 /* Top-Center Inverted-Notch Cutout Tab Bar */
@@ -1607,14 +1610,14 @@ html {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #f6f7fb;
+  background: #f4f8fb;
   padding: 8px 14px 10px;
   border-bottom-left-radius: 22px;
   border-bottom-right-radius: 22px;
 }
 
 [data-theme="dark"] .finnova-notch-bar {
-  background: #0e1420;
+  background: #09131d;
 }
 
 .finnova-notch-tab {
@@ -1625,7 +1628,7 @@ html {
   border-radius: 9999px;
   border: none;
   background: transparent;
-  color: #4a4f66;
+  color: #466075;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1633,12 +1636,12 @@ html {
 }
 
 [data-theme="dark"] .finnova-notch-tab {
-  color: #9ca3af;
+  color: #94a3b8;
 }
 
 .finnova-notch-tab:hover {
-  color: #151626;
-  background: rgba(91, 77, 247, 0.08);
+  color: #0e2638;
+  background: rgba(2, 132, 199, 0.08);
 }
 
 [data-theme="dark"] .finnova-notch-tab:hover {
@@ -1646,9 +1649,9 @@ html {
 }
 
 .finnova-notch-tab.is-active {
-  background: linear-gradient(135deg, #5b4df7 0%, #6d5ff9 100%);
+  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
   color: #ffffff;
-  box-shadow: 0 6px 16px -4px rgba(91, 77, 247, 0.55);
+  box-shadow: 0 6px 16px -4px rgba(2, 132, 199, 0.48);
 }
 
 .finnova-notch-count {
@@ -1661,13 +1664,13 @@ html {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #e5e7f2;
-  color: #363a4f;
+  background: #e1edf5;
+  color: #1e3a52;
 }
 
 .finnova-notch-tab.is-active .finnova-notch-count {
   background: #ffffff;
-  color: #5b4df7;
+  color: #0284c7;
 }
 
 /* Master-Detail 2-Column Split inside Dark Stage */
@@ -1685,8 +1688,8 @@ html {
   gap: 12px;
   padding: 13px 16px;
   border-radius: 16px;
-  background: #202236;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: #15364e;
+  border: 1px solid rgba(148, 197, 224, 0.1);
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -1694,23 +1697,23 @@ html {
 }
 
 .finnova-master-row:hover {
-  background: #272a43;
+  background: #1b4360;
   transform: translateX(3px);
 }
 
 .finnova-master-row.is-selected {
-  background: linear-gradient(90deg, #584cf5 0%, #6d5ff9 100%);
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 12px 26px -8px rgba(88, 76, 245, 0.65);
+  background: linear-gradient(90deg, #0284c7 0%, #0ea5e9 65%, #38a8c7 100%);
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 12px 26px -8px rgba(14, 165, 233, 0.55);
   transform: translateX(4px);
 }
 
-/* Right Indigo-Violet Glassmorphic Detail Hero Card */
+/* Right Ocean Teal-Navy Glassmorphic Detail Hero Card */
 .finnova-detail-hero {
-  background: linear-gradient(135deg, #5652b8 0%, #4a45a3 55%, #3a368a 100%);
+  background: linear-gradient(135deg, #16546d 0%, #12425e 52%, #0e324c 100%);
   border-radius: 22px;
   padding: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(125, 211, 252, 0.22);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1726,7 +1729,7 @@ html {
   width: 240px;
   height: 240px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(165, 180, 252, 0.26) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(92, 196, 216, 0.28) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -1746,8 +1749,8 @@ html {
 }
 
 .finnova-glass-tile {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(186, 230, 253, 0.18);
   border-radius: 16px;
   padding: 15px 16px;
   backdrop-filter: blur(8px);
@@ -1755,13 +1758,13 @@ html {
 }
 
 .finnova-glass-tile:hover {
-  background: rgba(255, 255, 255, 0.17);
+  background: rgba(255, 255, 255, 0.16);
   transform: translateY(-2px);
 }
 
 .finnova-glass-tile-dashed {
   background: rgba(255, 255, 255, 0.05);
-  border: 1.5px dashed rgba(255, 255, 255, 0.3);
+  border: 1.5px dashed rgba(186, 230, 253, 0.35);
   border-radius: 16px;
   padding: 15px 16px;
   display: flex;
@@ -1778,7 +1781,7 @@ html {
 
 .finnova-glass-tile-dashed:hover {
   background: rgba(255, 255, 255, 0.13);
-  border-color: rgba(255, 255, 255, 0.6);
+  border-color: rgba(255, 255, 255, 0.65);
   color: #ffffff;
 }
 
@@ -1790,17 +1793,17 @@ html {
   border-radius: 9999px;
   border: none;
   background: #ffffff;
-  color: #151626;
+  color: #0e2a3f;
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 10px 24px -8px rgba(15, 16, 36, 0.45);
+  box-shadow: 0 10px 24px -8px rgba(9, 29, 45, 0.45);
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
 }
 
 .finnova-white-cta:hover {
   transform: translateY(-1.5px);
-  box-shadow: 0 14px 28px -8px rgba(15, 16, 36, 0.55);
+  box-shadow: 0 14px 28px -8px rgba(9, 29, 45, 0.55);
 }
 
 .finnova-mobile-nav-btn {

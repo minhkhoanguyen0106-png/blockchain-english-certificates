@@ -289,8 +289,8 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
                         width: "28px",
                         height: "28px",
                         borderRadius: "50%",
-                        background: isAdmin ? "rgba(91, 77, 247, 0.14)" : "rgba(245, 158, 11, 0.16)",
-                        color: isAdmin ? "#5b4df7" : "#d97706",
+                        background: isAdmin ? "rgba(2, 132, 199, 0.14)" : "rgba(245, 158, 11, 0.16)",
+                        color: isAdmin ? "#0284c7" : "#d97706",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -311,9 +311,9 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
                         borderRadius: "9999px",
                         fontSize: "11px",
                         fontWeight: 700,
-                        background: isAdmin ? "rgba(91, 77, 247, 0.12)" : "rgba(245, 158, 11, 0.14)",
-                        color: isAdmin ? "#5b4df7" : "#b45309",
-                        border: isAdmin ? "1px solid rgba(91, 77, 247, 0.22)" : "1px solid rgba(245, 158, 11, 0.28)",
+                        background: isAdmin ? "rgba(2, 132, 199, 0.12)" : "rgba(245, 158, 11, 0.14)",
+                        color: isAdmin ? "#0284c7" : "#b45309",
+                        border: isAdmin ? "1px solid rgba(2, 132, 199, 0.24)" : "1px solid rgba(245, 158, 11, 0.28)",
                         whiteSpace: "nowrap"
                       }}
                     >

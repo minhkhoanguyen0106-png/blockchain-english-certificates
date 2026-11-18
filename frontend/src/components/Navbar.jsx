@@ -19,8 +19,8 @@ export default function Navbar({ user, setUser }) {
 
   const isActive = (path) => location.pathname === path;
 
-  // Don't render top public navbar if we are in admin workspace routes (/admin/*)
-  if (location.pathname.startsWith("/admin")) {
+  // Don't render top public navbar in admin workspace or immersive login screen
+  if (location.pathname.startsWith("/admin") || location.pathname === "/login") {
     return null;
   }
 

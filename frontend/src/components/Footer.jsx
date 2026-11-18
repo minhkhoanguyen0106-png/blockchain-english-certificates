@@ -5,8 +5,8 @@ import { ShieldCheck } from "lucide-react";
 export default function Footer() {
   const location = useLocation();
 
-  // Hide global footer in admin workspace to maximize data table screen height
-  if (location.pathname.startsWith("/admin")) {
+  // Hide global footer in admin workspace and immersive login screen
+  if (location.pathname.startsWith("/admin") || location.pathname === "/login") {
     return null;
   }
 

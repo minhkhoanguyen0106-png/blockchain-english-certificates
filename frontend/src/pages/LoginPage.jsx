@@ -116,8 +116,8 @@ export default function LoginPage({ setUser }) {
               <ShieldCheck size={22} color="#ffffff" strokeWidth={2.4} />
             </div>
             <div>
-              <div style={{ fontWeight: 800, fontSize: "16px", letterSpacing: "-0.4px", color: "#0f2c42", lineHeight: 1.15 }}>
-                CERT<span style={{ color: "#0284c7" }}>CHAIN</span>
+              <div style={{ fontWeight: 800, fontSize: "18px", letterSpacing: "-0.5px", color: "#0f2c42", lineHeight: 1.15 }}>
+                Koheni<span style={{ color: "#0284c7" }}>.</span>
               </div>
               <div style={{ fontSize: "9.5px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "1px", marginTop: "2px" }}>
                 English Testing Center
@@ -146,7 +146,7 @@ export default function LoginPage({ setUser }) {
 
           {/* Bottom-Left Subtle Institutional Attribution */}
           <div style={{ position: "relative", zIndex: 2, fontSize: "10.5px", color: "#94a3b8", lineHeight: 1.5 }}>
-            <div>© 2026 CertChain English Testing Center</div>
+            <div>© 2026 Koheni English Testing Center</div>
             <div style={{ fontWeight: 600, color: "#64748b" }}>Powered by Blockchain Verification</div>
           </div>
         </div>
@@ -178,7 +178,7 @@ export default function LoginPage({ setUser }) {
               }}>
                 <ShieldCheck size={18} color="#ffffff" />
               </div>
-              <span style={{ fontWeight: 800, color: "#ffffff", fontSize: "15px" }}>CERTCHAIN</span>
+              <span style={{ fontWeight: 800, color: "#ffffff", fontSize: "17px", letterSpacing: "-0.4px" }}>Koheni<span style={{ color: "#38bdf8" }}>.</span></span>
             </Link>
 
             <Link

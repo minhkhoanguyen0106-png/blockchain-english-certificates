@@ -33,12 +33,12 @@ export default function Footer() {
             <ShieldCheck size={16} color="#04121e" strokeWidth={2.5} />
           </div>
           <span style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: "14px" }}>
-            CertChain English Testing Center
+            Koheni English Testing Center
           </span>
         </div>
 
         <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-          © 2026 Hệ Thống Quản Lý &amp; Xác Thực Chứng Chỉ Tiếng Anh Điện Tử
+          © 2026 Koheni — Hệ Thống Tra Cứu &amp; Quản Lý Chứng Chỉ Tiếng Anh
         </div>
       </div>
     </footer>

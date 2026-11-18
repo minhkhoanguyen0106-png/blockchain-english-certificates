@@ -34,10 +34,11 @@ export default function CertificateCard({ cert, isPreview = false }) {
   if (!cert) return null;
 
   const isTampered = cert.status === "TAMPERED";
+  const isUnverified = cert.status === "UNVERIFIED";
   const isRejected = cert.status === "REJECTED";
   const isRevoked = cert.status === "REVOKED";
   const isExpired = cert.status === "EXPIRED" || (cert.expiry_date && new Date(cert.expiry_date) < new Date());
-  const isIssued = (cert.status === "ISSUED_ON_CHAIN" || cert.status === "REVOKED" || cert.status === "TAMPERED" || cert.status === "EXPIRED") && !isPreview;
+  const isIssued = (cert.status === "ISSUED_ON_CHAIN" || cert.status === "REVOKED" || cert.status === "TAMPERED" || cert.status === "EXPIRED" || cert.status === "UNVERIFIED") && !isPreview;
   const isPending = cert.status === "PENDING";
   const isDraftOrPreview = isPreview || cert.status === "DRAFT" || !cert.status;
   const isValidActive = cert.status === "ISSUED_ON_CHAIN" && !isExpired && !isRevoked && !isPreview;
@@ -84,7 +85,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
         <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", color: "#f59e0b", marginBottom: "6px" }}>
           <Award size={22} />
           <span style={{ textTransform: "uppercase", letterSpacing: "3px", fontSize: "11px", fontWeight: 700 }}>
-            International English Testing Center
+            Koheni English Testing Center
           </span>
           <Award size={22} />
         </div>
@@ -205,6 +206,10 @@ export default function CertificateCard({ cert, isPreview = false }) {
             <div className="badge badge-danger" style={{ fontSize: "12px", padding: "6px 14px" }}>
               <XCircle size={15} />
               ĐÃ BỊ THU HỒI (REVOKED)
+            </div>
+          ) : isUnverified ? (
+            <div className="badge badge-warning" style={{ fontSize: "12px", padding: "6px 14px" }}>
+              ⚠️ CHƯA THỂ XÁC MINH TRÊN BLOCKCHAIN
             </div>
           ) : (
             <div className="badge badge-warning" style={{ fontSize: "12px", padding: "6px 14px" }}>

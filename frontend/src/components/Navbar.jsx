@@ -51,8 +51,8 @@ export default function Navbar({ user, setUser }) {
             <ShieldCheck size={22} color="#04121e" strokeWidth={2.5} />
           </div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: "17px", letterSpacing: "-0.5px", color: "var(--text-primary)", lineHeight: 1.2 }}>
-              CERT<span style={{ color: "var(--primary)" }}>CHAIN</span>
+            <div style={{ fontWeight: 800, fontSize: "18px", letterSpacing: "-0.5px", color: "var(--text-primary)", lineHeight: 1.15 }}>
+              Koheni<span style={{ color: "var(--primary)" }}>.</span>
             </div>
             <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
               English Testing Center

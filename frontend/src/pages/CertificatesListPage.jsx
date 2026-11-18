@@ -1,14 +1,43 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2, Sparkles, X, Award, ExternalLink } from "lucide-react";
-import { getAllCertificates, revokeCertificateOnChain, shortenAddress, connectMetaMask, isMetaMaskInstalled } from "../services/web3Service";
-import { certificateApi, courseApi } from "../services/apiService";
+import {
+  Search,
+  Eye,
+  AlertOctagon,
+  AlertTriangle,
+  RefreshCw,
+  Plus,
+  Download,
+  Trash2,
+  Sparkles,
+  X,
+  Award,
+  ExternalLink,
+  FileText
+} from "lucide-react";
+import {
+  revokeCertificateOnChain,
+  shortenAddress,
+  connectMetaMask,
+  isMetaMaskInstalled
+} from "../services/web3Service";
+import { API_BASE_URL, certificateApi, courseApi } from "../services/apiService";
 import CertificateCard from "../components/CertificateCard";
 import { toast } from "../components/ToastContainer";
 
+const formatDateVN = (val) => {
+  if (!val) return "—";
+  const str = String(val).slice(0, 10);
+  const parts = str.split("-");
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : str;
+};
+
+const hasTokenId = (val) => val !== null && val !== undefined && val !== "";
+
 export default function CertificatesListPage({ wallet, setWallet, user }) {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const initialStatus = searchParams.get("status") || "ALL";
+  const isAdmin = user?.role === "ADMIN";
 
   const [certs, setCerts] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -16,12 +45,13 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [courseFilter, setCourseFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
 
   // Detail Modal state (hydrated via GET /api/certificates/:id)
   const [selectedCert, setSelectedCert] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  // Delete Draft Modal state (replaces native window.confirm)
+  // Delete Draft Modal state
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -35,6 +65,32 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
     const paramStatus = searchParams.get("status") || "ALL";
     setStatusFilter(paramStatus);
   }, [searchParams]);
+
+  const handleStatusFilterChange = (nextStatus) => {
+    setStatusFilter(nextStatus);
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextStatus === "ALL") {
+      nextParams.delete("status");
+    } else {
+      nextParams.set("status", nextStatus);
+    }
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  // Close open modals cleanly on Escape key (when not mid-request)
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key !== "Escape") return;
+      if (selectedCert) setSelectedCert(null);
+      else if (deleteTarget && !deleting) setDeleteTarget(null);
+      else if (revokeTarget && !revoking) {
+        setRevokeTarget(null);
+        setRevokeReason("");
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedCert, deleteTarget, deleting, revokeTarget, revoking]);
 
   const getPendingReconcileMap = () => {
     try {
@@ -61,8 +117,9 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
     return d.status;
   };
 
-  const loadCerts = async () => {
+  const loadCerts = useCallback(async () => {
     setLoading(true);
+    setApiError("");
     try {
       const [res, crsRes] = await Promise.allSettled([
         certificateApi.getCertificates({ limit: 100, status: "ALL" }),
@@ -76,7 +133,7 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
       const pendingReconcileMap = getPendingReconcileMap();
 
       if (res.status === "fulfilled" && res.value?.success && Array.isArray(res.value.data)) {
-        const mapped = res.value.data.map(d => {
+        const mapped = res.value.data.map((d) => {
           const rec = pendingReconcileMap[d.certificate_code];
           const effectiveStatus = deriveEffectiveStatus(d, pendingReconcileMap);
           return {
@@ -91,23 +148,24 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
             speaking: d.score_speaking ?? d.speaking ?? "",
             issue_date: d.issue_date ? String(d.issue_date).slice(0, 10) : "",
             expiry_date: d.expiry_date ? String(d.expiry_date).slice(0, 10) : "",
-            pdf_url: `http://localhost:5000/api/public/pdf/${d.certificate_code}`
+            pdf_url: `${API_BASE_URL}/public/pdf/${d.certificate_code}`
           };
         });
         setCerts(mapped);
         return;
       }
-      setCerts(getAllCertificates());
+
+      setApiError("Không thể tải danh sách chứng chỉ từ máy chủ. Vui lòng kiểm tra kết nối Backend và thử lại.");
     } catch {
-      setCerts(getAllCertificates());
+      setApiError("Không thể tải danh sách chứng chỉ từ máy chủ. Vui lòng kiểm tra kết nối Backend và thử lại.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadCerts();
-  }, []);
+  }, [loadCerts]);
 
   // Hydrate full detail (4 sub-scores, revoke_reason, rejection_reason, ipfs_hash, wallet) when opening preview modal
   const handleViewCert = async (cert) => {
@@ -134,7 +192,7 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
           expiry_date: d.expiry_date ? String(d.expiry_date).slice(0, 10) : cert.expiry_date,
           revoked_reason: d.revoke_reason || d.revoked_reason || null,
           revoked_at: d.revoked_at ? String(d.revoked_at).slice(0, 10) : null,
-          pdf_url: `http://localhost:5000/api/public/pdf/${d.certificate_code}`
+          pdf_url: `${API_BASE_URL}/public/pdf/${d.certificate_code}`
         });
       }
     } catch {
@@ -146,17 +204,18 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
 
   const handleReconcileRow = async (cert) => {
     const rec = cert.reconcile_info;
+    if (!rec?.tx_hash || !hasTokenId(rec?.token_id)) {
+      toast.warning("Không tìm thấy mã giao dịch (Tx Hash) & Token ID chờ đối soát. Vui lòng mở hồ sơ tại trang Duyệt & Cấp Bằng để kiểm tra.");
+      return;
+    }
+
     setReconcilingCode(cert.certificate_code);
     try {
-      if (rec?.tx_hash && rec?.token_id) {
-        await certificateApi.confirmMint({
-          certificate_id: cert.id,
-          tx_hash: rec.tx_hash,
-          token_id: rec.token_id
-        });
-      } else {
-        await certificateApi.reconcile(cert.id);
-      }
+      await certificateApi.confirmMint({
+        certificate_id: cert.id,
+        tx_hash: rec.tx_hash,
+        token_id: String(rec.token_id)
+      });
       try {
         const map = getPendingReconcileMap();
         delete map[cert.certificate_code];
@@ -171,14 +230,25 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
     }
   };
 
-  const filteredCerts = certs.filter(c => {
+  const pendingQueueCount = certs.filter(
+    (c) => c.status === "PENDING" || c.status === "READY_TO_MINT" || c.status === "PENDING_RECONCILE"
+  ).length;
+
+  const filteredCerts = certs.filter((c) => {
     const q = searchTerm.trim().toLowerCase();
     const matchSearch =
       !q ||
       (c.certificate_code || "").toLowerCase().includes(q) ||
       (c.student_name || "").toLowerCase().includes(q) ||
-      (c.student_code || "").toLowerCase().includes(q);
-    const matchStatus = statusFilter === "ALL" || c.status === statusFilter;
+      (c.student_code || "").toLowerCase().includes(q) ||
+      (c.citizen_id || "").toLowerCase().includes(q);
+
+    const matchStatus =
+      statusFilter === "ALL" ||
+      (statusFilter === "PENDING"
+        ? c.status === "PENDING" || c.status === "READY_TO_MINT" || c.status === "PENDING_RECONCILE"
+        : c.status === statusFilter);
+
     const matchCourse = courseFilter === "ALL" || c.course_code === courseFilter;
     return matchSearch && matchStatus && matchCourse;
   });
@@ -191,18 +261,18 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
         await certificateApi.deleteCertificate(deleteTarget.id);
       }
       const deletedCode = deleteTarget.certificate_code;
-      setCerts(prev => prev.filter(c => c.certificate_code !== deletedCode));
+      setCerts((prev) => prev.filter((c) => c.certificate_code !== deletedCode));
       try {
         const raw = localStorage.getItem("certchain_certificates");
         if (raw) {
-          const list = JSON.parse(raw).filter(c => c.certificate_code !== deletedCode);
+          const list = JSON.parse(raw).filter((c) => c.certificate_code !== deletedCode);
           localStorage.setItem("certchain_certificates", JSON.stringify(list));
         }
       } catch {}
       setDeleteTarget(null);
-      toast.success(`Đã xóa bỏ bản nháp [${deletedCode}] thành công!`);
+      toast.success(`Đã xóa bỏ hồ sơ [${deletedCode}] thành công!`);
     } catch (err) {
-      toast.error("Lỗi khi xóa bản nháp: " + (err.message || err));
+      toast.error("Lỗi khi xóa hồ sơ: " + (err.message || err));
     } finally {
       setDeleting(false);
     }
@@ -216,8 +286,12 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
 
   const handleConfirmRevoke = async () => {
     if (!revokeTarget) return;
-    if (user?.role !== "ADMIN") {
+    if (!isAdmin) {
       toast.error("Chỉ Quản trị viên (ADMIN) mới có thẩm quyền thu hồi chứng chỉ!");
+      return;
+    }
+    if (!hasTokenId(revokeTarget.token_id)) {
+      toast.error("Chứng chỉ này thiếu Token ID on-chain hợp lệ nên không thể ký thu hồi.");
       return;
     }
     const cleanReason = revokeReason.trim();
@@ -266,77 +340,144 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
 
   return (
     <div className="admin-page admin-certificates">
+      {/* Offline / API Error Banner */}
+      {apiError && (
+        <div
+          style={{
+            marginBottom: "18px",
+            padding: "12px 16px",
+            borderRadius: "14px",
+            background: "rgba(239, 68, 68, 0.09)",
+            border: "1px solid rgba(239, 68, 68, 0.28)",
+            color: "var(--danger-text)",
+            fontSize: "13px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px"
+          }}
+        >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: 600 }}>
+            <AlertTriangle size={16} />
+            {apiError}
+          </span>
+          <button type="button" onClick={loadCerts} className="btn btn-outline" style={{ padding: "5px 12px", fontSize: "12px" }}>
+            Thử lại
+          </button>
+        </div>
+      )}
+
       {/* Page Header */}
-      <div className="admin-page-heading" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
+      <div className="admin-page-heading" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "22px", flexWrap: "wrap", gap: "16px" }}>
         <div>
-          <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-primary)" }}>
-            {user?.role === "ADMIN" ? (
-              <>Danh Sách &amp; <span className="text-gradient">Thu Hồi Chứng Chỉ</span></>
-            ) : (
-              <>Danh Sách <span className="text-gradient">Chứng Chỉ Khảo Thí</span></>
-            )}
+          <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.5px" }}>
+            {isAdmin ? "Danh Sách & Thu Hồi Chứng Chỉ" : "Danh Sách Chứng Chỉ Khảo Thí"}
           </h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>
-            {user?.role === "ADMIN"
+          <p style={{ color: "var(--text-muted)", fontSize: "13.5px", marginTop: "3px" }}>
+            {isAdmin
               ? "Quản lý toàn bộ hồ sơ chứng chỉ điện tử đã phát hành và hủy hiệu lực khi có vi phạm."
               : "Theo dõi tiến độ duyệt hồ sơ nháp và tra cứu danh sách chứng chỉ của trung tâm."}
           </p>
         </div>
 
-        <Link to="/admin/certificates/issue" className="btn btn-primary">
-          <Plus size={16} />
-          {user?.role === "ADMIN" ? "Cấp Bằng Mới" : "Soạn Bản Nháp"}
-        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <button type="button" onClick={loadCerts} className="finnova-icon-circle" title="Làm mới danh sách">
+            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+          </button>
+          <Link to="/admin/certificates/issue" className="finnova-cta-pill">
+            <Plus size={16} />
+            {isAdmin ? "Cấp Bằng Mới" : "Soạn Bản Nháp"}
+          </Link>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="glass-panel" style={{ padding: "16px 20px", marginBottom: "24px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto auto", gap: "12px", alignItems: "center" }}>
+      <div className="finnova-kpi-card" style={{ padding: "16px 20px", marginBottom: "20px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "12px", alignItems: "center" }}>
           <div style={{ position: "relative" }}>
             <input
               type="text"
-              placeholder="Tìm theo mã bằng, tên học viên, mã học viên..."
+              placeholder="Tìm theo mã bằng, tên học viên, mã học viên hoặc số CCCD..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") loadCerts(); }}
               className="form-input"
-              style={{ paddingLeft: "38px" }}
+              style={{ paddingLeft: "38px", paddingRight: searchTerm ? "34px" : "14px" }}
             />
-            <Search size={16} color="var(--text-muted)" style={{ position: "absolute", left: "12px", top: "14px" }} />
+            <Search size={16} color="var(--text-muted)" style={{ position: "absolute", left: "12px", top: "13px" }} />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                aria-label="Xóa từ khóa tìm kiếm"
+                style={{
+                  position: "absolute",
+                  right: "10px",
+                  top: "11px",
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--text-muted)",
+                  cursor: "pointer",
+                  padding: "2px",
+                  display: "flex"
+                }}
+              >
+                <X size={15} />
+              </button>
+            )}
           </div>
 
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="form-select" style={{ minWidth: "195px" }}>
+          <select
+            value={statusFilter}
+            onChange={(e) => handleStatusFilterChange(e.target.value)}
+            className="form-select"
+            style={{ minWidth: "210px" }}
+          >
             <option value="ALL">Tất cả trạng thái ({certs.length})</option>
-            <option value="ISSUED_ON_CHAIN">Đã phát hành ({certs.filter(c => c.status === "ISSUED_ON_CHAIN").length})</option>
-            <option value="PENDING">Chờ duyệt ({certs.filter(c => c.status === "PENDING").length})</option>
-            <option value="READY_TO_MINT">Sẵn sàng cấp ({certs.filter(c => c.status === "READY_TO_MINT").length})</option>
-            <option value="PENDING_RECONCILE">Chờ đối soát ({certs.filter(c => c.status === "PENDING_RECONCILE").length})</option>
-            <option value="REJECTED">Bị từ chối ({certs.filter(c => c.status === "REJECTED").length})</option>
-            <option value="REVOKED">Đã thu hồi ({certs.filter(c => c.status === "REVOKED").length})</option>
-            <option value="EXPIRED">Đã hết hạn ({certs.filter(c => c.status === "EXPIRED").length})</option>
+            <option value="PENDING">Chờ duyệt / xử lý ({pendingQueueCount})</option>
+            <option value="ISSUED_ON_CHAIN">Đang hiệu lực ({certs.filter((c) => c.status === "ISSUED_ON_CHAIN").length})</option>
+            <option value="READY_TO_MINT">Sẵn sàng cấp ({certs.filter((c) => c.status === "READY_TO_MINT").length})</option>
+            <option value="PENDING_RECONCILE">Chờ đối soát ({certs.filter((c) => c.status === "PENDING_RECONCILE").length})</option>
+            <option value="REJECTED">Bị từ chối ({certs.filter((c) => c.status === "REJECTED").length})</option>
+            <option value="REVOKED">Đã thu hồi ({certs.filter((c) => c.status === "REVOKED").length})</option>
+            <option value="EXPIRED">Đã hết hạn ({certs.filter((c) => c.status === "EXPIRED").length})</option>
           </select>
 
-          <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className="form-select" style={{ minWidth: "180px" }}>
+          <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className="form-select" style={{ minWidth: "185px" }}>
             <option value="ALL">Tất cả khóa học</option>
             {courses.length > 0 ? (
               courses.map((cr) => (
                 <option key={cr.course_code} value={cr.course_code}>{cr.course_name}</option>
               ))
             ) : (
-              Array.from(new Map(certs.filter(c => c.course_code).map(c => [c.course_code, c.course_name || c.course_code])).entries()).map(([code, name]) => (
+              Array.from(new Map(certs.filter((c) => c.course_code).map((c) => [c.course_code, c.course_name || c.course_code])).entries()).map(([code, name]) => (
                 <option key={code} value={code}>{name}</option>
               ))
             )}
           </select>
+        </div>
 
-          <button type="button" onClick={loadCerts} className="btn btn-outline" title="Làm mới dữ liệu">
-            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
-          </button>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px", fontSize: "12px", color: "var(--text-muted)" }}>
+          <span>
+            Hiển thị <strong style={{ color: "var(--text-primary)" }}>{filteredCerts.length}</strong> / {certs.length} hồ sơ chứng chỉ
+          </span>
+          {(searchTerm || statusFilter !== "ALL" || courseFilter !== "ALL") && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm("");
+                setCourseFilter("ALL");
+                handleStatusFilterChange("ALL");
+              }}
+              style={{ background: "none", border: "none", color: "var(--primary)", fontWeight: 600, fontSize: "12px", cursor: "pointer" }}
+            >
+              Đặt lại bộ lọc
+            </button>
+          )}
         </div>
       </div>
 
       {/* Table of Certificates */}
-      <div className="glass-panel" style={{ padding: "20px" }}>
+      <div className="finnova-kpi-card" style={{ padding: "18px 20px" }}>
         <div className="table-responsive">
           <table className="app-table">
             <thead>
@@ -370,25 +511,28 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
               ) : (
                 filteredCerts.map((c) => (
                   <tr key={c.id || c.certificate_code}>
-                    <td style={{ fontWeight: 700, color: "var(--primary)" }}>
+                    <td style={{ fontWeight: 700, color: "var(--primary)", fontFamily: "monospace", fontSize: "13px" }}>
                       {c.certificate_code}
                     </td>
 
                     <td>
-                      <div style={{ fontWeight: 600 }}>{c.student_name}</div>
-                      <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{c.student_code}</div>
+                      <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{c.student_name}</div>
+                      <div style={{ fontSize: "11.5px", color: "var(--text-muted)" }}>
+                        {c.student_code}
+                        {c.citizen_id && <span> • CCCD: {c.citizen_id}</span>}
+                      </div>
                     </td>
 
                     <td>
-                      <div>{c.course_name}</div>
-                      <div style={{ fontSize: "12px", color: "var(--accent-gold)", fontWeight: 700 }}>{c.score}</div>
+                      <div style={{ fontWeight: 500 }}>{c.course_name}</div>
+                      <div style={{ fontSize: "12.5px", color: "#0369a1", fontWeight: 700, marginTop: "2px" }}>{c.score}</div>
                     </td>
 
-                    <td style={{ color: "var(--text-secondary)" }}>
-                      <div>{c.issue_date}</div>
+                    <td style={{ color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>
+                      <div>{formatDateVN(c.issue_date)}</div>
                       {c.expiry_date && (
                         <div style={{ fontSize: "11px", color: c.status === "EXPIRED" ? "var(--danger-text)" : "var(--text-muted)" }}>
-                          Hạn: {c.expiry_date}
+                          Hạn: {formatDateVN(c.expiry_date)}
                         </div>
                       )}
                     </td>
@@ -416,35 +560,39 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                       )}
                     </td>
 
-                    <td style={{ fontSize: "11px" }}>
-                      <div>
-                        {c.token_id
-                          ? `Mã số: #${c.token_id}`
-                          : c.reconcile_info?.token_id
+                    <td style={{ fontSize: "11.5px" }}>
+                      <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                        {hasTokenId(c.token_id)
+                          ? `Token #${c.token_id}`
+                          : hasTokenId(c.reconcile_info?.token_id)
                           ? `Token chờ đối soát: #${c.reconcile_info.token_id}`
+                          : c.status === "REJECTED"
+                          ? "Không phát hành"
                           : c.ipfs_hash
                           ? `CID: ${c.ipfs_hash.slice(0, 12)}...`
                           : "Chưa cấp mã"}
                       </div>
-                      <div style={{ color: "var(--text-muted)" }}>
+                      <div style={{ color: "var(--text-muted)", fontFamily: c.tx_hash || c.reconcile_info?.tx_hash ? "monospace" : "inherit" }}>
                         {c.tx_hash
                           ? `Tx: ${shortenAddress(c.tx_hash)}`
                           : c.reconcile_info?.tx_hash
                           ? `Tx chờ: ${shortenAddress(c.reconcile_info.tx_hash)}`
+                          : c.status === "REJECTED"
+                          ? "Đã từ chối duyệt"
                           : c.status === "READY_TO_MINT"
-                          ? "Đã upload IPFS"
-                          : "Chưa phát hành"}
+                          ? "Đã lưu PDF lên IPFS"
+                          : "Đang chờ phê duyệt"}
                       </div>
                     </td>
 
                     <td style={{ textAlign: "right" }}>
-                      <div style={{ display: "inline-flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                      <div style={{ display: "inline-flex", gap: "7px", flexWrap: "wrap", justifyContent: "flex-end" }}>
                         <button
                           type="button"
                           onClick={() => handleViewCert(c)}
                           className="btn btn-outline"
-                          style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
-                          title="Xem hồ sơ chứng chỉ chi tiết trực tiếp"
+                          style={{ padding: "6px 11px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                          title="Xem hồ sơ chứng chỉ chi tiết"
                         >
                           <Eye size={14} />
                           Xem
@@ -453,16 +601,16 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                         {isPubliclyIssued(c.status) && (
                           <button
                             type="button"
-                            onClick={() => window.open(`http://localhost:5000/api/public/pdf/${c.certificate_code}`, "_blank")}
+                            onClick={() => window.open(`${API_BASE_URL}/public/pdf/${c.certificate_code}`, "_blank")}
                             className="btn btn-outline"
                             style={{ padding: "6px 10px", fontSize: "12px" }}
-                            title="Tải phôi bằng PDF có mã QR thật"
+                            title="Tải bản in PDF có mã QR xác thực"
                           >
                             <Download size={14} />
                           </button>
                         )}
 
-                        {(c.status === "PENDING" || c.status === "READY_TO_MINT") && user?.role === "ADMIN" && (
+                        {(c.status === "PENDING" || c.status === "READY_TO_MINT") && isAdmin && (
                           <Link
                             to={`/admin/certificates/issue?code=${c.certificate_code}`}
                             className="btn btn-gold"
@@ -474,13 +622,25 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                           </Link>
                         )}
 
-                        {c.status === "PENDING" && user?.role === "STAFF" && (
+                        {c.status === "REJECTED" && !isAdmin && (
+                          <Link
+                            to={`/admin/certificates/issue?student=${encodeURIComponent(c.student_code || "")}&course=${encodeURIComponent(c.course_code || "")}`}
+                            className="btn btn-primary"
+                            style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                            title="Soạn lại hồ sơ mới cho học viên này"
+                          >
+                            <FileText size={13} />
+                            Soạn Lại
+                          </Link>
+                        )}
+
+                        {(c.status === "PENDING" || c.status === "REJECTED") && !isAdmin && (
                           <button
                             type="button"
                             onClick={() => setDeleteTarget(c)}
                             className="btn btn-outline"
                             style={{
-                              padding: "6px 12px",
+                              padding: "6px 11px",
                               fontSize: "12px",
                               color: "var(--danger-text)",
                               borderColor: "rgba(225, 29, 72, 0.35)",
@@ -488,14 +648,14 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                               alignItems: "center",
                               gap: "4px"
                             }}
-                            title="Xóa bỏ bản nháp chờ duyệt này"
+                            title={c.status === "REJECTED" ? "Xóa hồ sơ bị từ chối này" : "Xóa bỏ bản nháp chờ duyệt này"}
                           >
                             <Trash2 size={13} />
-                            Bỏ Nháp
+                            {c.status === "REJECTED" ? "Xóa" : "Bỏ Nháp"}
                           </button>
                         )}
 
-                        {c.status === "PENDING_RECONCILE" && user?.role === "ADMIN" && (
+                        {c.status === "PENDING_RECONCILE" && isAdmin && (
                           <button
                             type="button"
                             disabled={reconcilingCode === c.certificate_code}
@@ -509,7 +669,7 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                           </button>
                         )}
 
-                        {(c.status === "ISSUED_ON_CHAIN" || c.status === "EXPIRED") && user?.role === "ADMIN" && (
+                        {(c.status === "ISSUED_ON_CHAIN" || c.status === "EXPIRED") && isAdmin && (
                           <button
                             type="button"
                             onClick={() => {
@@ -536,24 +696,33 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
 
       {/* Delete Draft Confirmation Modal */}
       {deleteTarget && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "var(--bg-modal-backdrop)",
-          backdropFilter: "blur(8px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 999,
-          padding: "20px"
-        }}>
-          <div className="glass-panel" style={{ maxWidth: "460px", width: "100%", padding: "28px", background: "var(--bg-surface-elevated)", borderColor: "rgba(225, 29, 72, 0.3)" }}>
+        <div
+          onClick={() => { if (!deleting) setDeleteTarget(null); }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "var(--bg-modal-backdrop)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 999,
+            padding: "20px"
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel"
+            style={{ maxWidth: "460px", width: "100%", padding: "28px", background: "var(--bg-surface-elevated)", borderColor: "rgba(225, 29, 72, 0.3)" }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px", color: "var(--danger-text)" }}>
               <Trash2 size={22} />
-              <h3 style={{ fontSize: "18px", fontWeight: 800 }}>Xác Nhận Xóa Bản Nháp</h3>
+              <h3 style={{ fontSize: "18px", fontWeight: 800 }}>
+                {deleteTarget.status === "REJECTED" ? "Xác Nhận Xóa Hồ Sơ Bị Từ Chối" : "Xác Nhận Xóa Bản Nháp"}
+              </h3>
             </div>
             <p style={{ color: "var(--text-secondary)", fontSize: "13.5px", lineHeight: 1.55, marginBottom: "20px" }}>
-              Bạn có chắc chắn muốn xóa bỏ bản nháp <strong>{deleteTarget.certificate_code}</strong> của học viên <strong>{deleteTarget.student_name}</strong>? Hành động này không thể hoàn tác.
+              Bạn có chắc chắn muốn xóa bỏ hồ sơ <strong>{deleteTarget.certificate_code}</strong> của học viên <strong>{deleteTarget.student_name}</strong>? Hành động này không thể hoàn tác.
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
               <button type="button" disabled={deleting} onClick={() => setDeleteTarget(null)} className="btn btn-outline">
@@ -569,24 +738,31 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
 
       {/* Revoke Confirmation Modal */}
       {revokeTarget && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "var(--bg-modal-backdrop)",
-          backdropFilter: "blur(8px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 999,
-          padding: "20px"
-        }}>
-          <div className="glass-panel" style={{
-            maxWidth: "500px",
-            width: "100%",
-            padding: "32px",
-            background: "var(--bg-surface-elevated)",
-            borderColor: "rgba(225, 29, 72, 0.35)"
-          }}>
+        <div
+          onClick={closeRevokeModal}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "var(--bg-modal-backdrop)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 999,
+            padding: "20px"
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel"
+            style={{
+              maxWidth: "500px",
+              width: "100%",
+              padding: "32px",
+              background: "var(--bg-surface-elevated)",
+              borderColor: "rgba(225, 29, 72, 0.35)"
+            }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px", color: "var(--danger-text)" }}>
               <AlertOctagon size={26} />
               <h3 style={{ fontSize: "20px", fontWeight: 800 }}>Xác Nhận Thu Hồi Chứng Chỉ</h3>
@@ -618,8 +794,8 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                 <span style={{ color: "var(--accent-gold)", fontWeight: 700 }}>{revokeTarget.course_name} • {revokeTarget.score}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)" }}>Mã số bằng:</span>
-                <span>#{revokeTarget.token_id || "N/A"}</span>
+                <span style={{ color: "var(--text-muted)" }}>Token ID on-chain:</span>
+                <span>{hasTokenId(revokeTarget.token_id) ? `#${revokeTarget.token_id}` : "N/A"}</span>
               </div>
             </div>
 
@@ -669,27 +845,34 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
 
       {/* Certificate Preview Modal */}
       {selectedCert && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "var(--bg-modal-backdrop)",
-          backdropFilter: "blur(8px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 999,
-          padding: "20px"
-        }}>
-          <div className="glass-panel" style={{
-            maxWidth: "840px",
-            width: "100%",
-            maxHeight: "92vh",
-            overflowY: "auto",
-            padding: "28px",
-            background: "var(--bg-surface-elevated)",
-            border: "1px solid var(--border-subtle)",
-            borderRadius: "var(--radius-lg)"
-          }}>
+        <div
+          onClick={() => setSelectedCert(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "var(--bg-modal-backdrop)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 999,
+            padding: "20px"
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel"
+            style={{
+              maxWidth: "840px",
+              width: "100%",
+              maxHeight: "92vh",
+              overflowY: "auto",
+              padding: "28px",
+              background: "var(--bg-surface-elevated)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "var(--radius-lg)"
+            }}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <Award size={22} color="var(--primary)" />
@@ -744,7 +927,7 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
               }}>
                 <strong>Lý do thu hồi chứng chỉ:</strong> {selectedCert.revoked_reason || selectedCert.revoke_reason}
                 {selectedCert.revoked_at && (
-                  <span style={{ marginLeft: "8px", opacity: 0.8 }}>(Ngày {selectedCert.revoked_at})</span>
+                  <span style={{ marginLeft: "8px", opacity: 0.8 }}>(Ngày {formatDateVN(selectedCert.revoked_at)})</span>
                 )}
               </div>
             )}
@@ -774,7 +957,7 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                 {isPubliclyIssued(selectedCert.status) && (
                   <button
                     type="button"
-                    onClick={() => window.open(`http://localhost:5000/api/public/pdf/${selectedCert.certificate_code}`, "_blank")}
+                    onClick={() => window.open(`${API_BASE_URL}/public/pdf/${selectedCert.certificate_code}`, "_blank")}
                     className="btn btn-gold"
                     style={{ fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
                   >

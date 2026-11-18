@@ -211,14 +211,14 @@ export default function DataManagementPage({ user }) {
           </div>
 
           {/* Search */}
-          <div style={{ position: "relative", minWidth: "260px" }}>
+          <div style={{ position: "relative", width: "340px", maxWidth: "100%" }}>
             <input
               type="text"
-              placeholder={activeTab === "STUDENTS" ? "Tìm theo tên, mã, email, CCCD..." : "Tìm theo tên khóa học..."}
+              placeholder={activeTab === "STUDENTS" ? "Tìm tên, mã HV, email, CCCD..." : "Tìm theo tên hoặc mã khóa học..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="form-input"
-              style={{ paddingLeft: "36px", paddingRight: "14px", height: "40px" }}
+              style={{ paddingLeft: "36px", paddingRight: "14px", height: "40px", width: "100%" }}
             />
             <Search size={15} color="var(--text-muted)" style={{ position: "absolute", left: "12px", top: "13px" }} />
           </div>

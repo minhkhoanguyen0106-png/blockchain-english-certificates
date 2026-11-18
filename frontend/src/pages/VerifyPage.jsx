@@ -159,7 +159,7 @@ export default function VerifyPage() {
                 <div style={{ position: "relative", flex: 1, minWidth: "240px" }}>
                   <input
                     type="text"
-                    placeholder="Nhập địa chỉ ví học viên (VD: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8)..."
+                    placeholder="Nhập địa chỉ ví học viên (0x...)..."
                     value={walletInput}
                     onChange={(e) => setWalletInput(e.target.value)}
                     className="form-input"

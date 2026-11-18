@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { QrCode, Upload, ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react";
+import { QrCode, Camera, Upload, ArrowLeft, AlertCircle, Sparkles, CheckCircle2 } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 
 export default function ScannerPage() {
@@ -9,28 +9,6 @@ export default function ScannerPage() {
   const [scanResult, setScanResult] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const scannerRef = useRef(null);
-
-  const handleScanSuccess = useCallback((text) => {
-    let certCode = text;
-    try {
-      if (text.includes("code=")) {
-        const url = new URL(text);
-        certCode = url.searchParams.get("code") || text;
-      }
-    } catch {
-      certCode = text;
-    }
-
-    setScanResult(certCode);
-
-    if (scannerRef.current && scannerRef.current.isScanning) {
-      scannerRef.current.stop().catch(() => {});
-    }
-
-    setTimeout(() => {
-      navigate(`/verify?code=${encodeURIComponent(certCode)}`);
-    }, 800);
-  }, [navigate]);
 
   useEffect(() => {
     let html5QrCode = null;
@@ -50,14 +28,14 @@ export default function ScannerPage() {
           (decodedText) => {
             handleScanSuccess(decodedText);
           },
-          () => {
+          (errorMessage) => {
             // bỏ qua frame chưa nhận dạng
           }
         );
         setCameraActive(true);
       } catch (err) {
         console.warn("Camera init:", err);
-        setErrorMsg("Không thể mở Camera thiết bị (do chưa cấp quyền hoặc không có webcam). Bạn có thể dùng tính năng Tải ảnh QR hoặc chọn Mã Mẫu bên dưới.");
+        setErrorMsg("Không thể mở Camera thiết bị (do chưa cấp quyền hoặc không có webcam). Bạn có thể dùng tính năng Tải Ảnh Chụp Mã QR Từ Máy bên dưới.");
         setCameraActive(false);
       }
     };
@@ -69,7 +47,37 @@ export default function ScannerPage() {
         scannerRef.current.stop().catch(() => {});
       }
     };
-  }, [handleScanSuccess]);
+  }, []);
+
+  const handleScanSuccess = (text) => {
+    let certCode = (text || "").trim();
+    try {
+      if (certCode.startsWith("http://") || certCode.startsWith("https://")) {
+        const url = new URL(certCode);
+        if (url.searchParams.get("code")) {
+          certCode = url.searchParams.get("code");
+        } else {
+          const segments = url.pathname.split("/").filter(Boolean);
+          const last = segments[segments.length - 1];
+          if (last && last !== "verify") {
+            certCode = last;
+          }
+        }
+      }
+    } catch {
+      certCode = text;
+    }
+
+    setScanResult(certCode);
+
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      scannerRef.current.stop().catch(() => {});
+    }
+
+    setTimeout(() => {
+      navigate(`/verify?code=${encodeURIComponent(certCode)}`);
+    }, 800);
+  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -81,7 +89,7 @@ export default function ScannerPage() {
       .then((decodedText) => {
         handleScanSuccess(decodedText);
       })
-      .catch(() => {
+      .catch((err) => {
         setErrorMsg("Không tìm thấy mã QR hợp lệ trong bức ảnh này. Vui lòng chọn ảnh chụp rõ nét hơn.");
       });
   };
@@ -114,7 +122,7 @@ export default function ScannerPage() {
             Quét Mã QR Xác Thực
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
-            Hướng camera vào mã QR in trên bằng giấy để đối soát trực tiếp tính hợp lệ với Smart Contract.
+            Hướng camera vào mã QR in trên bằng để đối soát trực tiếp tính hợp lệ trên hệ thống xác thực.
           </p>
         </div>
 
@@ -169,29 +177,6 @@ export default function ScannerPage() {
               Tải Ảnh Chụp Mã QR Từ Máy
               <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} />
             </label>
-          </div>
-
-          {/* Quick Demo Test Trigger */}
-          <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid var(--border-subtle)", textAlign: "center" }}>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600 }}>Hoặc quét nhanh mã demo kiểm thử:</span>
-            <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginTop: "10px", flexWrap: "wrap" }}>
-              <button
-                type="button"
-                onClick={() => handleScanSuccess("CERT-IELTS-2026-001")}
-                className="btn btn-primary"
-                style={{ fontSize: "12px", padding: "6px 14px" }}
-              >
-                Mã Mẫu IELTS (8.0)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleScanSuccess("CERT-VSTEP-2026-012")}
-                className="btn btn-danger"
-                style={{ fontSize: "12px", padding: "6px 14px" }}
-              >
-                Mã Mẫu Bị Thu Hồi
-              </button>
-            </div>
           </div>
 
         </div>

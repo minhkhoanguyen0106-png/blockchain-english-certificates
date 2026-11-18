@@ -2,7 +2,15 @@ import React from "react";
 import { Navigate, Link } from "react-router-dom";
 import { ShieldAlert, ArrowLeft, LogIn } from "lucide-react";
 
-export default function ProtectedRoute({ user, allowedRoles, children }) {
+export default function ProtectedRoute({ user, allowedRoles, isLoading = false, children }) {
+  if (isLoading) {
+    return (
+      <div style={{ minHeight: "75vh", display: "grid", placeItems: "center", color: "var(--text-secondary)" }}>
+        Đang kiểm tra phiên đăng nhập...
+      </div>
+    );
+  }
+
   // 1. Chưa đăng nhập -> Chuyển hướng sang trang đăng nhập
   if (!user) {
     return <Navigate to="/login" replace />;

@@ -1,249 +1,501 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2, ShieldCheck, ExternalLink, CheckCircle2, Copy, Check } from "lucide-react";
-import { getAllCertificates, revokeCertificateOnChain, shortenAddress, CONTRACT_ADDRESS, issueCertificateOnChain, connectMetaMask } from "../services/web3Service";
-import contractJson from "../contracts/EnglishCertificateNFT.json";
-import { certificateApi } from "../services/apiService";
+import {
+  Search,
+  Eye,
+  AlertOctagon,
+  AlertTriangle,
+  RefreshCw,
+  Plus,
+  Download,
+  Trash2,
+  Sparkles,
+  X,
+  Award,
+  ExternalLink,
+  FileText
+} from "lucide-react";
+import {
+  revokeCertificateOnChain,
+  shortenAddress,
+  connectMetaMask,
+  isMetaMaskInstalled
+} from "../services/web3Service";
+import { API_BASE_URL, certificateApi, courseApi } from "../services/apiService";
+import CertificateCard from "../components/CertificateCard";
+import { toast } from "../components/ToastContainer";
 
-export default function CertificatesListPage({ wallet, user }) {
-  const [searchParams] = useSearchParams();
+const formatDateVN = (val) => {
+  if (!val) return "—";
+  const str = String(val).slice(0, 10);
+  const parts = str.split("-");
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : str;
+};
+
+const hasTokenId = (val) => val !== null && val !== undefined && val !== "";
+
+export default function CertificatesListPage({ wallet, setWallet, user }) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const initialStatus = searchParams.get("status") || "ALL";
+  const isAdmin = user?.role === "ADMIN";
 
-  const [certs, setCerts] = useState(() => getAllCertificates());
+  const [certs, setCerts] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [courseFilter, setCourseFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
+
+  // Detail Modal state (hydrated via GET /api/certificates/:id)
+  const [selectedCert, setSelectedCert] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Delete Draft Modal state
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Revoke Modal state
   const [revokeTarget, setRevokeTarget] = useState(null);
   const [revokeReason, setRevokeReason] = useState("");
   const [revoking, setRevoking] = useState(false);
-  const [selectedProof, setSelectedProof] = useState(null);
-  const [copiedTx, setCopiedTx] = useState(false);
-  const [mintingId, setMintingId] = useState(null);
+  const [reconcilingCode, setReconcilingCode] = useState("");
 
-  const handleMintDraft = async (cert) => {
-    if (user?.role !== "ADMIN") {
-      alert("LỖI PHÂN QUYỀN (403): Chỉ Quản trị viên (ADMIN) mới có thẩm quyền ký ví phát hành on-chain!");
-      return;
+  useEffect(() => {
+    const paramStatus = searchParams.get("status") || "ALL";
+    setStatusFilter(paramStatus);
+  }, [searchParams]);
+
+  const handleStatusFilterChange = (nextStatus) => {
+    setStatusFilter(nextStatus);
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextStatus === "ALL") {
+      nextParams.delete("status");
+    } else {
+      nextParams.set("status", nextStatus);
     }
-    let activeWallet = wallet;
-    if (!activeWallet || !activeWallet.signer) {
-      try {
-        activeWallet = await connectMetaMask();
-      } catch (e) {
-        alert("Vui lòng kết nối ví MetaMask để ký giao dịch đúc on-chain: " + (e.message || e));
-        return;
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  // Close open modals cleanly on Escape key (when not mid-request)
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key !== "Escape") return;
+      if (selectedCert) setSelectedCert(null);
+      else if (deleteTarget && !deleting) setDeleteTarget(null);
+      else if (revokeTarget && !revoking) {
+        setRevokeTarget(null);
+        setRevokeReason("");
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedCert, deleteTarget, deleting, revokeTarget, revoking]);
+
+  const getPendingReconcileMap = () => {
+    try {
+      return JSON.parse(localStorage.getItem("koheni_pending_reconcile") || "{}");
+    } catch {
+      return {};
+    }
+  };
+
+  const deriveEffectiveStatus = (d, pendingReconcileMap) => {
+    const rec = pendingReconcileMap[d.certificate_code];
+    if (d.status === "PENDING") {
+      if (rec) return "PENDING_RECONCILE";
+      if (d.ipfs_hash) return "READY_TO_MINT";
+      return "PENDING";
+    }
+    if (d.status === "ISSUED_ON_CHAIN" && d.expiry_date) {
+      const expiryStr = String(d.expiry_date).slice(0, 10);
+      const expiryMs = new Date(`${expiryStr}T23:59:59`).getTime();
+      if (!Number.isNaN(expiryMs) && expiryMs < Date.now()) {
+        return "EXPIRED";
       }
     }
-
-    setMintingId(cert.certificate_code);
-    try {
-      const payloadToMint = {
-        ...cert,
-        status: "ISSUED_ON_CHAIN"
-      };
-      await issueCertificateOnChain(payloadToMint, activeWallet);
-      alert(`Đã ký đúc on-chain thành công cho chứng chỉ [${cert.certificate_code}]!`);
-      await loadCerts();
-    } catch (err) {
-      alert("Lỗi khi ký đúc on-chain: " + (err.message || err));
-    } finally {
-      setMintingId(null);
-    }
+    return d.status;
   };
 
   const loadCerts = useCallback(async () => {
     setLoading(true);
+    setApiError("");
     try {
-      const res = await certificateApi.getCertificates({
-        limit: 100,
-        status: statusFilter,
-        search: searchTerm
-      });
-      if (res.success && Array.isArray(res.data)) {
-        const mapped = res.data.map(d => ({
-          id: d.id,
-          certificate_code: d.certificate_code,
-          student_name: d.student_name,
-          student_code: d.student_code,
-          course_name: d.course_name,
-          course_code: d.course_code,
-          score: d.score_overall,
-          issue_date: d.issue_date ? d.issue_date.slice(0, 10) : "",
-          status: d.status,
-          token_id: d.token_id,
-          tx_hash: d.tx_hash,
-          ipfs_hash: d.ipfs_hash,
-          pdf_url: `http://localhost:5000/api/public/pdf/${d.certificate_code}`
-        }));
+      const [res, crsRes] = await Promise.allSettled([
+        certificateApi.getCertificates({ limit: 100, status: "ALL" }),
+        courseApi.getCourses()
+      ]);
+
+      if (crsRes.status === "fulfilled" && crsRes.value?.success && Array.isArray(crsRes.value.data)) {
+        setCourses(crsRes.value.data);
+      }
+
+      const pendingReconcileMap = getPendingReconcileMap();
+
+      if (res.status === "fulfilled" && res.value?.success && Array.isArray(res.value.data)) {
+        const mapped = res.value.data.map((d) => {
+          const rec = pendingReconcileMap[d.certificate_code];
+          const effectiveStatus = deriveEffectiveStatus(d, pendingReconcileMap);
+          return {
+            ...d,
+            raw_status: d.status,
+            status: effectiveStatus,
+            reconcile_info: rec || null,
+            score: d.score_overall,
+            listening: d.score_listening ?? d.listening ?? "",
+            reading: d.score_reading ?? d.reading ?? "",
+            writing: d.score_writing ?? d.writing ?? "",
+            speaking: d.score_speaking ?? d.speaking ?? "",
+            issue_date: d.issue_date ? String(d.issue_date).slice(0, 10) : "",
+            expiry_date: d.expiry_date ? String(d.expiry_date).slice(0, 10) : "",
+            pdf_url: `${API_BASE_URL}/public/pdf/${d.certificate_code}`
+          };
+        });
         setCerts(mapped);
         return;
       }
+
+      setApiError("Không thể tải danh sách chứng chỉ từ máy chủ. Vui lòng kiểm tra kết nối Backend và thử lại.");
     } catch {
-      // offline fallback sang LocalStorage
+      setApiError("Không thể tải danh sách chứng chỉ từ máy chủ. Vui lòng kiểm tra kết nối Backend và thử lại.");
     } finally {
       setLoading(false);
     }
-    setCerts(getAllCertificates());
-  }, [statusFilter, searchTerm]);
+  }, []);
 
   useEffect(() => {
     loadCerts();
   }, [loadCerts]);
 
-  // Tự động bỏ bản nháp (Draft / PENDING) cũ khi học viên đã có chứng chỉ HỢP LỆ (ISSUED_ON_CHAIN)
-  const validCertKeys = new Set(
-    certs
-      .filter(c => c.status === "ISSUED_ON_CHAIN")
-      .map(c => `${c.student_code || c.student_name}_${c.course_code || c.course_name}`)
-  );
-
-  const cleanCerts = certs.filter(c => {
-    if (c.status === "PENDING") {
-      const key = `${c.student_code || c.student_name}_${c.course_code || c.course_name}`;
-      if (validCertKeys.has(key)) {
-        return false; // Đã hợp lệ rồi thì tự động bỏ cái bản nháp kia
+  // Hydrate full detail (4 sub-scores, revoke_reason, rejection_reason, ipfs_hash, wallet) when opening preview modal
+  const handleViewCert = async (cert) => {
+    setSelectedCert(cert);
+    if (!cert?.id) return;
+    setLoadingDetail(true);
+    try {
+      const res = await certificateApi.getCertificateById(cert.id);
+      if (res?.success && res.data) {
+        const d = res.data;
+        const pendingReconcileMap = getPendingReconcileMap();
+        setSelectedCert({
+          ...cert,
+          ...d,
+          raw_status: d.status,
+          status: deriveEffectiveStatus(d, pendingReconcileMap),
+          score: d.score_overall || cert.score,
+          listening: d.score_listening ?? "",
+          reading: d.score_reading ?? "",
+          writing: d.score_writing ?? "",
+          speaking: d.score_speaking ?? "",
+          wallet_address: d.student_wallet || d.wallet_address || cert.wallet_address || "",
+          issue_date: d.issue_date ? String(d.issue_date).slice(0, 10) : cert.issue_date,
+          expiry_date: d.expiry_date ? String(d.expiry_date).slice(0, 10) : cert.expiry_date,
+          revoked_reason: d.revoke_reason || d.revoked_reason || null,
+          revoked_at: d.revoked_at ? String(d.revoked_at).slice(0, 10) : null,
+          pdf_url: `${API_BASE_URL}/public/pdf/${d.certificate_code}`
+        });
       }
+    } catch {
+      // Giữ thông tin cơ bản nếu API chi tiết tạm lỗi
+    } finally {
+      setLoadingDetail(false);
     }
-    return true;
-  });
+  };
 
-  const filteredCerts = cleanCerts.filter(c => {
+  const handleReconcileRow = async (cert) => {
+    const rec = cert.reconcile_info;
+    if (!rec?.tx_hash || !hasTokenId(rec?.token_id)) {
+      toast.warning("Không tìm thấy mã giao dịch (Tx Hash) & Token ID chờ đối soát. Vui lòng mở hồ sơ tại trang Duyệt & Cấp Bằng để kiểm tra.");
+      return;
+    }
+
+    setReconcilingCode(cert.certificate_code);
+    try {
+      await certificateApi.confirmMint({
+        certificate_id: cert.id,
+        tx_hash: rec.tx_hash,
+        token_id: String(rec.token_id)
+      });
+      try {
+        const map = getPendingReconcileMap();
+        delete map[cert.certificate_code];
+        localStorage.setItem("koheni_pending_reconcile", JSON.stringify(map));
+      } catch {}
+      toast.success(`Đã đối soát và xác minh thành công chứng chỉ [${cert.certificate_code}]!`);
+      await loadCerts();
+    } catch (err) {
+      toast.error("Đối soát chưa thành công: " + (err.message || err));
+    } finally {
+      setReconcilingCode("");
+    }
+  };
+
+  const pendingQueueCount = certs.filter(
+    (c) => c.status === "PENDING" || c.status === "READY_TO_MINT" || c.status === "PENDING_RECONCILE"
+  ).length;
+
+  const filteredCerts = certs.filter((c) => {
+    const q = searchTerm.trim().toLowerCase();
     const matchSearch =
-      c.certificate_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.student_code.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatus = statusFilter === "ALL" || c.status === statusFilter;
+      !q ||
+      (c.certificate_code || "").toLowerCase().includes(q) ||
+      (c.student_name || "").toLowerCase().includes(q) ||
+      (c.student_code || "").toLowerCase().includes(q) ||
+      (c.citizen_id || "").toLowerCase().includes(q);
+
+    const matchStatus =
+      statusFilter === "ALL" ||
+      (statusFilter === "PENDING"
+        ? c.status === "PENDING" || c.status === "READY_TO_MINT" || c.status === "PENDING_RECONCILE"
+        : c.status === statusFilter);
+
     const matchCourse = courseFilter === "ALL" || c.course_code === courseFilter;
     return matchSearch && matchStatus && matchCourse;
   });
 
-  
-  const handleDeleteDraft = async (cert) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn bỏ bản nháp [${cert.certificate_code}] của học viên ${cert.student_name}?`)) {
-      return;
-    }
+  const handleConfirmDeleteDraft = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      if (cert.id) {
-        await certificateApi.deleteCertificate(cert.id);
+      if (deleteTarget.id) {
+        await certificateApi.deleteCertificate(deleteTarget.id);
       }
-      setCerts(prev => prev.filter(c => c.certificate_code !== cert.certificate_code));
+      const deletedCode = deleteTarget.certificate_code;
+      setCerts((prev) => prev.filter((c) => c.certificate_code !== deletedCode));
       try {
         const raw = localStorage.getItem("certchain_certificates");
         if (raw) {
-          const list = JSON.parse(raw).filter(c => c.certificate_code !== cert.certificate_code);
+          const list = JSON.parse(raw).filter((c) => c.certificate_code !== deletedCode);
           localStorage.setItem("certchain_certificates", JSON.stringify(list));
         }
       } catch {}
-      alert(`Đã xóa bỏ bản nháp [${cert.certificate_code}] thành công!`);
+      setDeleteTarget(null);
+      toast.success(`Đã xóa bỏ hồ sơ [${deletedCode}] thành công!`);
     } catch (err) {
-      alert("Lỗi khi xóa bản nháp: " + (err.message || err));
+      toast.error("Lỗi khi xóa hồ sơ: " + (err.message || err));
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const closeRevokeModal = () => {
+    if (revoking) return;
+    setRevokeTarget(null);
+    setRevokeReason("");
   };
 
   const handleConfirmRevoke = async () => {
     if (!revokeTarget) return;
-    if (user?.role !== "ADMIN") {
-      alert("LỖI PHÂN QUYỀN (403): Chỉ Quản trị viên (ADMIN) mới có thẩm quyền thu hồi chứng chỉ trên Blockchain!");
+    if (!isAdmin) {
+      toast.error("Chỉ Quản trị viên (ADMIN) mới có thẩm quyền thu hồi chứng chỉ!");
       return;
     }
-    if (!revokeReason.trim()) {
-      alert("Vui lòng nhập lý do thu hồi chứng chỉ!");
+    if (!hasTokenId(revokeTarget.token_id)) {
+      toast.error("Chứng chỉ này thiếu Token ID on-chain hợp lệ nên không thể ký thu hồi.");
+      return;
+    }
+    const cleanReason = revokeReason.trim();
+    if (!cleanReason) {
+      toast.warning("Vui lòng nhập lý do thu hồi chứng chỉ!");
       return;
     }
 
     setRevoking(true);
     try {
+      let activeWallet = wallet;
+      if (!activeWallet?.signer) {
+        if (!isMetaMaskInstalled()) {
+          throw new Error("Vui lòng cài đặt hoặc mở khóa ví MetaMask của Quản trị viên trước khi ký thu hồi.");
+        }
+        activeWallet = await connectMetaMask();
+        if (activeWallet && setWallet) {
+          setWallet(activeWallet);
+        }
+      }
+      if (!activeWallet?.signer) {
+        throw new Error("Không lấy được chữ ký ví MetaMask của Quản trị viên.");
+      }
+
       await revokeCertificateOnChain(
         revokeTarget.certificate_code,
-        revokeReason,
+        cleanReason,
         revokeTarget.id,
         revokeTarget.token_id,
-        wallet
+        activeWallet
       );
       await loadCerts();
+      const revokedCode = revokeTarget.certificate_code;
       setRevokeTarget(null);
       setRevokeReason("");
-      alert(`Đã ghi nhận thu hồi thành công chứng chỉ [${revokeTarget.certificate_code}] trên Smart Contract và MySQL!`);
+      toast.success(`Đã ghi nhận thu hồi on-chain thành công chứng chỉ [${revokedCode}]!`);
     } catch (err) {
-      alert("Lỗi khi thu hồi: " + (err.message || err));
+      toast.error("Lỗi khi thu hồi: " + (err.message || err));
     } finally {
       setRevoking(false);
     }
   };
 
+  const isPubliclyIssued = (status) =>
+    status === "ISSUED_ON_CHAIN" || status === "REVOKED" || status === "EXPIRED";
+
+  const handleOpenPdf = async (certificateCode) => {
+    try {
+      await certificateApi.openCertificatePdf(certificateCode);
+    } catch (err) {
+      toast.error(err.message || "Không thể tải file PDF chứng chỉ từ IPFS.");
+    }
+  };
+
   return (
-    <div>
+    <div className="admin-page admin-certificates">
+      {/* Offline / API Error Banner */}
+      {apiError && (
+        <div
+          style={{
+            marginBottom: "18px",
+            padding: "12px 16px",
+            borderRadius: "14px",
+            background: "rgba(239, 68, 68, 0.09)",
+            border: "1px solid rgba(239, 68, 68, 0.28)",
+            color: "var(--danger-text)",
+            fontSize: "13px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px"
+          }}
+        >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: 600 }}>
+            <AlertTriangle size={16} />
+            {apiError}
+          </span>
+          <button type="button" onClick={loadCerts} className="btn btn-outline" style={{ padding: "5px 12px", fontSize: "12px" }}>
+            Thử lại
+          </button>
+        </div>
+      )}
+
       {/* Page Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
+      <div className="admin-page-heading" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "22px", flexWrap: "wrap", gap: "16px" }}>
         <div>
-          <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-primary)" }}>
-            Danh Sách & <span className="text-gradient">Thu Hồi Chứng Chỉ</span>
+          <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.5px" }}>
+            {isAdmin ? "Danh Sách & Thu Hồi Chứng Chỉ" : "Danh Sách Chứng Chỉ Khảo Thí"}
           </h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>
-            Quản lý toàn bộ hồ sơ chứng chỉ Soulbound Token đã phát hành on-chain và hủy hiệu lực khi có vi phạm.
+          <p style={{ color: "var(--text-muted)", fontSize: "13.5px", marginTop: "3px" }}>
+            {isAdmin
+              ? "Quản lý toàn bộ hồ sơ chứng chỉ điện tử đã phát hành và hủy hiệu lực khi có vi phạm."
+              : "Theo dõi tiến độ duyệt hồ sơ nháp và tra cứu danh sách chứng chỉ của trung tâm."}
           </p>
         </div>
 
-        <Link to="/admin/certificates/issue" className="btn btn-primary">
-          <Plus size={16} />
-          {user?.role === "ADMIN" ? "Cấp Bằng Mới" : "Soạn Bản Nháp"}
-        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <button type="button" onClick={loadCerts} className="finnova-icon-circle" title="Làm mới danh sách">
+            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+          </button>
+          <Link to="/admin/certificates/issue" className="finnova-cta-pill">
+            <Plus size={16} />
+            {isAdmin ? "Cấp Bằng Mới" : "Soạn Bản Nháp"}
+          </Link>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="glass-panel" style={{ padding: "16px 20px", marginBottom: "24px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto auto", gap: "12px", alignItems: "center" }}>
-          
+      <div className="finnova-kpi-card" style={{ padding: "16px 20px", marginBottom: "20px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "12px", alignItems: "center" }}>
           <div style={{ position: "relative" }}>
             <input
               type="text"
-              placeholder="Tìm theo mã bằng, tên học viên, mã học viên..."
+              placeholder="Tìm theo mã bằng, tên học viên, mã học viên hoặc số CCCD..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') loadCerts(); }}
               className="form-input"
-              style={{ paddingLeft: "38px" }}
+              style={{ paddingLeft: "38px", paddingRight: searchTerm ? "34px" : "14px" }}
             />
-            <Search size={16} color="var(--text-muted)" style={{ position: "absolute", left: "12px", top: "14px" }} />
+            <Search size={16} color="var(--text-muted)" style={{ position: "absolute", left: "12px", top: "13px" }} />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                aria-label="Xóa từ khóa tìm kiếm"
+                style={{
+                  position: "absolute",
+                  right: "10px",
+                  top: "11px",
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--text-muted)",
+                  cursor: "pointer",
+                  padding: "2px",
+                  display: "flex"
+                }}
+              >
+                <X size={15} />
+              </button>
+            )}
           </div>
 
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="form-select" style={{ minWidth: "180px" }}>
+          <select
+            value={statusFilter}
+            onChange={(e) => handleStatusFilterChange(e.target.value)}
+            className="form-select"
+            style={{ minWidth: "210px" }}
+          >
             <option value="ALL">Tất cả trạng thái ({certs.length})</option>
-            <option value="ISSUED_ON_CHAIN">Hợp lệ On-Chain ({certs.filter(c => c.status === "ISSUED_ON_CHAIN").length})</option>
-            <option value="REVOKED">Đã thu hồi ({certs.filter(c => c.status === "REVOKED").length})</option>
-            <option value="PENDING">Bản nháp Draft ({certs.filter(c => c.status === "PENDING").length})</option>
+            <option value="PENDING">Chờ duyệt / xử lý ({pendingQueueCount})</option>
+            <option value="ISSUED_ON_CHAIN">Đang hiệu lực ({certs.filter((c) => c.status === "ISSUED_ON_CHAIN").length})</option>
+            <option value="READY_TO_MINT">Sẵn sàng cấp ({certs.filter((c) => c.status === "READY_TO_MINT").length})</option>
+            <option value="PENDING_RECONCILE">Chờ đối soát ({certs.filter((c) => c.status === "PENDING_RECONCILE").length})</option>
+            <option value="REJECTED">Bị từ chối ({certs.filter((c) => c.status === "REJECTED").length})</option>
+            <option value="REVOKED">Đã thu hồi ({certs.filter((c) => c.status === "REVOKED").length})</option>
+            <option value="EXPIRED">Đã hết hạn ({certs.filter((c) => c.status === "EXPIRED").length})</option>
           </select>
 
-          <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className="form-select" style={{ minWidth: "170px" }}>
+          <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className="form-select" style={{ minWidth: "185px" }}>
             <option value="ALL">Tất cả khóa học</option>
-            <option value="IELTS-ACAD">IELTS Academic</option>
-            <option value="TOEIC-INT">TOEIC 4 Kỹ Năng</option>
-            <option value="VSTEP-C1">VSTEP B2-C1</option>
-            <option value="CAMBRIDGE-CAE">Cambridge CAE</option>
+            {courses.length > 0 ? (
+              courses.map((cr) => (
+                <option key={cr.course_code} value={cr.course_code}>{cr.course_name}</option>
+              ))
+            ) : (
+              Array.from(new Map(certs.filter((c) => c.course_code).map((c) => [c.course_code, c.course_name || c.course_code])).entries()).map(([code, name]) => (
+                <option key={code} value={code}>{name}</option>
+              ))
+            )}
           </select>
+        </div>
 
-          <button type="button" onClick={loadCerts} className="btn btn-outline" title="Làm mới dữ liệu từ CSDL">
-            <RefreshCw size={15} />
-          </button>
-
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px", fontSize: "12px", color: "var(--text-muted)" }}>
+          <span>
+            Hiển thị <strong style={{ color: "var(--text-primary)" }}>{filteredCerts.length}</strong> / {certs.length} hồ sơ chứng chỉ
+          </span>
+          {(searchTerm || statusFilter !== "ALL" || courseFilter !== "ALL") && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm("");
+                setCourseFilter("ALL");
+                handleStatusFilterChange("ALL");
+              }}
+              style={{ background: "none", border: "none", color: "var(--primary)", fontWeight: 600, fontSize: "12px", cursor: "pointer" }}
+            >
+              Đặt lại bộ lọc
+            </button>
+          )}
         </div>
       </div>
 
       {/* Table of Certificates */}
-      <div className="glass-panel" style={{ padding: "20px" }}>
+      <div className="finnova-kpi-card" style={{ padding: "18px 20px" }}>
         <div className="table-responsive">
           <table className="app-table">
             <thead>
               <tr>
                 <th>MÃ BẰNG</th>
                 <th>HỌC VIÊN</th>
-                <th>KHÓA HỌC & ĐIỂM</th>
+                <th>KHÓA HỌC &amp; ĐIỂM</th>
                 <th>NGÀY CẤP</th>
-                <th>TRẠNG THÁI BLOCKCHAIN</th>
-                <th>BẰNG CHỨNG ON-CHAIN</th>
+                <th>TRẠNG THÁI</th>
+                <th>THÔNG TIN XÁC THỰC</th>
                 <th style={{ textAlign: "right" }}>THAO TÁC</th>
               </tr>
             </thead>
@@ -251,8 +503,10 @@ export default function CertificatesListPage({ wallet, user }) {
               {loading ? (
                 <tr>
                   <td colSpan="7" style={{ textAlign: "center", padding: "48px 20px", color: "var(--text-muted)" }}>
-                    <RefreshCw size={24} className="animate-spin" style={{ margin: "0 auto 8px" }} />
-                    <div style={{ fontSize: "14px", fontWeight: 600 }}>Đang tải danh sách chứng chỉ từ CSDL & Blockchain...</div>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600 }}>
+                      <RefreshCw size={16} className="animate-spin" />
+                      Đang tải danh sách chứng chỉ...
+                    </div>
                   </td>
                 </tr>
               ) : filteredCerts.length === 0 ? (
@@ -264,211 +518,182 @@ export default function CertificatesListPage({ wallet, user }) {
                 </tr>
               ) : (
                 filteredCerts.map((c) => (
-                  <tr key={c.id}>
-                    
-                    <td style={{ fontWeight: 700, color: "var(--primary)" }}>
+                  <tr key={c.id || c.certificate_code}>
+                    <td style={{ fontWeight: 700, color: "var(--primary)", fontFamily: "monospace", fontSize: "13px" }}>
                       {c.certificate_code}
                     </td>
 
                     <td>
-                      <div style={{ fontWeight: 600 }}>{c.student_name}</div>
-                      <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{c.student_code}</div>
-                    </td>
-
-                    <td>
-                      <div>{c.course_name}</div>
-                      <div style={{ fontSize: "12px", color: "var(--accent-gold)", fontWeight: 700 }}>{c.score}</div>
-                    </td>
-
-                    <td style={{ color: "var(--text-secondary)" }}>
-                      {c.issue_date}
-                    </td>
-
-                    <td>
-                      {c.status === "ISSUED_ON_CHAIN" && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedProof(c)}
-                          className="badge badge-success"
-                          style={{
-                            cursor: "pointer",
-                            border: "1px solid rgba(16, 185, 129, 0.4)",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "5px",
-                            padding: "5px 10px",
-                            borderRadius: "20px",
-                            background: "rgba(16, 185, 129, 0.12)",
-                            color: "#10b981",
-                            fontWeight: 700,
-                            fontSize: "12px",
-                            boxShadow: "0 2px 4px rgba(16, 185, 129, 0.1)"
-                          }}
-                          title="Nhấn để xem Bằng Chứng On-Chain chi tiết"
-                        >
-                          <ShieldCheck size={13} />
-                          Hợp Lệ
-                        </button>
-                      )}
-                      {c.status === "REVOKED" && <span className="badge badge-danger">Đã Thu Hồi</span>}
-                      {c.status === "PENDING" && <span className="badge badge-warning">Draft (Nháp)</span>}
-                    </td>
-
-                    <td style={{ fontSize: "11px" }}>
-                      {c.tx_hash ? (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedProof(c)}
-                          style={{
-                            background: "rgba(59, 130, 246, 0.08)",
-                            border: "1px solid rgba(59, 130, 246, 0.28)",
-                            borderRadius: "8px",
-                            padding: "6px 10px",
-                            cursor: "pointer",
-                            textAlign: "left",
-                            display: "block",
-                            width: "100%",
-                            maxWidth: "180px",
-                            transition: "all 0.15s ease"
-                          }}
-                          title="Nhấn để xem đầy đủ Transaction Hash và Token ID"
-                        >
-                          <div style={{ fontWeight: 700, color: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
-                            <span>Token #{c.token_id || "N/A"}</span>
-                            <ExternalLink size={12} />
-                          </div>
-                          <div style={{ color: "var(--text-muted)", fontSize: "11px", fontFamily: "monospace", marginTop: "2px" }}>
-                            Tx: {shortenAddress(c.tx_hash)}
-                          </div>
-                        </button>
-                      ) : (
-                        <div style={{ color: "var(--text-muted)" }}>Chưa lên chuỗi</div>
-                      )}
-                    </td>
-
-                    <td style={{ textAlign: "right" }}>
-                      <div style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
-                        {c.status === "ISSUED_ON_CHAIN" && (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedProof(c)}
-                            className="btn btn-outline"
-                            style={{
-                              padding: "6px 10px",
-                              fontSize: "12px",
-                              color: "var(--primary)",
-                              borderColor: "rgba(59, 130, 246, 0.5)",
-                              background: "rgba(59, 130, 246, 0.05)",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              fontWeight: 600
-                            }}
-                            title="Bấm vào đây để mở Bằng Chứng Blockchain"
-                          >
-                            <ShieldCheck size={14} />
-                            Bằng Chứng
-                          </button>
-                        )}
-
-                        <Link
-                          to={`/verify?code=${c.certificate_code}`}
-                          className="btn btn-outline"
-                          style={{ padding: "6px 12px", fontSize: "12px" }}
-                          title="Xem trên trang thẩm định công khai"
-                        >
-                          <Eye size={14} />
-                          Xem
-                        </Link>
-
-                        <button
-                          type="button"
-                          onClick={() => window.open(`http://localhost:5000/api/public/pdf/${c.certificate_code}`, "_blank")}
-                          className="btn btn-outline"
-                          style={{ padding: "6px 10px", fontSize: "12px" }}
-                          title="Tải phôi bằng PDF có mã QR thật"
-                        >
-                          <Download size={14} />
-                        </button>
-
-                        {c.status === "PENDING" && (
-                          <>
-                            {user?.role === "ADMIN" && (
-                              <button
-                                type="button"
-                                disabled={mintingId === c.certificate_code}
-                                onClick={() => handleMintDraft(c)}
-                                className="btn btn-primary"
-                                style={{
-                                  padding: "6px 12px",
-                                  fontSize: "12px",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: "4px"
-                                }}
-                                title="Ký ví MetaMask để đúc chứng chỉ này lên Smart Contract"
-                              >
-                                {mintingId === c.certificate_code ? (
-                                  <>
-                                    <RefreshCw size={12} className="animate-spin" />
-                                    Đang Đúc...
-                                  </>
-                                ) : (
-                                  <>
-                                    <ShieldCheck size={13} />
-                                    Ký Đúc On-Chain
-                                  </>
-                                )}
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteDraft(c)}
-                              className="btn btn-outline"
-                              style={{
-                                padding: "6px 12px",
-                                fontSize: "12px",
-                                color: "var(--danger-text)",
-                                borderColor: "rgba(239, 68, 68, 0.4)",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "4px"
-                              }}
-                              title="Xóa bỏ bản nháp này"
-                            >
-                              <Trash2 size={13} />
-                              Bỏ Nháp
-                            </button>
-                          </>
-                        )}
-
-                        {c.status === "ISSUED_ON_CHAIN" && (
-                          user?.role === "ADMIN" ? (
-                            <button
-                              type="button"
-                              onClick={() => setRevokeTarget(c)}
-                              className="btn btn-danger"
-                              style={{ padding: "6px 12px", fontSize: "12px" }}
-                              title="Thu hồi chứng chỉ on-chain (Chỉ Quản trị viên)"
-                            >
-                              <AlertOctagon size={14} />
-                              Thu Hồi
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled
-                              className="btn btn-outline"
-                              style={{ padding: "6px 12px", fontSize: "12px", opacity: 0.5 }}
-                              title="Chỉ Quản trị viên (ADMIN) mới có quyền thu hồi on-chain"
-                            >
-                              Thu Hồi (Khóa)
-                            </button>
-                          )
-                        )}
+                      <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{c.student_name}</div>
+                      <div style={{ fontSize: "11.5px", color: "var(--text-muted)" }}>
+                        {c.student_code}
+                        {c.citizen_id && <span> • CCCD: {c.citizen_id}</span>}
                       </div>
                     </td>
 
+                    <td>
+                      <div style={{ fontWeight: 500 }}>{c.course_name}</div>
+                      <div style={{ fontSize: "12.5px", color: "#0369a1", fontWeight: 700, marginTop: "2px" }}>{c.score}</div>
+                    </td>
+
+                    <td style={{ color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>
+                      <div>{formatDateVN(c.issue_date)}</div>
+                      {c.expiry_date && (
+                        <div style={{ fontSize: "11px", color: c.status === "EXPIRED" ? "var(--danger-text)" : "var(--text-muted)" }}>
+                          Hạn: {formatDateVN(c.expiry_date)}
+                        </div>
+                      )}
+                    </td>
+
+                    <td>
+                      {c.status === "ISSUED_ON_CHAIN" && <span className="badge badge-success">Hợp Lệ</span>}
+                      {c.status === "REVOKED" && <span className="badge badge-danger">Đã Thu Hồi</span>}
+                      {c.status === "PENDING" && <span className="badge badge-warning">Chờ Duyệt</span>}
+                      {c.status === "READY_TO_MINT" && <span className="badge badge-info">Sẵn Sàng Cấp</span>}
+                      {c.status === "PENDING_RECONCILE" && <span className="badge badge-warning">Chờ Đối Soát</span>}
+                      {c.status === "REJECTED" && (
+                        <div>
+                          <span className="badge badge-danger">Bị Từ Chối</span>
+                          {(c.rejection_reason || c.reject_reason) && (
+                            <div style={{ fontSize: "11px", color: "var(--danger-text)", marginTop: "4px", maxWidth: "180px", lineHeight: 1.35 }}>
+                              Lý do: {c.rejection_reason || c.reject_reason}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {c.status === "EXPIRED" && (
+                        <span className="badge" style={{ background: "rgba(148, 163, 184, 0.15)", color: "#64748b", border: "1px solid rgba(148, 163, 184, 0.35)" }}>
+                          Hết Hạn
+                        </span>
+                      )}
+                    </td>
+
+                    <td style={{ fontSize: "11.5px" }}>
+                      <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                        {hasTokenId(c.token_id)
+                          ? `Token #${c.token_id}`
+                          : hasTokenId(c.reconcile_info?.token_id)
+                          ? `Token chờ đối soát: #${c.reconcile_info.token_id}`
+                          : c.status === "REJECTED"
+                          ? "Không phát hành"
+                          : c.ipfs_hash
+                          ? `CID: ${c.ipfs_hash.slice(0, 12)}...`
+                          : "Chưa cấp mã"}
+                      </div>
+                      <div style={{ color: "var(--text-muted)", fontFamily: c.tx_hash || c.reconcile_info?.tx_hash ? "monospace" : "inherit" }}>
+                        {c.tx_hash
+                          ? `Tx: ${shortenAddress(c.tx_hash)}`
+                          : c.reconcile_info?.tx_hash
+                          ? `Tx chờ: ${shortenAddress(c.reconcile_info.tx_hash)}`
+                          : c.status === "REJECTED"
+                          ? "Đã từ chối duyệt"
+                          : c.status === "READY_TO_MINT"
+                          ? "Đã lưu PDF lên IPFS"
+                          : "Đang chờ phê duyệt"}
+                      </div>
+                    </td>
+
+                    <td style={{ textAlign: "right" }}>
+                      <div style={{ display: "inline-flex", gap: "7px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                        <button
+                          type="button"
+                          onClick={() => handleViewCert(c)}
+                          className="btn btn-outline"
+                          style={{ padding: "6px 11px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                          title="Xem hồ sơ chứng chỉ chi tiết"
+                        >
+                          <Eye size={14} />
+                          Xem
+                        </button>
+
+                        {isPubliclyIssued(c.status) && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPdf(c.certificate_code)}
+                            className="btn btn-outline"
+                            style={{ padding: "6px 10px", fontSize: "12px" }}
+                            title="Tải bản in PDF có mã QR xác thực"
+                          >
+                            <Download size={14} />
+                          </button>
+                        )}
+
+                        {(c.status === "PENDING" || c.status === "READY_TO_MINT") && isAdmin && (
+                          <Link
+                            to={`/admin/certificates/issue?code=${c.certificate_code}`}
+                            className="btn btn-gold"
+                            style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                            title={c.status === "READY_TO_MINT" ? "Hồ sơ đã sẵn sàng IPFS — Ký MetaMask cấp bằng" : "Kiểm tra, chuẩn bị IPFS và ký phát hành"}
+                          >
+                            <Sparkles size={13} />
+                            {c.status === "READY_TO_MINT" ? "Ký Cấp Ngay" : "Duyệt & Cấp"}
+                          </Link>
+                        )}
+
+                        {c.status === "REJECTED" && !isAdmin && (
+                          <Link
+                            to={`/admin/certificates/issue?student=${encodeURIComponent(c.student_code || "")}&course=${encodeURIComponent(c.course_code || "")}`}
+                            className="btn btn-primary"
+                            style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                            title="Soạn lại hồ sơ mới cho học viên này"
+                          >
+                            <FileText size={13} />
+                            Soạn Lại
+                          </Link>
+                        )}
+
+                        {(c.status === "PENDING" || c.status === "REJECTED") && !isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(c)}
+                            className="btn btn-outline"
+                            style={{
+                              padding: "6px 11px",
+                              fontSize: "12px",
+                              color: "var(--danger-text)",
+                              borderColor: "rgba(225, 29, 72, 0.35)",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px"
+                            }}
+                            title={c.status === "REJECTED" ? "Xóa hồ sơ bị từ chối này" : "Xóa bỏ bản nháp chờ duyệt này"}
+                          >
+                            <Trash2 size={13} />
+                            {c.status === "REJECTED" ? "Xóa" : "Bỏ Nháp"}
+                          </button>
+                        )}
+
+                        {c.status === "PENDING_RECONCILE" && isAdmin && (
+                          <button
+                            type="button"
+                            disabled={reconcilingCode === c.certificate_code}
+                            onClick={() => handleReconcileRow(c)}
+                            className="btn btn-primary"
+                            style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                            title="Gửi lại yêu cầu Backend xác minh giao dịch on-chain đã ký"
+                          >
+                            <RefreshCw size={13} className={reconcilingCode === c.certificate_code ? "animate-spin" : ""} />
+                            Đối Soát
+                          </button>
+                        )}
+
+                        {(c.status === "ISSUED_ON_CHAIN" || c.status === "EXPIRED") && isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRevokeReason("");
+                              setRevokeTarget(c);
+                            }}
+                            className="btn btn-danger"
+                            style={{ padding: "6px 12px", fontSize: "12px" }}
+                            title="Thu hồi chứng chỉ (Chỉ Quản trị viên)"
+                          >
+                            <AlertOctagon size={14} />
+                            Thu Hồi
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -477,39 +702,114 @@ export default function CertificatesListPage({ wallet, user }) {
         </div>
       </div>
 
+      {/* Delete Draft Confirmation Modal */}
+      {deleteTarget && (
+        <div
+          onClick={() => { if (!deleting) setDeleteTarget(null); }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "var(--bg-modal-backdrop)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 999,
+            padding: "20px"
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel"
+            style={{ maxWidth: "460px", width: "100%", padding: "28px", background: "var(--bg-surface-elevated)", borderColor: "rgba(225, 29, 72, 0.3)" }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px", color: "var(--danger-text)" }}>
+              <Trash2 size={22} />
+              <h3 style={{ fontSize: "18px", fontWeight: 800 }}>
+                {deleteTarget.status === "REJECTED" ? "Xác Nhận Xóa Hồ Sơ Bị Từ Chối" : "Xác Nhận Xóa Bản Nháp"}
+              </h3>
+            </div>
+            <p style={{ color: "var(--text-secondary)", fontSize: "13.5px", lineHeight: 1.55, marginBottom: "20px" }}>
+              Bạn có chắc chắn muốn xóa bỏ hồ sơ <strong>{deleteTarget.certificate_code}</strong> của học viên <strong>{deleteTarget.student_name}</strong>? Hành động này không thể hoàn tác.
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              <button type="button" disabled={deleting} onClick={() => setDeleteTarget(null)} className="btn btn-outline">
+                Hủy Bỏ
+              </button>
+              <button type="button" disabled={deleting} onClick={handleConfirmDeleteDraft} className="btn btn-danger">
+                {deleting ? "Đang xóa..." : "Xác Nhận Xóa"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Revoke Confirmation Modal */}
       {revokeTarget && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "var(--bg-modal-backdrop)",
-          backdropFilter: "blur(8px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 999,
-          padding: "20px"
-        }}>
-          <div className="glass-panel" style={{
-            maxWidth: "500px",
-            width: "100%",
-            padding: "32px",
-            background: "var(--bg-surface-elevated)",
-            borderColor: "rgba(239, 68, 68, 0.4)"
-          }}>
-            
+        <div
+          onClick={closeRevokeModal}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "var(--bg-modal-backdrop)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 999,
+            padding: "20px"
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel"
+            style={{
+              maxWidth: "500px",
+              width: "100%",
+              padding: "32px",
+              background: "var(--bg-surface-elevated)",
+              borderColor: "rgba(225, 29, 72, 0.35)"
+            }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px", color: "var(--danger-text)" }}>
-              <AlertOctagon size={28} />
+              <AlertOctagon size={26} />
               <h3 style={{ fontSize: "20px", fontWeight: 800 }}>Xác Nhận Thu Hồi Chứng Chỉ</h3>
             </div>
 
-            <p style={{ color: "var(--text-secondary)", fontSize: "14px", lineHeight: 1.5, marginBottom: "16px" }}>
-              Hành động này sẽ thực thi giao dịch gọi hàm <code>revokeCertificate()</code> trên Smart Contract và chuyển trạng thái của bằng <strong>{revokeTarget.certificate_code}</strong> ({revokeTarget.student_name}) sang <strong>REVOKED</strong> vĩnh viễn trên sổ cái Blockchain và MySQL.
+            <p style={{ color: "var(--text-secondary)", fontSize: "13px", lineHeight: 1.5, marginBottom: "14px" }}>
+              Hành động này sẽ hủy bỏ vĩnh viễn tính hiệu lực của chứng chỉ trên toàn hệ thống và không thể phục hồi.
             </p>
+
+            {/* Checklist đối soát trước khi ký */}
+            <div style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "var(--radius-sm)",
+              padding: "12px 14px",
+              marginBottom: "16px",
+              fontSize: "12px"
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                <span style={{ color: "var(--text-muted)" }}>Mã chứng chỉ:</span>
+                <strong style={{ color: "var(--primary)" }}>{revokeTarget.certificate_code}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                <span style={{ color: "var(--text-muted)" }}>Học viên sở hữu:</span>
+                <span style={{ fontWeight: 600 }}>{revokeTarget.student_name} ({revokeTarget.student_code})</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                <span style={{ color: "var(--text-muted)" }}>Khóa học &amp; Điểm:</span>
+                <span style={{ color: "var(--accent-gold)", fontWeight: 700 }}>{revokeTarget.course_name} • {revokeTarget.score}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Token ID on-chain:</span>
+                <span>{hasTokenId(revokeTarget.token_id) ? `#${revokeTarget.token_id}` : "N/A"}</span>
+              </div>
+            </div>
 
             <div className="form-group">
               <label className="form-label" style={{ color: "var(--danger-text)" }}>
-                Lý do thu hồi (Bắt buộc ghi nhận on-chain):
+                Lý do thu hồi (Bắt buộc ghi nhận trên hệ thống):
               </label>
               <textarea
                 rows="3"
@@ -524,7 +824,7 @@ export default function CertificatesListPage({ wallet, user }) {
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" }}>
               <button
                 type="button"
-                onClick={() => setRevokeTarget(null)}
+                onClick={closeRevokeModal}
                 disabled={revoking}
                 className="btn btn-outline"
               >
@@ -540,268 +840,151 @@ export default function CertificatesListPage({ wallet, user }) {
                 {revoking ? (
                   <>
                     <RefreshCw size={16} className="animate-spin" />
-                    Đang gửi transaction...
+                    Đang ký xác thực...
                   </>
                 ) : (
-                  "Ký MetaMask & Thu Hồi Vĩnh Viễn"
+                  "Ký Xác Thực & Thu Hồi Vĩnh Viễn"
                 )}
               </button>
             </div>
-
           </div>
         </div>
       )}
 
-      {/* Blockchain Proof Detail Modal */}
-      {selectedProof && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(15, 23, 42, 0.75)",
-          backdropFilter: "blur(8px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 9999,
-          padding: "20px"
-        }}>
-          <div className="glass-panel" style={{
-            maxWidth: "620px",
-            width: "100%",
-            padding: "28px",
-            background: "var(--bg-surface-elevated, #ffffff)",
-            border: "1px solid rgba(59, 130, 246, 0.35)",
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
-            borderRadius: "16px"
-          }}>
-            {/* Header */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px", borderBottom: "1px solid var(--border-color, #e2e8f0)", paddingBottom: "12px" }}>
+      {/* Certificate Preview Modal */}
+      {selectedCert && (
+        <div
+          onClick={() => setSelectedCert(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "var(--bg-modal-backdrop)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 999,
+            padding: "20px"
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel"
+            style={{
+              maxWidth: "840px",
+              width: "100%",
+              maxHeight: "92vh",
+              overflowY: "auto",
+              padding: "28px",
+              background: "var(--bg-surface-elevated)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "var(--radius-lg)"
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <div style={{
-                  width: "42px",
-                  height: "42px",
-                  borderRadius: "10px",
-                  background: "rgba(16, 185, 129, 0.15)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#10b981"
-                }}>
-                  <ShieldCheck size={26} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: "18px", fontWeight: 800, margin: 0, color: "var(--text-primary)" }}>
-                    Bằng Chứng Giao Dịch On-Chain
-                  </h3>
-                  <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                    Xác thực tính toàn vẹn trực tiếp từ Smart Contract trên sổ cái
-                  </div>
-                </div>
+                <Award size={22} color="var(--primary)" />
+                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)" }}>
+                  Hồ Sơ Chứng Chỉ: <span style={{ color: "var(--primary)" }}>{selectedCert.certificate_code}</span>
+                </h3>
+                {loadingDetail && <RefreshCw size={14} className="animate-spin" color="var(--text-muted)" />}
               </div>
-
               <button
                 type="button"
-                onClick={() => setSelectedProof(null)}
+                onClick={() => setSelectedCert(null)}
                 style={{
-                  background: "none",
+                  background: "transparent",
                   border: "none",
-                  fontSize: "22px",
                   cursor: "pointer",
                   color: "var(--text-muted)",
-                  padding: "4px 8px"
+                  padding: "6px",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
                 }}
+                title="Đóng"
               >
-                ✕
+                <X size={20} />
               </button>
             </div>
 
-            {/* Cert Overview */}
-            <div style={{
-              background: "var(--bg-surface, #f8fafc)",
-              border: "1px solid var(--border-color, #e2e8f0)",
-              borderRadius: "10px",
-              padding: "14px 16px",
-              marginBottom: "16px",
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "10px"
-            }}>
-              <div>
-                <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Mã Chứng Chỉ:</span>
-                <div style={{ fontWeight: 800, color: "var(--primary)", fontSize: "14px" }}>{selectedProof.certificate_code}</div>
+            {selectedCert.status === "REJECTED" && (selectedCert.rejection_reason || selectedCert.reject_reason) && (
+              <div style={{
+                background: "var(--danger-bg)",
+                border: "1px solid rgba(225, 29, 72, 0.3)",
+                borderRadius: "var(--radius-md)",
+                padding: "12px 16px",
+                marginBottom: "18px",
+                fontSize: "13px",
+                color: "var(--danger-text)"
+              }}>
+                <strong>Lý do từ chối hồ sơ:</strong> {selectedCert.rejection_reason || selectedCert.reject_reason}
               </div>
-              <div>
-                <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Học Viên:</span>
-                <div style={{ fontWeight: 700, fontSize: "14px" }}>{selectedProof.student_name}</div>
-                <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{selectedProof.student_code}</div>
+            )}
+
+            {selectedCert.status === "REVOKED" && (selectedCert.revoked_reason || selectedCert.revoke_reason) && (
+              <div style={{
+                background: "var(--danger-bg)",
+                border: "1px solid rgba(225, 29, 72, 0.3)",
+                borderRadius: "var(--radius-md)",
+                padding: "12px 16px",
+                marginBottom: "18px",
+                fontSize: "13px",
+                color: "var(--danger-text)"
+              }}>
+                <strong>Lý do thu hồi chứng chỉ:</strong> {selectedCert.revoked_reason || selectedCert.revoke_reason}
+                {selectedCert.revoked_at && (
+                  <span style={{ marginLeft: "8px", opacity: 0.8 }}>(Ngày {formatDateVN(selectedCert.revoked_at)})</span>
+                )}
               </div>
-              <div>
-                <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Khóa Học:</span>
-                <div style={{ fontWeight: 600, fontSize: "13px" }}>{selectedProof.course_name}</div>
-              </div>
-              <div>
-                <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Điểm & Ngày Cấp:</span>
-                <div style={{ fontWeight: 700, color: "var(--accent-gold)", fontSize: "13px" }}>{selectedProof.score} • {selectedProof.issue_date}</div>
-              </div>
+            )}
+
+            <div style={{ marginBottom: "24px" }}>
+              <CertificateCard cert={selectedCert} />
             </div>
 
-            {/* On-Chain Cryptographic Info */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px" }}>
-              {/* Token ID */}
-              <div style={{
-                background: "rgba(59, 130, 246, 0.05)",
-                border: "1px solid rgba(59, 130, 246, 0.2)",
-                borderRadius: "8px",
-                padding: "10px 14px"
-              }}>
-                <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: "4px" }}>
-                  Soulbound Token (ERC-721 SBT):
-                </div>
-                <div style={{ fontWeight: 800, color: "var(--primary)", fontSize: "15px" }}>
-                  Token #{selectedProof.token_id || "N/A"}{" "}
-                  <span style={{ fontSize: "12px", fontWeight: 500, color: "#10b981" }}>
-                    (Khóa vĩnh viễn theo học viên / Non-transferable)
-                  </span>
-                </div>
-              </div>
-
-              {/* Tx Hash */}
-              <div style={{
-                background: "rgba(15, 23, 42, 0.03)",
-                border: "1px solid var(--border-color, #e2e8f0)",
-                borderRadius: "8px",
-                padding: "10px 14px"
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700 }}>
-                    Mã Giao Dịch (Transaction Hash):
-                  </span>
-                  {selectedProof.tx_hash && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(selectedProof.tx_hash);
-                        setCopiedTx(true);
-                        setTimeout(() => setCopiedTx(false), 2000);
-                      }}
-                      className="btn btn-outline"
-                      style={{ padding: "3px 8px", fontSize: "11px", height: "auto" }}
-                    >
-                      {copiedTx ? <><Check size={11} color="#10b981" /> Đã chép</> : <><Copy size={11} /> Sao chép</>}
-                    </button>
-                  )}
-                </div>
-                <div style={{
-                  fontFamily: "monospace",
-                  fontSize: "12px",
-                  color: "var(--text-primary)",
-                  wordBreak: "break-all",
-                  background: "rgba(0,0,0,0.03)",
-                  padding: "6px 8px",
-                  borderRadius: "6px"
-                }}>
-                  {selectedProof.tx_hash || "Chưa có thông tin Tx Hash"}
-                </div>
-              </div>
-
-              {/* Contract Address & Network */}
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "10px"
-              }}>
-                <div style={{
-                  background: "rgba(15, 23, 42, 0.03)",
-                  border: "1px solid var(--border-color, #e2e8f0)",
-                  borderRadius: "8px",
-                  padding: "10px 14px"
-                }}>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: "4px" }}>
-                    Smart Contract:
-                  </div>
-                  <div style={{ fontFamily: "monospace", fontSize: "11px", color: "var(--primary)", wordBreak: "break-all" }}>
-                    <a
-                      href={contractJson.network === "sepolia" ? `https://sepolia.etherscan.io/address/${CONTRACT_ADDRESS}` : "#"}
-                      target={contractJson.network === "sepolia" ? "_blank" : "_self"}
-                      rel="noreferrer"
-                      style={{ color: "var(--primary)", textDecoration: "underline" }}
-                      title="Xem trên Etherscan"
-                    >
-                      {CONTRACT_ADDRESS}
-                    </a>
-                  </div>
-                </div>
-
-                <div style={{
-                  background: "rgba(15, 23, 42, 0.03)",
-                  border: "1px solid var(--border-color, #e2e8f0)",
-                  borderRadius: "8px",
-                  padding: "10px 14px"
-                }}>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: "4px" }}>
-                    Mạng & Trạng Thái:
-                  </div>
-                  <div style={{ fontSize: "12px", fontWeight: 700, color: "#10b981", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <CheckCircle2 size={14} />
-                    {contractJson.network === "sepolia"
-                      ? "Ethereum Sepolia (Chain 11155111)"
-                      : "Hardhat Node (Chain 31337)"}
-                  </div>
-                </div>
-              </div>
-
-              {/* IPFS CID if any */}
-              {selectedProof.ipfs_hash && (
-                <div style={{
-                  background: "rgba(15, 23, 42, 0.03)",
-                  border: "1px solid var(--border-color, #e2e8f0)",
-                  borderRadius: "8px",
-                  padding: "10px 14px"
-                }}>
-                  <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: "4px" }}>
-                    IPFS Metadata CID:
-                  </div>
-                  <div style={{ fontFamily: "monospace", fontSize: "12px", color: "var(--accent-gold)", wordBreak: "break-all" }}>
-                    {selectedProof.ipfs_hash}
-                  </div>
-                </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap", paddingTop: "16px", borderTop: "1px solid var(--border-subtle)" }}>
+              {isPubliclyIssued(selectedCert.status) ? (
+                <a
+                  href={`/verify?code=${selectedCert.certificate_code}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-outline"
+                  style={{ fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  <ExternalLink size={14} /> Mở Trang Tra Cứu Công Khai (Tab Mới)
+                </a>
+              ) : (
+                <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                  Hồ sơ chưa phát hành chính thức nên chưa hiển thị trên cổng tra cứu công khai.
+                </span>
               )}
-            </div>
 
-            {/* Modal Actions */}
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", borderTop: "1px solid var(--border-color, #e2e8f0)", paddingTop: "16px" }}>
-              <button
-                type="button"
-                onClick={() => setSelectedProof(null)}
-                className="btn btn-outline"
-                style={{ padding: "8px 18px", fontSize: "13px" }}
-              >
-                Đóng
-              </button>
-
-              <button
-                type="button"
-                onClick={() => window.open(`http://localhost:5000/api/public/pdf/${selectedProof.certificate_code}`, "_blank")}
-                className="btn btn-outline"
-                style={{ padding: "8px 16px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-              >
-                <Download size={14} />
-                Tải File PDF
-              </button>
-
-              <Link
-                to={`/verify?code=${selectedProof.certificate_code}`}
-                className="btn btn-primary"
-                style={{ padding: "8px 20px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-              >
-                <Eye size={14} />
-                Mở Cổng Thẩm Định On-Chain
-              </Link>
+              <div style={{ display: "flex", gap: "10px" }}>
+                {isPubliclyIssued(selectedCert.status) && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPdf(selectedCert.certificate_code)}
+                    className="btn btn-gold"
+                    style={{ fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                  >
+                    <Download size={14} /> Tải Bản In PDF
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedCert(null)}
+                  className="btn btn-primary"
+                  style={{ fontSize: "13px" }}
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

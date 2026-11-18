@@ -13,16 +13,39 @@ import CertificatesListPage from "./pages/CertificatesListPage";
 import DataManagementPage from "./pages/DataManagementPage";
 import { initStorage } from "./services/web3Service";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ToastContainer from "./components/ToastContainer";
+import { authApi } from "./services/apiService";
 
 export default function App() {
   const [wallet, setWallet] = useState(null);
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem("certchain_user");
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [user, setUser] = useState(null);
+  const [authChecking, setAuthChecking] = useState(() => Boolean(localStorage.getItem("certchain_token")));
 
   useEffect(() => {
     initStorage();
+
+    if (!localStorage.getItem("certchain_token")) {
+      localStorage.removeItem("certchain_user");
+      setAuthChecking(false);
+      return;
+    }
+
+    authApi.getProfile()
+      .then((result) => {
+        const profile = result?.data;
+        if (!result?.success || !profile?.role) throw new Error("Phiên đăng nhập không hợp lệ.");
+        const normalizedUser = {
+          ...profile,
+          full_name: profile.full_name || profile.fullName
+        };
+        setUser(normalizedUser);
+        localStorage.setItem("certchain_user", JSON.stringify(normalizedUser));
+      })
+      .catch(() => {
+        authApi.logout();
+        setUser(null);
+      })
+      .finally(() => setAuthChecking(false));
   }, []);
 
   return (
@@ -30,22 +53,46 @@ export default function App() {
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
         
         {/* Global Public Navigation Bar (Automatically hides inside /admin) */}
-        <Navbar wallet={wallet} setWallet={setWallet} user={user} setUser={setUser} />
+        <Navbar user={user} setUser={setUser} />
 
         {/* Main Content Area */}
         <main style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="/verify" element={<VerifyPage />} />
-            <Route path="/scanner" element={<ScannerPage />} />
-            <Route path="/login" element={<LoginPage setUser={setUser} />} />
+            {/* Public Routes - Auto-redirect logged-in Admin/Staff to Admin Workspace */}
+            <Route
+              path="/"
+              element={
+                authChecking ? (
+                  <div style={{ minHeight: "75vh", display: "grid", placeItems: "center", color: "var(--text-secondary)" }}>
+                    Đang tải hệ thống...
+                  </div>
+                ) : user && (user.role === "ADMIN" || user.role === "STAFF") ? (
+                  <Navigate to="/admin/dashboard" replace />
+                ) : (
+                  <HomePage />
+                )
+              }
+            />
+            <Route path="/verify" element={<VerifyPage user={user} />} />
+            <Route path="/scanner" element={<Navigate to="/verify?tab=qr" replace />} />
+            <Route
+              path="/login"
+              element={
+                user && (user.role === "ADMIN" || user.role === "STAFF") ? (
+                  <Navigate to="/admin/dashboard" replace />
+                ) : user && user.role === "STUDENT" ? (
+                  <Navigate to="/verify" replace />
+                ) : (
+                  <LoginPage setUser={setUser} />
+                )
+              }
+            />
 
             {/* Admin & Staff Protected Routes with Enterprise AdminLayout */}
             <Route
               path="/admin/dashboard"
               element={
-                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
+                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]} isLoading={authChecking}>
                   <AdminLayout wallet={wallet} setWallet={setWallet} user={user} setUser={setUser}>
                     <DashboardPage wallet={wallet} setWallet={setWallet} user={user} />
                   </AdminLayout>
@@ -55,7 +102,7 @@ export default function App() {
             <Route
               path="/admin/certificates/issue"
               element={
-                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
+                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]} isLoading={authChecking}>
                   <AdminLayout wallet={wallet} setWallet={setWallet} user={user} setUser={setUser}>
                     <IssueCertPage wallet={wallet} setWallet={setWallet} user={user} />
                   </AdminLayout>
@@ -65,9 +112,9 @@ export default function App() {
             <Route
               path="/admin/certificates"
               element={
-                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
+                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]} isLoading={authChecking}>
                   <AdminLayout wallet={wallet} setWallet={setWallet} user={user} setUser={setUser}>
-                    <CertificatesListPage wallet={wallet} user={user} />
+                    <CertificatesListPage wallet={wallet} setWallet={setWallet} user={user} />
                   </AdminLayout>
                 </ProtectedRoute>
               }
@@ -75,21 +122,33 @@ export default function App() {
             <Route
               path="/admin/data-management"
               element={
-                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]}>
+                <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]} isLoading={authChecking}>
                   <AdminLayout wallet={wallet} setWallet={setWallet} user={user} setUser={setUser}>
-                    <DataManagementPage />
+                    <DataManagementPage user={user} />
                   </AdminLayout>
                 </ProtectedRoute>
               }
             />
 
             {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route
+              path="*"
+              element={
+                user && (user.role === "ADMIN" || user.role === "STAFF") ? (
+                  <Navigate to="/admin/dashboard" replace />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
           </Routes>
         </main>
 
         {/* Global Footer (Automatically hides inside /admin) */}
         <Footer />
+
+        {/* Global Toast Notifications */}
+        <ToastContainer />
 
       </div>
     </BrowserRouter>

@@ -72,63 +72,16 @@ export const INITIAL_CERTIFICATES = [
     pdf_url: "http://localhost:5000/api/public/pdf/CERT-VSTEP-2026-012",
     revoked_reason: "Phát hiện gian lận mang thiết bị thu phát sóng trong phòng thi ngày 10/08",
     revoked_at: "2026-08-12"
-  },
-  {
-    id: 7,
-    certificate_code: "CERT-IELTS-2026-268",
-    student_name: "Trần Quang Lâm",
-    student_code: "HV2026-0219",
-    email: "quanglam.tran@gmail.com",
-    course_name: "IELTS Academic Master",
-    course_code: "IELTS-ACAD",
-    score: "7.5 Overall",
-    listening: "8.0",
-    reading: "7.5",
-    writing: "7.0",
-    speaking: "7.5",
-    issue_date: "2026-11-18",
-    expiry_date: "2028-11-18",
-    status: "ISSUED_ON_CHAIN",
-    wallet_address: "0xf82b80C145E738fAC445deb06c17b8D9BDEaDcc6",
-    token_id: "1",
-    tx_hash: "0xc0a7bfd8775fe851a795b79b26ef8c6f6485fb86bb13fc021a400de484114bb1",
-    ipfs_hash: "Qm6WvlTZrmXLgqdhMaWWRFaQwsRtHJpBR5ZuvPKdXZC0qG",
-    pdf_url: "http://localhost:5000/api/public/pdf/CERT-IELTS-2026-268",
-    revoked_reason: null,
-    revoked_at: null
-  },
-  {
-    id: 8,
-    certificate_code: "CERT-IELTS-2026-500",
-    student_name: "Phạm Quốc Hưng",
-    student_code: "HV2026-0199",
-    email: "quochung.pham@gmail.com",
-    course_name: "IELTS Academic Master",
-    course_code: "IELTS-ACAD",
-    score: "7.5 Overall",
-    listening: "8.0",
-    reading: "7.5",
-    writing: "7.0",
-    speaking: "7.5",
-    issue_date: "2026-11-18",
-    expiry_date: "2028-11-18",
-    status: "ISSUED_ON_CHAIN",
-    wallet_address: "0x91F84e8B291823eF4512C890123456789ABCDEF9",
-    token_id: "2",
-    tx_hash: "0x9af4b838e298781326090d0b419def507f9bc4e134ac499fd9aa31522b1a3aee",
-    ipfs_hash: "Qm434552542d49454c54532d323032362d353030313739",
-    pdf_url: "http://localhost:5000/api/public/pdf/CERT-IELTS-2026-500",
-    revoked_reason: null,
-    revoked_at: null
   }
 ];
 
 export const INITIAL_STUDENTS = [
-  { id: 1, student_code: "HV2026-0106", full_name: "Nguyễn Thị Minh Khoa", email: "minhkhoa.student@gmail.com", wallet_address: "0x71C84e8b291823ef4512c890123456789abCdEf0" },
-  { id: 2, student_code: "HV2026-0088", full_name: "Trần Bảo Long", email: "baolong.tran@gmail.com", wallet_address: "0x4B291aa9823ef4512C890123456789AbCdeF1234" },
-  { id: 3, student_code: "HV2026-0012", full_name: "Lê Hoàng Yến", email: "hoangyen.le@gmail.com", wallet_address: "0x82c61Fe1234567890aBCDeF1234567890aBcdEf1" },
-  { id: 4, student_code: "HV2026-0199", full_name: "Phạm Quốc Hưng", email: "quochung.pham@gmail.com", wallet_address: "0x91f84e8b291823ef4512C890123456789ABCDEF9" },
-  { id: 5, student_code: "HV2026-0219", full_name: "Trần Quang Lâm", email: "quanglam.tran@gmail.com", wallet_address: "0xf82b80C145E738fAC445deb06c17b8D9BDEaDcc6" }
+  { id: 1, student_code: "HV2026-0106", full_name: "Nguyễn Thị Minh Khoa", email: "minhkhoa.student@gmail.com", wallet_address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC" },
+  { id: 2, student_code: "HV2026-0088", full_name: "Trần Bảo Long", email: "baolong.tran@gmail.com", wallet_address: "0x90F79bf6EB2c4f870365E785982E1f101E93b906" },
+  { id: 3, student_code: "HV2026-0012", full_name: "Lê Hoàng Yến", email: "hoangyen.le@gmail.com", wallet_address: "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65" },
+  { id: 4, student_code: "HV2026-0199", full_name: "Phạm Quốc Hưng", email: "quochung.pham@gmail.com", wallet_address: "0x9965507d1a55bcc2695c58ba16Fb37D819b0A4dF" },
+  { id: 5, student_code: "HV2026-0001", full_name: "Lê Hoàng Nam", email: "nam.le@gmail.com", wallet_address: "0x976EA74026E726554dB657fA54763abd0C3a0aa9" },
+  { id: 6, student_code: "HV2026-0002", full_name: "Phạm Minh Anh", email: "minhanh.pham@gmail.com", wallet_address: "0x2546BcD3c84621e976D8185a91A922aE77ECEc30" }
 ];
 
 export const INITIAL_COURSES = [

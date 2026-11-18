@@ -1,8 +1,9 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ShieldCheck, LayoutDashboard, LogOut, Lock } from "lucide-react";
+import { LayoutDashboard, LogOut, Lock } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { authApi } from "../services/apiService";
+import koheniLogo from "../assets/koheni-logo.png";
 
 export default function Navbar({ user, setUser }) {
   const location = useLocation();
@@ -37,27 +38,12 @@ export default function Navbar({ user, setUser }) {
       <div className="container" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: "68px" }}>
         
         {/* Zone 1: Brand Logo */}
-        <Link to="/" className="nav-drop-item" style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0, "--drop-delay": "0.04s" }}>
-          <div style={{
-            width: "36px",
-            height: "36px",
-            borderRadius: "10px",
-            background: "#14364d",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 4px 10px -2px rgba(20, 54, 77, 0.28)"
-          }}>
-            <ShieldCheck size={20} color="#5cc4d8" strokeWidth={2.4} />
-          </div>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: "18px", letterSpacing: "-0.5px", color: "var(--text-primary)", lineHeight: 1.15 }}>
-              Koheni<span style={{ color: "var(--primary)" }}>.</span>
-            </div>
-            <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
-              English Testing Center
-            </div>
-          </div>
+        <Link to="/" className="nav-drop-item koheni-logo-wrap" style={{ flexShrink: 0, "--drop-delay": "0.04s" }}>
+          <img
+            src={koheniLogo}
+            alt="Koheni — English Certificate & Management"
+            style={{ height: "38px", width: "auto", display: "block" }}
+          />
         </Link>
 
         {/* Zone 2: Unified Action Bar (Theme, Admin Entry, User Profile) */}

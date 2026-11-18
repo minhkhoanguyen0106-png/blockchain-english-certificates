@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocation } from "react-router-dom";
-import { ShieldCheck } from "lucide-react";
+import koheniLogo from "../assets/koheni-logo.png";
 
 export default function Footer() {
   const location = useLocation();
@@ -20,21 +20,12 @@ export default function Footer() {
       transition: "background var(--transition-normal), border-color var(--transition-normal)"
     }}>
       <div className="container" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{
-            width: "28px",
-            height: "28px",
-            borderRadius: "8px",
-            background: "#14364d",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
-          }}>
-            <ShieldCheck size={15} color="#5cc4d8" strokeWidth={2.4} />
-          </div>
-          <span style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: "14px" }}>
-            Koheni English Testing Center
-          </span>
+        <div className="koheni-logo-wrap">
+          <img
+            src={koheniLogo}
+            alt="Koheni — English Certificate & Management"
+            style={{ height: "32px", width: "auto", display: "block" }}
+          />
         </div>
 
         <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>

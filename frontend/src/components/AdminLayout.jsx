@@ -17,6 +17,7 @@ import ThemeToggle from "./ThemeToggle";
 import { shortenAddress, connectMetaMask } from "../services/web3Service";
 import { authApi } from "../services/apiService";
 import { toast } from "./ToastContainer";
+import koheniLogo from "../assets/koheni-logo.png";
 
 export default function AdminLayout({ children, wallet, setWallet, user, setUser }) {
   const location = useLocation();
@@ -86,27 +87,12 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
               {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
 
-            <Link to="/admin/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-              <div style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "12px",
-                background: "linear-gradient(135deg, #5b4df7 0%, #3b82f6 100%)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 8px 18px -6px rgba(91, 77, 247, 0.55)"
-              }}>
-                <ShieldCheck size={20} color="#ffffff" strokeWidth={2.4} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: "17px", letterSpacing: "-0.4px", color: "var(--text-primary)", lineHeight: 1.15 }}>
-                  Koheni<span style={{ color: "#5b4df7" }}>.</span>
-                </div>
-                <div style={{ fontSize: "9.5px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.8px" }}>
-                  {user?.role === "ADMIN" ? "Quản Trị Hệ Thống" : "Phân Hệ Khảo Thí"}
-                </div>
-              </div>
+            <Link to="/admin/dashboard" className="koheni-logo-wrap" style={{ textDecoration: "none" }}>
+              <img
+                src={koheniLogo}
+                alt="Koheni — English Certificate & Management"
+                style={{ height: "38px", width: "auto", display: "block" }}
+              />
             </Link>
           </div>
 

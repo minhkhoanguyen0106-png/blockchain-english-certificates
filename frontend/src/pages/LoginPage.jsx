@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Lock, User, ArrowLeft, ShieldCheck, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { authApi } from "../services/apiService";
 import LumiMascot from "../components/LumiMascot";
+import koheniLogo from "../assets/koheni-logo.png";
 
 export default function LoginPage({ setUser }) {
   const navigate = useNavigate();
@@ -133,28 +134,13 @@ export default function LoginPage({ setUser }) {
             />
           </svg>
 
-          {/* Top-Left Brand Crest */}
-          <Link to="/" className="nav-drop-item" style={{ display: "inline-flex", alignItems: "center", gap: "11px", textDecoration: "none", position: "relative", zIndex: 2, width: "fit-content", "--drop-delay": "0.12s" }}>
-            <div style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "11px",
-              background: "linear-gradient(135deg, #0284c7 0%, #143d59 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 6px 14px rgba(2, 132, 199, 0.25)"
-            }}>
-              <ShieldCheck size={22} color="#ffffff" strokeWidth={2.4} />
-            </div>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: "18px", letterSpacing: "-0.5px", color: "#0f2c42", lineHeight: 1.15 }}>
-                Koheni<span style={{ color: "#0284c7" }}>.</span>
-              </div>
-              <div style={{ fontSize: "9.5px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "1px", marginTop: "2px" }}>
-                English Testing Center
-              </div>
-            </div>
+          {/* Top-Left Official Koheni Brand Logo */}
+          <Link to="/" className="nav-drop-item" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none", position: "relative", zIndex: 2, width: "fit-content", "--drop-delay": "0.12s" }}>
+            <img
+              src={koheniLogo}
+              alt="Koheni — English Certificate & Management"
+              style={{ height: "44px", width: "auto", display: "block" }}
+            />
           </Link>
 
           {/* Center Interactive LUMI Rive Mascot inside Soft Pastel Blob Stage */}
@@ -239,20 +225,9 @@ export default function LoginPage({ setUser }) {
             <Link
               to="/"
               className="login-mobile-brand"
-              style={{ display: "none", alignItems: "center", gap: "8px", textDecoration: "none" }}
+              style={{ display: "none", alignItems: "center", gap: "8px", textDecoration: "none", background: "rgba(255,255,255,0.95)", padding: "5px 10px", borderRadius: "10px" }}
             >
-              <div style={{
-                width: "32px",
-                height: "32px",
-                borderRadius: "8px",
-                background: "linear-gradient(135deg, #38bdf8, #0284c7)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}>
-                <ShieldCheck size={18} color="#ffffff" />
-              </div>
-              <span style={{ fontWeight: 800, color: "#ffffff", fontSize: "17px", letterSpacing: "-0.4px" }}>Koheni<span style={{ color: "#38bdf8" }}>.</span></span>
+              <img src={koheniLogo} alt="Koheni" style={{ height: "28px", width: "auto", display: "block" }} />
             </Link>
 
             <Link

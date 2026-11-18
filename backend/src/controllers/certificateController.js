@@ -54,6 +54,40 @@ export async function publicVerifyCertificate(req, res) {
   }
 }
 
+// F02-05: Tra cứu toàn bộ chứng chỉ theo địa chỉ ví học viên
+export async function publicGetCertificatesByWallet(req, res) {
+  try {
+    const { address } = req.params;
+    if (!address) {
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp địa chỉ ví học viên.' });
+    }
+
+    const [rows] = await pool.query(`
+      SELECT 
+        c.id, c.certificate_code, c.score_overall, c.score_listening, c.score_reading, 
+        c.score_writing, c.score_speaking, c.issue_date, c.expiry_date,
+        c.token_id, c.tx_hash, c.ipfs_hash, c.ipfs_metadata_url, c.pdf_url,
+        c.status, c.revoke_reason, c.revoked_at,
+        s.student_code, s.full_name AS student_name, s.citizen_id, s.wallet_address AS student_wallet,
+        co.course_code, co.course_name, co.score_type, co.max_score
+      FROM certificates c
+      JOIN students s ON c.student_id = s.id
+      JOIN courses co ON c.course_id = co.id
+      WHERE LOWER(s.wallet_address) = LOWER(?)
+      ORDER BY c.issue_date DESC
+    `, [address.trim()]);
+
+    return res.json({
+      success: true,
+      data: rows,
+      totalFound: rows.length
+    });
+  } catch (error) {
+    console.error('Lỗi publicGetCertificatesByWallet:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
 // F02-06: Tải hoặc xem phôi file PDF chứng chỉ (Hỗ trợ xem trực tiếp trên tab trình duyệt)
 export async function downloadCertificatePdf(req, res) {
   try {

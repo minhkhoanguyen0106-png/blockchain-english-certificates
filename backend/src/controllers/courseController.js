@@ -62,6 +62,12 @@ export async function deleteCourse(req, res) {
     await pool.query('DELETE FROM courses WHERE id = ?', [id]);
     return res.json({ success: true, message: 'Xóa khóa học thành công.' });
   } catch (error) {
+    if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+      return res.status(409).json({
+        success: false,
+        message: 'Không thể xóa khóa học này vì đã có chứng chỉ được cấp theo khóa học. Vui lòng kiểm tra lại.'
+      });
+    }
     return res.status(500).json({ success: false, message: error.message });
   }
 }

@@ -760,38 +760,65 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                         {reconcilePending
                           ? "Chờ đối soát"
                           : preparedData
-                          ? "READY_TO_MINT"
-                          : "PENDING"}
+                          ? "Sẵn sàng ký cấp"
+                          : "Chờ duyệt"}
                       </span>
                     </div>
 
-                    {/* Thanh tiến độ 4 bước chuẩn luồng phát hành */}
-                    <div style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(4, 1fr)",
-                      gap: "6px",
-                      marginBottom: "14px",
-                      fontSize: "10.5px",
-                      fontWeight: 700,
-                      textAlign: "center"
-                    }}>
+                    {/* Thanh tiến độ 4 bước tinh gọn (Circular Connected Stepper) */}
+                    <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px", marginBottom: "18px", paddingTop: "2px" }}>
+                      {/* Horizontal Connector Rail */}
+                      <div style={{
+                        position: "absolute",
+                        top: "14px",
+                        left: "12.5%",
+                        right: "12.5%",
+                        height: "2px",
+                        background: "var(--border-subtle)",
+                        zIndex: 0
+                      }}>
+                        <div style={{
+                          height: "100%",
+                          background: "var(--primary)",
+                          width: successCert ? "100%" : reconcilePending ? "66%" : preparedData ? "33%" : "0%",
+                          transition: "width 0.35s cubic-bezier(0.22, 1, 0.36, 1)"
+                        }} />
+                      </div>
+
                       {[
-                        { label: "1. PENDING", done: true },
-                        { label: "2. READY_TO_MINT", done: Boolean(preparedData || reconcilePending || successCert) },
-                        { label: "3. Ký MetaMask", done: Boolean(reconcilePending || successCert) },
-                        { label: "4. ISSUED", done: Boolean(successCert) }
-                      ].map((st, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            padding: "5px 4px",
-                            borderRadius: "6px",
-                            background: st.done ? "rgba(14, 165, 233, 0.14)" : "var(--bg-surface-elevated)",
-                            color: st.done ? "var(--primary)" : "var(--text-muted)",
-                            border: `1px solid ${st.done ? "rgba(14, 165, 233, 0.35)" : "var(--border-subtle)"}`
-                          }}
-                        >
-                          {st.label}
+                        { num: 1, label: "Chờ duyệt", done: true, active: !preparedData && !reconcilePending && !successCert },
+                        { num: 2, label: "Chuẩn bị IPFS", done: Boolean(preparedData || reconcilePending || successCert), active: Boolean(preparedData && !reconcilePending && !successCert) },
+                        { num: 3, label: "Ký MetaMask", done: Boolean(reconcilePending || successCert), active: Boolean(reconcilePending && !successCert) },
+                        { num: 4, label: "Phát hành", done: Boolean(successCert), active: Boolean(successCert) }
+                      ].map((st) => (
+                        <div key={st.num} style={{ display: "flex", flexDirection: "column", alignItems: "center", position: "relative", zIndex: 1 }}>
+                          <div style={{
+                            width: "26px",
+                            height: "26px",
+                            borderRadius: "50%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            background: st.done ? "var(--primary)" : "var(--bg-surface-elevated)",
+                            color: st.done ? "#ffffff" : "var(--text-muted)",
+                            border: `2px solid ${st.done ? "var(--primary)" : "var(--border-medium)"}`,
+                            boxShadow: st.active ? "0 0 0 3px var(--primary-glow)" : "none",
+                            transition: "all 0.25s ease"
+                          }}>
+                            {st.done && !st.active ? "✓" : st.num}
+                          </div>
+                          <span style={{
+                            marginTop: "6px",
+                            fontSize: "11px",
+                            fontWeight: st.done ? 700 : 500,
+                            color: st.done ? "var(--text-primary)" : "var(--text-muted)",
+                            textAlign: "center",
+                            whiteSpace: "nowrap"
+                          }}>
+                            {st.label}
+                          </span>
                         </div>
                       ))}
                     </div>

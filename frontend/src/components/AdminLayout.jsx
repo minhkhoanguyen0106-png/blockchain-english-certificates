@@ -17,7 +17,7 @@ import ThemeToggle from "./ThemeToggle";
 import { shortenAddress, connectMetaMask } from "../services/web3Service";
 import { authApi } from "../services/apiService";
 import { toast } from "./ToastContainer";
-import koheniLogo from "../assets/koheni-logo.png";
+import koheniLogoWhite from "../assets/koheni-logo-white.png";
 
 export default function AdminLayout({ children, wallet, setWallet, user, setUser }) {
   const location = useLocation();
@@ -29,6 +29,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
     ? user.full_name.replace(/\s*\([^)]*\)/g, "")
     : (user?.role === "ADMIN" ? "Quản trị viên" : "Nhân viên Khảo thí");
   const roleName = user?.role === "ADMIN" ? "Quản trị viên" : "Nhân viên Khảo thí";
+  const isAdmin = user?.role === "ADMIN";
 
   const handleLogout = () => {
     setUser(null);
@@ -61,22 +62,22 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
     },
     {
       path: "/admin/certificates/issue",
-      label: user?.role === "ADMIN" ? "Duyệt & Cấp Bằng" : "Soạn Hồ Sơ Nháp",
+      label: isAdmin ? "Duyệt & Cấp Bằng" : "Soạn Hồ Sơ Nháp",
       icon: FilePlus
     },
     {
       path: "/admin/data-management",
-      label: user?.role === "ADMIN" ? "Học Viên & Kỳ Thi" : "Quản Lý Học Viên",
+      label: isAdmin ? "Học Viên & Kỳ Thi" : "Quản Lý Học Viên",
       icon: Users
     }
   ];
 
   const getBreadcrumb = () => {
-    if (location.pathname === "/admin/dashboard") return user?.role === "ADMIN" ? "Tổng quan quản trị" : "Tổng quan khảo thí";
-    if (location.pathname === "/admin/certificates") return user?.role === "ADMIN" ? "Danh sách & Thu hồi chứng chỉ" : "Danh sách chứng chỉ";
-    if (location.pathname === "/admin/certificates/issue") return user?.role === "ADMIN" ? "Duyệt & Cấp phát chứng chỉ" : "Soạn hồ sơ nháp";
-    if (location.pathname === "/admin/data-management") return user?.role === "ADMIN" ? "Học viên & Danh mục kỳ thi" : "Quản lý học viên";
-    return user?.role === "ADMIN" ? "Quản trị hệ thống" : "Phân hệ khảo thí";
+    if (location.pathname === "/admin/dashboard") return isAdmin ? "Tổng quan quản trị" : "Tổng quan khảo thí";
+    if (location.pathname === "/admin/certificates") return isAdmin ? "Danh sách & Thu hồi chứng chỉ" : "Danh sách chứng chỉ";
+    if (location.pathname === "/admin/certificates/issue") return isAdmin ? "Duyệt & Cấp phát chứng chỉ" : "Soạn hồ sơ nháp";
+    if (location.pathname === "/admin/data-management") return isAdmin ? "Học viên & Danh mục kỳ thi" : "Quản lý học viên";
+    return isAdmin ? "Quản trị hệ thống" : "Phân hệ khảo thí";
   };
 
   return (
@@ -96,29 +97,34 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
           />
         )}
 
-        {/* Deep Midnight Sidebar (FINNOVA Style) */}
+        {/* Deep Midnight Sidebar (Transparent Brand + Clean Vertical Nav) */}
         <aside className={`finnova-sidebar ${sidebarOpen ? "is-open" : ""}`}>
-          {/* Top Brand Logo Capsule */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "22px" }}>
+          {/* Top Brand Band (height: 68px — pixel-aligned with right topbar border) */}
+          <div
+            style={{
+              height: "68px",
+              padding: "0 18px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "8px",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.07)",
+              flexShrink: 0
+            }}
+          >
             <Link
               to="/admin/dashboard"
               onClick={() => setSidebarOpen(false)}
               style={{
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
-                justifyContent: "center",
-                flex: 1,
-                background: "#ffffff",
-                padding: "10px 14px",
-                borderRadius: "16px",
-                boxShadow: "0 8px 20px -10px rgba(0, 0, 0, 0.45)",
                 textDecoration: "none"
               }}
             >
               <img
-                src={koheniLogo}
+                src={koheniLogoWhite}
                 alt="Koheni — English Certificate & Management"
-                style={{ height: "34px", width: "auto", display: "block" }}
+                style={{ height: "38px", width: "auto", display: "block" }}
               />
             </Link>
 
@@ -128,9 +134,9 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
               className="finnova-sidebar-close"
               aria-label="Đóng menu"
               style={{
-                width: "34px",
-                height: "34px",
-                borderRadius: "10px",
+                width: "32px",
+                height: "32px",
+                borderRadius: "9px",
                 border: "1px solid rgba(255,255,255,0.12)",
                 background: "rgba(255,255,255,0.06)",
                 color: "#cbd5e1",
@@ -140,120 +146,77 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
                 flexShrink: 0
               }}
             >
-              <X size={17} />
+              <X size={16} />
             </button>
           </div>
 
-          {/* Section Label */}
-          <div style={{
-            fontSize: "10.5px",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "1px",
-            color: "rgba(159, 163, 184, 0.65)",
-            padding: "0 12px 10px"
-          }}>
-            {user?.role === "ADMIN" ? "Quản trị hệ thống" : "Phân hệ khảo thí"}
+          {/* Navigation Body */}
+          <div style={{ padding: "20px 14px", display: "flex", flexDirection: "column", flex: 1, overflowY: "auto" }}>
+            <div style={{
+              fontSize: "10.5px",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "1px",
+              color: "rgba(159, 163, 184, 0.6)",
+              padding: "0 12px 10px"
+            }}>
+              {isAdmin ? "Quản trị hệ thống" : "Phân hệ khảo thí"}
+            </div>
+
+            <nav style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+              {navItems.map((item) => {
+                const active = location.pathname === item.path;
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`finnova-sidebar-link ${active ? "is-active" : ""}`}
+                  >
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "11px" }}>
+                      <Icon size={17} strokeWidth={active ? 2.2 : 1.85} />
+                      <span>{item.label}</span>
+                    </span>
+                    {active && <Sparkles size={13} />}
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
 
-          {/* Vertical Pill Menu Items */}
-          <nav style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, overflowY: "auto" }}>
-            {navItems.map((item) => {
-              const active = location.pathname === item.path;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`finnova-sidebar-link ${active ? "is-active" : ""}`}
-                >
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "11px" }}>
-                    <Icon size={17} strokeWidth={active ? 2.3 : 1.9} />
-                    <span>{item.label}</span>
-                  </span>
-                  {active && <Sparkles size={13} />}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Bottom Docked Profile & Quick Logout Card */}
-          {user && (
-            <div style={{
-              marginTop: "16px",
-              padding: "12px",
-              borderRadius: "16px",
-              background: "rgba(255, 255, 255, 0.05)",
-              border: "1px solid rgba(255, 255, 255, 0.08)"
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
-                <div style={{
-                  width: "34px",
-                  height: "34px",
-                  borderRadius: "50%",
-                  background: user?.role === "ADMIN"
-                    ? "linear-gradient(135deg, #5b4df7, #3b82f6)"
-                    : "linear-gradient(135deg, #f59e0b, #ea580c)",
-                  color: "#ffffff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 800,
-                  fontSize: "13px",
-                  flexShrink: 0
-                }}>
-                  {displayName ? displayName.charAt(0).toUpperCase() : <User size={14} />}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#ffffff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {displayName}
-                  </div>
-                  <div style={{ fontSize: "11px", color: "#9fa3b8" }}>{roleName}</div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: "10px",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  background: "rgba(255, 255, 255, 0.04)",
-                  color: "#cbd5e1",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "6px",
-                  transition: "all 0.2s ease"
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(239, 68, 68, 0.16)";
-                  e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.35)";
-                  e.currentTarget.style.color = "#fca5a5";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
-                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                  e.currentTarget.style.color = "#cbd5e1";
-                }}
-              >
-                <LogOut size={13} /> Đăng xuất
-              </button>
-            </div>
-          )}
+          {/* Minimal Subtle System Footer */}
+          <div
+            style={{
+              padding: "14px 18px",
+              borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              fontSize: "11.5px",
+              color: "rgba(159, 163, 184, 0.72)",
+              flexShrink: 0
+            }}
+          >
+            <span
+              style={{
+                width: "7px",
+                height: "7px",
+                borderRadius: "50%",
+                background: "#10b981",
+                boxShadow: "0 0 8px rgba(16, 185, 129, 0.65)",
+                flexShrink: 0
+              }}
+            />
+            <span>Koheni Certificate Portal</span>
+          </div>
         </aside>
 
         {/* Right Workspace Column */}
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-          {/* Clean Top Workspace Header */}
+          {/* Balanced Top Workspace Header */}
           <header className="admin-topbar">
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
               <button
                 type="button"
                 onClick={() => setSidebarOpen(true)}
@@ -263,24 +226,16 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
                 <Menu size={18} />
               </button>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px" }}>
-                <span style={{ color: "var(--text-muted)", fontWeight: 500 }}>Koheni</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <span style={{ color: "var(--text-muted)", fontWeight: 500 }}>Hệ Thống</span>
                 <ChevronRight size={14} color="var(--text-muted)" />
                 <span style={{ color: "var(--text-primary)", fontWeight: 700 }}>{getBreadcrumb()}</span>
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <ThemeToggle
-                style={{
-                  width: "38px",
-                  height: "38px",
-                  background: "var(--bg-surface-elevated)",
-                  borderColor: "var(--border-subtle)"
-                }}
-              />
-
-              {user?.role === "ADMIN" && (
+            {/* Right Controls: Wallet (Admin) + ThemeToggle + User & Logout Pill (Old Layout Rhythm) */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+              {isAdmin && (
                 wallet ? (
                   <div style={{
                     display: "inline-flex",
@@ -304,7 +259,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
                     className="btn btn-outline"
                     style={{
                       borderRadius: "9999px",
-                      padding: "8px 15px",
+                      padding: "7px 14px",
                       fontSize: "12.5px",
                       background: "var(--bg-surface-elevated)"
                     }}
@@ -314,11 +269,76 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
                   </button>
                 )
               )}
+
+              <ThemeToggle
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  background: "var(--bg-surface-elevated)",
+                  borderColor: "var(--border-subtle)"
+                }}
+              />
+
+              {user && (
+                <>
+                  <span style={{ width: "1px", height: "20px", background: "var(--border-subtle)" }} />
+
+                  <div className="admin-user-pill">
+                    <div
+                      style={{
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "50%",
+                        background: isAdmin ? "rgba(91, 77, 247, 0.14)" : "rgba(245, 158, 11, 0.16)",
+                        color: isAdmin ? "#5b4df7" : "#d97706",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0
+                      }}
+                    >
+                      <User size={14} />
+                    </div>
+
+                    <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--text-primary)", whiteSpace: "nowrap" }}>
+                      {displayName}
+                    </span>
+
+                    <span
+                      className="admin-user-role-tag"
+                      style={{
+                        padding: "3px 10px",
+                        borderRadius: "9999px",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        background: isAdmin ? "rgba(91, 77, 247, 0.12)" : "rgba(245, 158, 11, 0.14)",
+                        color: isAdmin ? "#5b4df7" : "#b45309",
+                        border: isAdmin ? "1px solid rgba(91, 77, 247, 0.22)" : "1px solid rgba(245, 158, 11, 0.28)",
+                        whiteSpace: "nowrap"
+                      }}
+                    >
+                      {roleName}
+                    </span>
+
+                    <span style={{ width: "1px", height: "16px", background: "var(--border-subtle)", marginLeft: "2px" }} />
+
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      title="Đăng xuất"
+                      aria-label="Đăng xuất"
+                      className="admin-logout-icon-btn"
+                    >
+                      <LogOut size={15} />
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </header>
 
           {/* Main Content Body */}
-          <main style={{ flex: 1, padding: "22px 26px 40px" }}>
+          <main style={{ flex: 1, padding: "24px 28px 40px" }}>
             {children}
           </main>
         </div>

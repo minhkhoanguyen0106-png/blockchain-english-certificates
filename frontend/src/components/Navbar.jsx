@@ -4,6 +4,7 @@ import { LayoutDashboard, LogOut, Lock } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { authApi } from "../services/apiService";
 import koheniLogo from "../assets/koheni-logo.png";
+import koheniLogoWhite from "../assets/koheni-logo-white.png";
 
 export default function Navbar({ user, setUser }) {
   const location = useLocation();
@@ -42,7 +43,14 @@ export default function Navbar({ user, setUser }) {
           <img
             src={koheniLogo}
             alt="Koheni — English Certificate & Management"
+            className="koheni-logo-on-light"
             style={{ height: "38px", width: "auto", display: "block" }}
+          />
+          <img
+            src={koheniLogoWhite}
+            alt="Koheni — English Certificate & Management"
+            className="koheni-logo-on-dark"
+            style={{ height: "38px", width: "auto" }}
           />
         </Link>
 

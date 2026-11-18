@@ -497,7 +497,7 @@ export default function DashboardPage({ user }) {
                 </div>
 
                 {/* Middle 4 Frosted Glass Sub-Cards (3 Info Tiles + 1 Dashed Quick-Add Tile) */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px", position: "relative", zIndex: 1, marginBottom: "22px" }}>
+                <div className="finnova-detail-tiles">
                   <div className="finnova-glass-tile">
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                       <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.72)" }}>Kết quả đánh giá</span>

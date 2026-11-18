@@ -1,6 +1,7 @@
 import React from "react";
 import { useLocation } from "react-router-dom";
 import koheniLogo from "../assets/koheni-logo.png";
+import koheniLogoWhite from "../assets/koheni-logo-white.png";
 
 export default function Footer() {
   const location = useLocation();
@@ -24,7 +25,14 @@ export default function Footer() {
           <img
             src={koheniLogo}
             alt="Koheni — English Certificate & Management"
+            className="koheni-logo-on-light"
             style={{ height: "32px", width: "auto", display: "block" }}
+          />
+          <img
+            src={koheniLogoWhite}
+            alt="Koheni — English Certificate & Management"
+            className="koheni-logo-on-dark"
+            style={{ height: "32px", width: "auto" }}
           />
         </div>
 

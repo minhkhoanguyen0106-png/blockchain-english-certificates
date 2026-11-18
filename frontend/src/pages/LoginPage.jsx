@@ -4,6 +4,7 @@ import { Lock, User, AlertCircle, Eye, EyeOff, CheckCircle2 } from "lucide-react
 import { authApi } from "../services/apiService";
 import LumiMascot from "../components/LumiMascot";
 import koheniLogo from "../assets/koheni-logo.png";
+import koheniLogoWhite from "../assets/koheni-logo-white.png";
 
 const MIN_SUCCESS_ANIMATION_MS = 1500;
 const FALLBACK_SUCCESS_ANIMATION_MS = 2200;
@@ -273,9 +274,9 @@ export default function LoginPage({ setUser }) {
             <Link
               to="/"
               className="login-mobile-brand"
-              style={{ display: "none", alignItems: "center", gap: "8px", textDecoration: "none", background: "rgba(255,255,255,0.95)", padding: "5px 10px", borderRadius: "10px" }}
+              style={{ display: "none", alignItems: "center", gap: "8px", textDecoration: "none" }}
             >
-              <img src={koheniLogo} alt="Koheni" style={{ height: "28px", width: "auto", display: "block" }} />
+              <img src={koheniLogoWhite} alt="Koheni" style={{ height: "32px", width: "auto", display: "block" }} />
             </Link>
           </div>
 

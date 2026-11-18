@@ -15,11 +15,88 @@ import {
   AlertTriangle,
   Sparkles,
   FileText,
-  SlidersHorizontal
+  FilePlus,
+  SlidersHorizontal,
+  ShieldAlert
 } from "lucide-react";
 import { shortenAddress } from "../services/web3Service";
 import { API_BASE_URL, dashboardApi, certificateApi } from "../services/apiService";
 import { detectCourseType } from "../services/scoreEngine";
+
+const formatTimeVN = (val) => {
+  if (!val) return "";
+  const d = new Date(val);
+  if (Number.isNaN(d.getTime())) return "";
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${hh}:${mm} • ${dd}/${mo}/${yyyy}`;
+};
+
+const getAuditLogMeta = (log) => {
+  const action = String(log.action || "").toUpperCase();
+  const detail = String(log.action_detail || "");
+  const detailLower = detail.toLowerCase();
+
+  if (action.includes("REJECT") || detailLower.includes("từ chối")) {
+    return {
+      title: "Từ chối hồ sơ nháp",
+      icon: XCircle,
+      iconBg: "rgba(239, 68, 68, 0.11)",
+      iconColor: "#dc2626",
+      tag: "Từ chối"
+    };
+  }
+  if (action.includes("REVOKE") || detailLower.includes("thu hồi")) {
+    return {
+      title: "Thu hồi chứng chỉ",
+      icon: ShieldAlert,
+      iconBg: "rgba(234, 88, 12, 0.12)",
+      iconColor: "#ea580c",
+      tag: "Thu hồi"
+    };
+  }
+  if (
+    action.includes("MINT") ||
+    action.includes("ISSUE") ||
+    action.includes("CONFIRM") ||
+    detailLower.includes("đúc") ||
+    detailLower.includes("on-chain") ||
+    detailLower.includes("phát hành")
+  ) {
+    return {
+      title: "Phát hành chứng chỉ thành công",
+      icon: CheckCircle2,
+      iconBg: "rgba(16, 185, 129, 0.12)",
+      iconColor: "#059669",
+      tag: "Phát hành"
+    };
+  }
+  if (action.includes("DRAFT") || action.includes("CREATE") || detailLower.includes("nháp")) {
+    return {
+      title: "Tạo hồ sơ nháp mới",
+      icon: FilePlus,
+      iconBg: "rgba(2, 132, 199, 0.11)",
+      iconColor: "#0284c7",
+      tag: "Bản nháp"
+    };
+  }
+
+  // Clean fallback without duplicating certificate_code in title
+  const cleaned = log.certificate_code
+    ? detail.replace(new RegExp(`(mã\\s+)?${log.certificate_code}`, "gi"), "").trim()
+    : detail;
+
+  return {
+    title: cleaned || log.action || "Cập nhật hệ thống",
+    icon: History,
+    iconBg: "rgba(15, 39, 60, 0.08)",
+    iconColor: "#475569",
+    tag: "Hoạt động"
+  };
+};
 
 const formatDateVN = (val) => {
   if (!val) return "—";
@@ -1004,67 +1081,129 @@ export default function DashboardPage({ user }) {
         )}
       </div>
 
-      {/* Audit Logs Timeline Card (Now includes certificate_code & student_name) */}
+      {/* Audit Logs Vertical Activity Timeline (Clean Executive Feed) */}
       {auditLogs.length > 0 && (
-        <div className="finnova-kpi-card" style={{ marginTop: "20px", padding: "22px 24px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ width: "30px", height: "30px", borderRadius: "50%", background: "#e0f2fe", color: "#0284c7", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                <History size={15} />
+        <div className="finnova-kpi-card" style={{ marginTop: "22px", padding: "22px 24px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px", paddingBottom: "14px", borderBottom: "1px solid var(--border-subtle)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{ width: "32px", height: "32px", borderRadius: "10px", background: "rgba(2, 132, 199, 0.1)", color: "#0284c7", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                <History size={16} />
               </span>
-              <h3 style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-primary)" }}>
-                Nhật Ký Thao Tác Gần Đây
-              </h3>
+              <div>
+                <h3 style={{ fontSize: "15.5px", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1.25 }}>
+                  Nhật Ký Thao Tác Gần Đây
+                </h3>
+                <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "1px" }}>
+                  Theo dõi lịch sử soạn thảo, phê duyệt và phát hành chứng chỉ mới nhất
+                </p>
+              </div>
             </div>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>{auditLogs.length} hoạt động mới nhất</span>
+            <span style={{
+              fontSize: "11.5px",
+              fontWeight: 600,
+              color: "var(--text-secondary)",
+              background: "var(--bg-page)",
+              border: "1px solid var(--border-subtle)",
+              padding: "4px 11px",
+              borderRadius: "9999px"
+            }}>
+              {auditLogs.length} hoạt động mới nhất
+            </span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", gap: "10px" }}>
-            {auditLogs.map((log) => (
-              <div
-                key={log.id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  gap: "12px",
-                  padding: "11px 14px",
-                  background: "var(--bg-page)",
-                  border: "1px solid var(--border-subtle)",
-                  borderRadius: "14px",
-                  fontSize: "12.5px"
-                }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                    <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>
-                      {log.action_detail || log.action}
-                    </span>
-                    {log.certificate_code && (
-                      <code style={{
-                        fontSize: "10.5px",
-                        padding: "1px 6px",
-                        borderRadius: "6px",
-                        background: "rgba(2, 132, 199, 0.1)",
-                        color: "#0284c7",
-                        fontWeight: 700
+          <div className="activity-feed-list">
+            {auditLogs.map((log) => {
+              const meta = getAuditLogMeta(log);
+              const Icon = meta.icon;
+              const actorName = log.actor_name || log.username || "Hệ thống";
+              const subtitleParts = [];
+              if (log.note) subtitleParts.push(log.note);
+              else if (log.student_name) subtitleParts.push(`Học viên: ${log.student_name}`);
+
+              return (
+                <div key={log.id} className="activity-feed-row">
+                  {/* Semantic Action Icon Dot */}
+                  <div style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    background: meta.iconBg,
+                    color: meta.iconColor,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    position: "relative",
+                    zIndex: 1
+                  }}>
+                    <Icon size={16} />
+                  </div>
+
+                  {/* Clean Title + Code Pill + Single-Line Subtitle */}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "13.5px", fontWeight: 700, color: "var(--text-primary)" }}>
+                        {meta.title}
+                      </span>
+                      {log.certificate_code && (
+                        <code style={{
+                          fontSize: "11px",
+                          padding: "2px 8px",
+                          borderRadius: "9999px",
+                          background: "rgba(15, 39, 60, 0.06)",
+                          color: "var(--text-primary)",
+                          fontWeight: 700,
+                          letterSpacing: "0.2px"
+                        }}>
+                          {log.certificate_code}
+                        </code>
+                      )}
+                      {log.student_name && !String(log.note || "").includes(log.student_name) && (
+                        <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 500 }}>
+                          • {log.student_name}
+                        </span>
+                      )}
+                    </div>
+                    {subtitleParts.length > 0 && (
+                      <div style={{
+                        fontSize: "12.5px",
+                        color: "var(--text-secondary)",
+                        marginTop: "2px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis"
                       }}>
-                        {log.certificate_code}
-                      </code>
+                        {subtitleParts.join(" • ")}
+                      </div>
                     )}
                   </div>
-                  {(log.note || log.student_name) && (
-                    <div style={{ fontSize: "11.5px", color: "var(--text-secondary)", marginTop: "3px" }}>
-                      {log.note || `Học viên: ${log.student_name}`}
+
+                  {/* Right-Aligned Actor & Clean Timestamp */}
+                  <div className="activity-feed-meta" style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12.5px", fontWeight: 600, color: "var(--text-primary)" }}>
+                      <span style={{
+                        width: "20px",
+                        height: "20px",
+                        borderRadius: "50%",
+                        background: "rgba(2, 132, 199, 0.12)",
+                        color: "#0369a1",
+                        fontSize: "10px",
+                        fontWeight: 800,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center"
+                      }}>
+                        {actorName.charAt(0).toUpperCase()}
+                      </span>
+                      <span>{actorName}</span>
                     </div>
-                  )}
+                    <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px", fontVariantNumeric: "tabular-nums" }}>
+                      {formatTimeVN(log.created_at)}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ textAlign: "right", fontSize: "11px", color: "var(--text-muted)", flexShrink: 0 }}>
-                  <div style={{ fontWeight: 600 }}>{log.actor_name || log.username || "Hệ thống"}</div>
-                  <div>{log.created_at ? new Date(log.created_at).toLocaleString("vi-VN") : ""}</div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

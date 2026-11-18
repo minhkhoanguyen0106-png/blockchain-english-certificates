@@ -1866,6 +1866,58 @@ html {
   box-shadow: 0 14px 28px -8px rgba(9, 24, 38, 0.55);
 }
 
+/* Sleek Vertical Activity Timeline (Audit Logs) */
+.activity-feed-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-feed-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  transition: background-color 0.18s ease;
+}
+
+.activity-feed-row:hover {
+  background: rgba(15, 39, 60, 0.032);
+}
+
+[data-theme="dark"] .activity-feed-row:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.activity-feed-row:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 32px;
+  top: 46px;
+  bottom: -14px;
+  width: 1.5px;
+  background: rgba(15, 39, 60, 0.08);
+  pointer-events: none;
+}
+
+[data-theme="dark"] .activity-feed-row:not(:last-child)::after {
+  background: rgba(148, 197, 224, 0.12);
+}
+
+@media (max-width: 720px) {
+  .activity-feed-row {
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-items: flex-start;
+  }
+  .activity-feed-meta {
+    grid-column: 2;
+    text-align: left !important;
+    margin-top: 4px;
+  }
+}
+
 .finnova-mobile-nav-btn {
   display: none;
 }

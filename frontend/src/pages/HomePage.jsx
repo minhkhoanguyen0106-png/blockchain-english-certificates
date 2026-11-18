@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { QrCode, ShieldCheck, Globe, Sparkles, CheckCircle2, Search, ArrowUpRight } from "lucide-react";
-import { getAllCertificates } from "../services/web3Service";
-import { dashboardApi } from "../services/apiService";
 import CertificateVerifier from "../components/CertificateVerifier";
 
 function RevealSection({ children, style, id }) {
@@ -29,29 +27,6 @@ function RevealSection({ children, style, id }) {
       {children}
     </section>
   );
-}
-
-function AnimatedNumber({ value, suffix = "" }) {
-  const [display, setDisplay] = useState(0);
-
-  useEffect(() => {
-    const target = Number(value) || 0;
-    const duration = 850;
-    const startTime = performance.now();
-    let frameId;
-
-    const tick = (now) => {
-      const progress = Math.min((now - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(target * eased));
-      if (progress < 1) frameId = requestAnimationFrame(tick);
-    };
-
-    frameId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frameId);
-  }, [value]);
-
-  return <>{display}{suffix}</>;
 }
 
 function LivingQrVerificationIllustration() {
@@ -186,23 +161,15 @@ function LivingQrVerificationIllustration() {
 }
 
 export default function HomePage() {
-  const [certs] = useState(() => getAllCertificates());
-  const [overviewStats, setOverviewStats] = useState(null);
   const [activeStep, setActiveStep] = useState(0);
   const verifierRef = useRef(null);
 
-  useEffect(() => {
-    dashboardApi.getOverviewStats()
-      .then(res => {
-        if (res.success && res.data) {
-          setOverviewStats(res.data);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const issuedCerts = overviewStats ? overviewStats.totalOnchain : certs.filter(c => c.status === "ISSUED_ON_CHAIN").length;
-  const totalCoursesNum = overviewStats ? Number(overviewStats.totalCourses || 4) : 4;
+  const supportedExams = [
+    { code: "IELTS", detail: "Thang điểm 0.0 – 9.0", color: "var(--primary)" },
+    { code: "TOEIC", detail: "Thang điểm 10 – 990", color: "var(--accent-gold)" },
+    { code: "VSTEP", detail: "Khung bậc B1 • B2 • C1", color: "var(--success-text)" },
+    { code: "TOEFL iBT", detail: "Thang điểm 0 – 120", color: "#6366f1" }
+  ];
 
   const features = [
     {
@@ -334,32 +301,20 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Unified Trust Stats Strip with Smooth Count-Up */}
+      {/* Supported English Certificates Strip */}
       <section className="hero-anim hero-anim-5" style={{ padding: "8px 0 64px" }}>
         <div className="container" style={{ maxWidth: "900px" }}>
           <div className="trust-stats-strip">
-            <div className="trust-stat-item">
-              <div style={{ fontSize: "30px", fontWeight: 800, color: "var(--primary)", lineHeight: 1.1 }}>
-                <AnimatedNumber value={issuedCerts} />
+            {supportedExams.map((exam) => (
+              <div key={exam.code} className="trust-stat-item">
+                <div style={{ fontSize: "24px", fontWeight: 800, color: exam.color, letterSpacing: "-0.4px", lineHeight: 1.15 }}>
+                  {exam.code}
+                </div>
+                <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>
+                  {exam.detail}
+                </div>
               </div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Chứng chỉ đã cấp</div>
-            </div>
-            <div className="trust-stat-item">
-              <div style={{ fontSize: "30px", fontWeight: 800, color: "var(--accent-gold)", lineHeight: 1.1 }}>
-                <AnimatedNumber value={totalCoursesNum} suffix="+" />
-              </div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Kỳ thi tiếng Anh</div>
-            </div>
-            <div className="trust-stat-item">
-              <div style={{ fontSize: "30px", fontWeight: 800, color: "var(--success-text)", lineHeight: 1.1 }}>
-                <AnimatedNumber value={100} suffix="%" />
-              </div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Chính xác &amp; Tin cậy</div>
-            </div>
-            <div className="trust-stat-item">
-              <div style={{ fontSize: "30px", fontWeight: 800, color: "var(--primary)", lineHeight: 1.1 }}>&lt; 2s</div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Thời gian tra cứu</div>
-            </div>
+            ))}
           </div>
         </div>
       </section>

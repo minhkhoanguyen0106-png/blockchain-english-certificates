@@ -204,6 +204,11 @@ export const courseApi = {
       method: "POST",
       body: JSON.stringify(courseData)
     });
+  },
+  deleteCourse: async (id) => {
+    return await apiRequest(`/courses/${id}`, {
+      method: "DELETE"
+    });
   }
 };
 

@@ -68,9 +68,10 @@ export default function DataManagementPage({ user }) {
   const [editingStudent, setEditingStudent] = useState(null);
   const [deleteStudentTarget, setDeleteStudentTarget] = useState(null);
 
-  // Course Modal
+  // Course Modals
   const [showAddCourseModal, setShowAddCourseModal] = useState(false);
   const [newCourse, setNewCourse] = useState(createEmptyCourse);
+  const [deleteCourseTarget, setDeleteCourseTarget] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -119,14 +120,15 @@ export default function DataManagementPage({ user }) {
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key !== "Escape" || submitting) return;
-      if (deleteStudentTarget) setDeleteStudentTarget(null);
+      if (deleteCourseTarget) setDeleteCourseTarget(null);
+      else if (deleteStudentTarget) setDeleteStudentTarget(null);
       else if (editingStudent) setEditingStudent(null);
       else if (showAddStudentModal) setShowAddStudentModal(false);
       else if (showAddCourseModal) setShowAddCourseModal(false);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [submitting, deleteStudentTarget, editingStudent, showAddStudentModal, showAddCourseModal]);
+  }, [submitting, deleteCourseTarget, deleteStudentTarget, editingStudent, showAddStudentModal, showAddCourseModal]);
 
   const handleSwitchTab = (tab) => {
     setActiveTab(tab);
@@ -319,6 +321,27 @@ export default function DataManagementPage({ user }) {
       await loadData();
     } catch (err) {
       toast.error(`Không thể lưu khóa học: ${err.message || err}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Handle Delete Course (ADMIN only)
+  const handleConfirmDeleteCourse = async () => {
+    if (!deleteCourseTarget?.id || !canManageCourses || submitting) return;
+    setSubmitting(true);
+    try {
+      await courseApi.deleteCourse(deleteCourseTarget.id);
+      toast.success(`Đã xóa khóa học ${deleteCourseTarget.course_code} (${deleteCourseTarget.course_name})!`);
+      setDeleteCourseTarget(null);
+      await loadData();
+    } catch (err) {
+      const msg = String(err.message || err);
+      if (msg.toLowerCase().includes("foreign key") || msg.includes("1451")) {
+        toast.error("Không thể xóa khóa học này vì đã có chứng chỉ thuộc khóa học trong hệ thống.");
+      } else {
+        toast.error(`Không thể xóa khóa học: ${msg}`);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -637,13 +660,31 @@ export default function DataManagementPage({ user }) {
                       </td>
                       <td style={{ color: "var(--text-secondary)" }}>{c.duration || "3 tháng"}</td>
                       <td style={{ textAlign: "right" }}>
-                        <Link
-                          to={`/admin/certificates/issue?course=${encodeURIComponent(c.course_code)}`}
-                          className="btn btn-outline"
-                          style={{ padding: "6px 12px", fontSize: "12px" }}
-                        >
-                          {canManageCourses ? "Cấp Bằng" : "Soạn Nháp"}
-                        </Link>
+                        <div style={{ display: "inline-flex", gap: "7px", justifyContent: "flex-end" }}>
+                          <Link
+                            to={`/admin/certificates/issue?course=${encodeURIComponent(c.course_code)}`}
+                            className="btn btn-outline"
+                            style={{ padding: "6px 12px", fontSize: "12px" }}
+                          >
+                            {canManageCourses ? "Cấp Bằng" : "Soạn Nháp"}
+                          </Link>
+                          {canManageCourses && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteCourseTarget(c)}
+                              className="btn btn-outline"
+                              style={{
+                                padding: "6px 9px",
+                                fontSize: "12px",
+                                color: "var(--danger-text)",
+                                borderColor: "rgba(225, 29, 72, 0.35)"
+                              }}
+                              title="Xóa khóa học (chỉ khi chưa có chứng chỉ)"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -959,6 +1000,46 @@ export default function DataManagementPage({ user }) {
                 Hủy Bỏ
               </button>
               <button type="button" disabled={submitting} onClick={handleConfirmDeleteStudent} className="btn btn-danger">
+                {submitting ? "Đang xóa..." : "Xác Nhận Xóa"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirm Delete Course (ADMIN) */}
+      {deleteCourseTarget && (
+        <div
+          onClick={() => { if (!submitting) setDeleteCourseTarget(null); }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "var(--bg-modal-backdrop)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 999,
+            padding: "20px"
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-panel"
+            style={{ maxWidth: "450px", width: "100%", padding: "28px", background: "var(--bg-surface-elevated)", borderColor: "rgba(225, 29, 72, 0.3)" }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px", color: "var(--danger-text)" }}>
+              <Trash2 size={21} />
+              <h3 style={{ fontSize: "18px", fontWeight: 800 }}>Xác Nhận Xóa Khóa Học</h3>
+            </div>
+            <p style={{ color: "var(--text-secondary)", fontSize: "13.5px", lineHeight: 1.55, marginBottom: "20px" }}>
+              Bạn có chắc chắn muốn xóa khóa học <strong>{deleteCourseTarget.course_name}</strong> ({deleteCourseTarget.course_code})? Khóa học đã có chứng chỉ sẽ không thể xóa để bảo toàn dữ liệu.
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              <button type="button" disabled={submitting} onClick={() => setDeleteCourseTarget(null)} className="btn btn-outline">
+                Hủy Bỏ
+              </button>
+              <button type="button" disabled={submitting} onClick={handleConfirmDeleteCourse} className="btn btn-danger">
                 {submitting ? "Đang xóa..." : "Xác Nhận Xóa"}
               </button>
             </div>

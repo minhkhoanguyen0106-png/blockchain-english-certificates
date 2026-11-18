@@ -9,7 +9,6 @@
     "node": "hardhat node",
     "deploy:local": "hardhat run scripts/deploy.js --network localhost",
     "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
-    "deploy:amoy": "hardhat run scripts/deploy.js --network amoy",
     "upload:ipfs": "node scripts/ipfsHelper.js"
   },
   "keywords": [

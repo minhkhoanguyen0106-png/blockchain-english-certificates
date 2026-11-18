@@ -8,7 +8,13 @@ async function main() {
   console.log("🚀 [TV1 - Blockchain Engineer] Bắt đầu triển khai Smart Contract");
   console.log("=================================================================");
 
-  const [deployer, issuerStaff, student1, student2, student3] = await hre.ethers.getSigners();
+  const signers = await hre.ethers.getSigners();
+  const deployer = signers[0];
+  const issuerStaff = signers[1] || deployer;
+  const student1 = signers[2] || deployer;
+  const student2 = signers[3] || deployer;
+  const student3 = signers[4] || deployer;
+
   console.log("📍 Địa chỉ ví Deployer (Admin tối cao):", deployer.address);
   console.log("📍 Số dư tài khoản deployer:", hre.ethers.formatEther(await hre.ethers.provider.getBalance(deployer.address)), "ETH");
 
@@ -20,13 +26,18 @@ async function main() {
   const contractAddress = await contract.getAddress();
   console.log("✅ Hợp đồng EnglishCertificateNFT đã triển khai tại:", contractAddress);
 
-  // Phân quyền cho cán bộ khảo thí / issuer phụ
-  const ISSUER_ROLE = await contract.ISSUER_ROLE();
-  await contract.registerIssuer(issuerStaff.address, "British Council Partner Center");
-  console.log("✅ Đã cấp quyền ISSUER_ROLE cho cán bộ:", issuerStaff.address);
+  // Phân quyền cho cán bộ khảo thí / issuer phụ nếu có tài khoản riêng
+  if (issuerStaff.address !== deployer.address) {
+    const ISSUER_ROLE = await contract.ISSUER_ROLE();
+    await contract.registerIssuer(issuerStaff.address, "British Council Partner Center");
+    console.log("✅ Đã cấp quyền ISSUER_ROLE cho cán bộ:", issuerStaff.address);
+  }
 
-  // Cấp 3 chứng chỉ mẫu thực tế chuẩn IELTS, TOEIC, VSTEP
-  console.log("\n📜 Đang khởi tạo các chứng chỉ mẫu trên blockchain...");
+  const isLocal = hre.network.name === "localhost" || hre.network.name === "hardhat";
+
+  if (isLocal) {
+    // Cấp 3 chứng chỉ mẫu trên môi trường local
+    console.log("\n📜 Đang khởi tạo các chứng chỉ mẫu trên blockchain...");
 
   const sampleCerts = [
     {
@@ -104,6 +115,9 @@ async function main() {
     );
     await tx.wait();
     console.log(`  -> [Token #${i + 1}] Đã cấp thành công mã [${cert.code}] cho: ${cert.name} (${cert.recipient})`);
+  }
+  } else {
+    console.log(`ℹ️ Đang triển khai trên mạng công khai (${hre.network.name}), bỏ qua tạo chứng chỉ mẫu để tiết kiệm phí gas.`);
   }
 
   // Đọc ABI từ thư mục artifacts

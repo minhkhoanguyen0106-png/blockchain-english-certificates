@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Users, BookOpen, Search, UserPlus, BookPlus, RefreshCw } from "lucide-react";
+import { ethers } from "ethers";
 import { INITIAL_STUDENTS, INITIAL_COURSES } from "../services/mockData";
 import { shortenAddress } from "../services/web3Service";
 import { studentApi, courseApi } from "../services/apiService";
@@ -85,16 +86,31 @@ export default function DataManagementPage() {
       return;
     }
 
+    let normalizedWallet = "";
+    if (newStudent.wallet_address && newStudent.wallet_address.trim()) {
+      try {
+        normalizedWallet = ethers.getAddress(newStudent.wallet_address.trim().toLowerCase());
+      } catch {
+        alert("Địa chỉ ví Web3 không hợp lệ! Vui lòng nhập đúng địa chỉ Ethereum (42 ký tự dạng 0x...).");
+        return;
+      }
+    }
+
+    const studentToSave = {
+      ...newStudent,
+      wallet_address: normalizedWallet || null
+    };
+
     try {
       // Gửi vào MySQL thật
-      await studentApi.createStudent(newStudent);
+      await studentApi.createStudent(studentToSave);
       alert("Đã lưu hồ sơ học viên thành công vào CSDL MySQL!");
       await loadData();
     } catch (err) {
       console.warn("Backend student create fallback:", err.message);
       const updated = [
         ...students,
-        { id: Date.now(), ...newStudent }
+        { id: Date.now(), ...studentToSave }
       ];
       setStudents(updated);
       localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(updated));

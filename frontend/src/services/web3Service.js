@@ -120,14 +120,21 @@ export const connectMetaMask = async () => {
   }
 };
 
-// 3. Khởi tạo đối tượng Smart Contract
+// 3. Khởi tạo đối tượng Smart Contract (Hỗ trợ cả chế độ chỉ đọc không cần MetaMask)
+export const getReadOnlyProvider = () => {
+  if (typeof window !== "undefined" && window.ethereum) {
+    return new ethers.BrowserProvider(window.ethereum);
+  }
+  const isSepolia = contractJson.network === "sepolia" || contractJson.chainId === 11155111;
+  const defaultRpc = isSepolia
+    ? "https://ethereum-sepolia-rpc.publicnode.com"
+    : "http://127.0.0.1:8545";
+  return new ethers.JsonRpcProvider(import.meta.env.VITE_RPC_URL || contractJson.rpcUrl || defaultRpc);
+};
+
 export const getCertificateContract = (signerOrProvider) => {
   if (!signerOrProvider) {
-    if (isMetaMaskInstalled()) {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-    }
-    return null;
+    return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, getReadOnlyProvider());
   }
   return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signerOrProvider);
 };
@@ -185,42 +192,41 @@ export const getCertificateByCode = async (code) => {
     // Backend offline -> tra cứu Smart Contract on-chain hoặc fallback cache
   }
 
-  // B2: Tra cứu on-chain qua Smart Contract nếu có MetaMask
-  if (isMetaMaskInstalled()) {
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const contract = getCertificateContract(provider);
-      const onchainResult = await contract.verifyByCertificateCode(cleanCode);
-      if (onchainResult && onchainResult.exists) {
-        const cert = onchainResult.cert;
-        return {
-          id: Number(onchainResult.tokenId),
-          certificate_code: cert.certificateCode,
-          student_name: cert.recipientName,
-          student_code: cert.studentCode,
-          email: "",
-          course_name: cert.courseName,
-          course_code: cert.courseCode,
-          score: cert.score,
-          listening: "-",
-          reading: "-",
-          writing: "-",
-          speaking: "-",
-          issue_date: new Date(Number(cert.issueDate) * 1000).toISOString().slice(0, 10),
-          expiry_date: Number(cert.expiryDate) > 0 ? new Date(Number(cert.expiryDate) * 1000).toISOString().slice(0, 10) : null,
-          status: cert.isRevoked ? "REVOKED" : "ISSUED_ON_CHAIN",
-          wallet_address: cert.recipientAddress,
-          token_id: onchainResult.tokenId.toString(),
-          tx_hash: "0x" + cert.certHash.slice(2),
-          ipfs_hash: cert.ipfsHash,
-          pdf_url: `http://localhost:5000/api/public/pdf/${cert.certificateCode}`,
-          revoked_reason: cert.revokeReason || null,
-          revoked_at: null
-        };
-      }
-    } catch (e) {
-      console.warn("Tra cứu on-chain fallback:", e.message);
+  // B2: Tra cứu on-chain qua Smart Contract (hoạt động cho mọi thiết bị kể cả không có MetaMask)
+  try {
+    const contract = getCertificateContract();
+    const onchainResult = await contract.verifyByCertificateCode(cleanCode);
+    const exists = onchainResult?.exists ?? onchainResult?.[0];
+    if (exists) {
+      const tokenIdVal = (onchainResult.tokenId ?? onchainResult[1]).toString();
+      const cert = onchainResult.cert ?? onchainResult[3];
+      return {
+        id: Number(tokenIdVal),
+        certificate_code: cert.certificateCode,
+        student_name: cert.recipientName,
+        student_code: cert.studentCode,
+        email: "",
+        course_name: cert.courseName,
+        course_code: cert.courseCode,
+        score: cert.score,
+        listening: "-",
+        reading: "-",
+        writing: "-",
+        speaking: "-",
+        issue_date: new Date(Number(cert.issueDate) * 1000).toISOString().slice(0, 10),
+        expiry_date: Number(cert.expiryDate) > 0 ? new Date(Number(cert.expiryDate) * 1000).toISOString().slice(0, 10) : null,
+        status: cert.isRevoked ? "REVOKED" : "ISSUED_ON_CHAIN",
+        wallet_address: cert.recipientAddress,
+        token_id: tokenIdVal,
+        tx_hash: "0x" + cert.certHash.slice(2),
+        ipfs_hash: cert.ipfsHash,
+        pdf_url: `http://localhost:5000/api/public/pdf/${cert.certificateCode}`,
+        revoked_reason: cert.revokeReason || null,
+        revoked_at: null
+      };
     }
+  } catch (e) {
+    console.warn("Tra cứu on-chain fallback:", e.message);
   }
 
   // B3: Fallback danh sách LocalStorage
@@ -232,6 +238,8 @@ export const getCertificateByCode = async (code) => {
 // 7. Cấp chứng chỉ mới (Tích hợp: Backend MySQL Draft -> Smart Contract Soulbound -> Backend Confirm)
 export const issueCertificateOnChain = async (certData, walletSigner) => {
   initStorage();
+
+  const isDraft = certData.status === "PENDING";
 
   // Chuẩn hóa địa chỉ ví người nhận (chống lỗi EIP-55 Checksum)
   let recipientAddress = walletSigner?.address || "0xf82b80C145E738fAC445deb06c17b8D9BDEaDcc6";
@@ -253,29 +261,34 @@ export const issueCertificateOnChain = async (certData, walletSigner) => {
   });
   const dataCommitmentHash = ethers.keccak256(ethers.toUtf8Bytes(canonicalData));
 
-  let dbCertId = null;
-  let ipfsHash = "Qm" + Array.from({length: 44}, () => "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random()*62)]).join("");
-  let tokenId = (1000 + Math.floor(Math.random() * 9000)).toString();
-  let txHash = ethers.keccak256(ethers.toUtf8Bytes(canonicalData + Date.now().toString()));
+  let dbCertId = certData.id || null;
+  let ipfsHash = certData.ipfs_hash || ("Qm" + Array.from({length: 44}, () => "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[Math.floor(Math.random()*62)]).join(""));
+  let tokenId = null;
+  let txHash = null;
 
   // B2: Gọi Backend lưu bản ghi và chuẩn bị đúc (nếu backend đang chạy)
   try {
-    const draftPayload = {
-      certificate_code: certData.certificate_code,
-      student_code: certData.student_code,
-      course_code: certData.course_code,
-      score_overall: certData.score,
-      score_listening: certData.listening || null,
-      score_reading: certData.reading || null,
-      score_writing: certData.writing || null,
-      score_speaking: certData.speaking || null,
-      issue_date: certData.issue_date,
-      expiry_date: certData.expiry_date || null
-    };
+    if (!dbCertId) {
+      const draftPayload = {
+        certificate_code: certData.certificate_code,
+        student_code: certData.student_code,
+        course_code: certData.course_code,
+        score_overall: certData.score,
+        score_listening: certData.listening || null,
+        score_reading: certData.reading || null,
+        score_writing: certData.writing || null,
+        score_speaking: certData.speaking || null,
+        issue_date: certData.issue_date,
+        expiry_date: certData.expiry_date || null
+      };
 
-    const draftRes = await certificateApi.createDraft(draftPayload);
-    if (draftRes.success && draftRes.data?.id) {
-      dbCertId = draftRes.data.id;
+      const draftRes = await certificateApi.createDraft(draftPayload);
+      if (draftRes.success && draftRes.data?.id) {
+        dbCertId = draftRes.data.id;
+      }
+    }
+
+    if (dbCertId && !isDraft) {
       const prepRes = await certificateApi.prepareMint(dbCertId);
       if (prepRes.success && prepRes.data?.ipfs_hash) {
         ipfsHash = prepRes.data.ipfs_hash;
@@ -285,8 +298,8 @@ export const issueCertificateOnChain = async (certData, walletSigner) => {
     console.warn("Backend draft/prepare fallback sang offline:", backendErr.message);
   }
 
-  // B3: Thực thi giao dịch Smart Contract (SBT) qua ví MetaMask nếu có signer
-  if (walletSigner?.signer) {
+  // B3: Thực thi giao dịch Smart Contract (SBT) qua ví MetaMask nếu KHÔNG PHẢI BẢN NHÁP
+  if (!isDraft && walletSigner?.signer) {
     try {
       // Đảm bảo đang đứng ở đúng mạng của Smart Contract (Sepolia hoặc Hardhat) trước khi gửi tx
       if (typeof window !== "undefined" && window.ethereum) {
@@ -329,8 +342,31 @@ export const issueCertificateOnChain = async (certData, walletSigner) => {
         tokenURI
       );
       const receipt = await tx.wait();
-      txHash = receipt.hash || txHash;
+      txHash = receipt.hash;
       console.log("✅ Giao dịch on-chain thành công:", txHash);
+
+      // Trích xuất Token ID thực tế từ Event logs của Smart Contract
+      if (receipt.logs) {
+        for (const log of receipt.logs) {
+          try {
+            const parsed = contract.interface.parseLog(log);
+            if (parsed && parsed.name === "CertificateIssued") {
+              tokenId = parsed.args[0]?.toString() || parsed.args.tokenId?.toString();
+              break;
+            }
+          } catch {}
+        }
+      }
+
+      // Fallback: Tra cứu lại từ contract nếu chưa lấy được từ event
+      if (!tokenId) {
+        try {
+          const onchain = await contract.verifyByCertificateCode(certData.certificate_code);
+          if (onchain && (onchain.exists || onchain[0])) {
+            tokenId = (onchain.tokenId || onchain[1]).toString();
+          }
+        } catch {}
+      }
     } catch (contractErr) {
       console.error("Lỗi thực thi Smart Contract:", contractErr);
       if (contractErr.code === "ACTION_REJECTED" || contractErr.code === 4001) {
@@ -344,12 +380,12 @@ export const issueCertificateOnChain = async (certData, walletSigner) => {
   }
 
   // B4: Gọi Backend xác nhận đã đúc on-chain thành công
-  if (dbCertId) {
+  if (!isDraft && dbCertId && txHash) {
     try {
       await certificateApi.confirmMint({
         certificate_id: dbCertId,
         tx_hash: txHash,
-        token_id: tokenId
+        token_id: tokenId || "1"
       });
     } catch (confirmErr) {
       console.warn("Backend confirmMint error:", confirmErr.message);
@@ -373,10 +409,10 @@ export const issueCertificateOnChain = async (certData, walletSigner) => {
     speaking: certData.speaking || "-",
     issue_date: certData.issue_date || new Date().toISOString().slice(0, 10),
     expiry_date: certData.expiry_date || null,
-    status: "ISSUED_ON_CHAIN",
+    status: isDraft ? "PENDING" : "ISSUED_ON_CHAIN",
     wallet_address: recipientAddress,
-    token_id: tokenId,
-    tx_hash: txHash,
+    token_id: isDraft ? null : (tokenId || "1"),
+    tx_hash: isDraft ? null : (txHash || ("0x" + Math.random().toString(16).slice(2).padEnd(64, "0"))),
     ipfs_hash: ipfsHash,
     pdf_url: `http://localhost:5000/api/public/pdf/${certData.certificate_code}`,
     revoked_reason: null,
@@ -400,12 +436,23 @@ export const revokeCertificateOnChain = async (certCode, reason, certId, tokenId
   initStorage();
 
   // B1: Thu hồi trên Smart Contract nếu có ví Admin
-  if (walletSigner?.signer && tokenId) {
+  if (walletSigner?.signer) {
     try {
       const contract = getCertificateContract(walletSigner.signer);
-      const tx = await contract.revokeCertificate(tokenId, reason);
-      await tx.wait();
-      console.log("✅ Thu hồi on-chain thành công trên Smart Contract!");
+      let targetTokenId = tokenId;
+      // Tra cứu Token ID thực tế từ Smart Contract nếu chưa có hoặc không hợp lệ
+      if (!targetTokenId || isNaN(Number(targetTokenId))) {
+        const onchain = await contract.verifyByCertificateCode(certCode);
+        if (onchain && (onchain.exists || onchain[0])) {
+          targetTokenId = onchain.tokenId || onchain[1];
+        }
+      }
+      if (targetTokenId) {
+        console.log(`🚀 Đang gửi giao dịch revokeCertificate cho Token #${targetTokenId}...`);
+        const tx = await contract.revokeCertificate(targetTokenId, reason);
+        await tx.wait();
+        console.log("✅ Thu hồi on-chain thành công trên Smart Contract!");
+      }
     } catch (contractErr) {
       console.warn("Thu hồi Smart Contract fallback:", contractErr.message);
     }

@@ -106,6 +106,38 @@ export default function VerifyPage() {
             <span style={{ color: "var(--text-muted)", fontWeight: 600 }}>Thử nhanh mã mẫu:</span>
             <button
               type="button"
+              onClick={() => { setInputCode("CERT-IELTS-2026-268"); handleSearch("CERT-IELTS-2026-268"); }}
+              style={{
+                background: "rgba(16, 185, 129, 0.15)",
+                border: "1px solid rgba(16, 185, 129, 0.4)",
+                color: "#10b981",
+                padding: "3px 10px",
+                borderRadius: "var(--radius-full)",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: 700
+              }}
+            >
+              CERT-IELTS-2026-268 (Sepolia Token #1)
+            </button>
+            <button
+              type="button"
+              onClick={() => { setInputCode("CERT-IELTS-2026-500"); handleSearch("CERT-IELTS-2026-500"); }}
+              style={{
+                background: "rgba(16, 185, 129, 0.15)",
+                border: "1px solid rgba(16, 185, 129, 0.4)",
+                color: "#10b981",
+                padding: "3px 10px",
+                borderRadius: "var(--radius-full)",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: 700
+              }}
+            >
+              CERT-IELTS-2026-500 (Sepolia Token #2)
+            </button>
+            <button
+              type="button"
               onClick={() => { setInputCode("CERT-IELTS-2026-001"); handleSearch("CERT-IELTS-2026-001"); }}
               style={{
                 background: "var(--primary-bg)",

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2, ShieldCheck, ExternalLink, Clock, ShieldAlert, CheckCircle2, Copy, Check } from "lucide-react";
-import { getAllCertificates, revokeCertificateOnChain, shortenAddress, CONTRACT_ADDRESS } from "../services/web3Service";
+import { getAllCertificates, revokeCertificateOnChain, shortenAddress, CONTRACT_ADDRESS, issueCertificateOnChain, connectMetaMask } from "../services/web3Service";
 import contractJson from "../contracts/EnglishCertificateNFT.json";
 import { certificateApi } from "../services/apiService";
 
@@ -21,6 +21,38 @@ export default function CertificatesListPage({ wallet, user }) {
   const [revoking, setRevoking] = useState(false);
   const [selectedProof, setSelectedProof] = useState(null);
   const [copiedTx, setCopiedTx] = useState(false);
+  const [mintingId, setMintingId] = useState(null);
+
+  const handleMintDraft = async (cert) => {
+    if (user?.role !== "ADMIN") {
+      alert("LỖI PHÂN QUYỀN (403): Chỉ Quản trị viên (ADMIN) mới có thẩm quyền ký ví phát hành on-chain!");
+      return;
+    }
+    let activeWallet = wallet;
+    if (!activeWallet || !activeWallet.signer) {
+      try {
+        activeWallet = await connectMetaMask();
+      } catch (e) {
+        alert("Vui lòng kết nối ví MetaMask để ký giao dịch đúc on-chain: " + (e.message || e));
+        return;
+      }
+    }
+
+    setMintingId(cert.certificate_code);
+    try {
+      const payloadToMint = {
+        ...cert,
+        status: "ISSUED_ON_CHAIN"
+      };
+      await issueCertificateOnChain(payloadToMint, activeWallet);
+      alert(`Đã ký đúc on-chain thành công cho chứng chỉ [${cert.certificate_code}]!`);
+      await loadCerts();
+    } catch (err) {
+      alert("Lỗi khi ký đúc on-chain: " + (err.message || err));
+    } finally {
+      setMintingId(null);
+    }
+  };
 
   const loadCerts = async () => {
     setLoading(true);
@@ -353,24 +385,54 @@ export default function CertificatesListPage({ wallet, user }) {
                         </button>
 
                         {c.status === "PENDING" && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteDraft(c)}
-                            className="btn btn-outline"
-                            style={{
-                              padding: "6px 12px",
-                              fontSize: "12px",
-                              color: "var(--danger-text)",
-                              borderColor: "rgba(239, 68, 68, 0.4)",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px"
-                            }}
-                            title="Xóa bỏ bản nháp này"
-                          >
-                            <Trash2 size={13} />
-                            Bỏ Nháp
-                          </button>
+                          <>
+                            {user?.role === "ADMIN" && (
+                              <button
+                                type="button"
+                                disabled={mintingId === c.certificate_code}
+                                onClick={() => handleMintDraft(c)}
+                                className="btn btn-primary"
+                                style={{
+                                  padding: "6px 12px",
+                                  fontSize: "12px",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px"
+                                }}
+                                title="Ký ví MetaMask để đúc chứng chỉ này lên Smart Contract"
+                              >
+                                {mintingId === c.certificate_code ? (
+                                  <>
+                                    <RefreshCw size={12} className="animate-spin" />
+                                    Đang Đúc...
+                                  </>
+                                ) : (
+                                  <>
+                                    <ShieldCheck size={13} />
+                                    Ký Đúc On-Chain
+                                  </>
+                                )}
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteDraft(c)}
+                              className="btn btn-outline"
+                              style={{
+                                padding: "6px 12px",
+                                fontSize: "12px",
+                                color: "var(--danger-text)",
+                                borderColor: "rgba(239, 68, 68, 0.4)",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px"
+                              }}
+                              title="Xóa bỏ bản nháp này"
+                            >
+                              <Trash2 size={13} />
+                              Bỏ Nháp
+                            </button>
+                          </>
                         )}
 
                         {c.status === "ISSUED_ON_CHAIN" && (

@@ -1,5 +1,5 @@
 // ================================================================
-// ENGINE TÍNH ĐIỂM & QUY TẮC HIỆU LỰC CHỨNG CHỈ (v2.1)
+// ENGINE TÍNH ĐIỂM & QUY TẮC HIỆU LỰC CHỨNG CHỈ (v2.2)
 // Hỗ trợ: IELTS, TOEIC (L&R), VSTEP, CAMBRIDGE, TOEFL, GENERAL
 // Ưu tiên score_type & max_score thật từ CSDL khóa học
 // ================================================================
@@ -21,6 +21,26 @@ export const DEFAULT_MAX_SCORE_BY_TYPE = {
   TOEFL: "120",
   GENERAL: "100"
 };
+
+/**
+ * Chuẩn hóa chuỗi điểm đầu vào (trim + chuyển dấu phẩy thập phân tiếng Việt ',' -> '.')
+ */
+export function normalizeScoreInput(val) {
+  if (val === null || val === undefined) return "";
+  return String(val).trim().replace(/,/g, ".");
+}
+
+/**
+ * Parse số điểm nghiêm ngặt (chặn các chuỗi rác như "7.5abc", "--5", "7..5")
+ */
+export function parseStrictScore(val) {
+  const normalized = normalizeScoreInput(val);
+  if (!normalized || !/^\d+(\.\d+)?$/.test(normalized)) {
+    return NaN;
+  }
+  const num = Number(normalized);
+  return Number.isFinite(num) ? num : NaN;
+}
 
 /**
  * Nhận diện chuẩn thang điểm: ưu tiên score_type từ CSDL, fallback theo course_code
@@ -64,7 +84,7 @@ export function getScoreRangeHint(courseCode = "", options = {}) {
  * 1. IELTS chuẩn British Council / IDP
  */
 export function calculateIeltsOverall(l, r, w, s) {
-  const nums = [parseFloat(l), parseFloat(r), parseFloat(w), parseFloat(s)];
+  const nums = [parseStrictScore(l), parseStrictScore(r), parseStrictScore(w), parseStrictScore(s)];
   if (nums.some(isNaN)) return "";
   const avg = nums.reduce((a, b) => a + b, 0) / 4;
   const dec = avg - Math.floor(avg);
@@ -79,9 +99,9 @@ export function calculateIeltsOverall(l, r, w, s) {
  * 2. TOEIC Listening & Reading (Tối đa 990)
  */
 export function calculateToeicOverall(l, r) {
-  const lNum = parseInt(l, 10);
-  const rNum = parseInt(r, 10);
-  if (isNaN(lNum) || isNaN(rNum)) return "";
+  const lNum = parseStrictScore(l);
+  const rNum = parseStrictScore(r);
+  if (isNaN(lNum) || isNaN(rNum) || !Number.isInteger(lNum) || !Number.isInteger(rNum)) return "";
   const listening = Math.max(0, Math.min(495, lNum));
   const reading = Math.max(0, Math.min(495, rNum));
   return `${listening + reading}/990`;
@@ -91,7 +111,7 @@ export function calculateToeicOverall(l, r) {
  * 3. VSTEP (Khung 6 bậc Việt Nam)
  */
 export function calculateVstepOverall(l, r, w, s) {
-  const nums = [parseFloat(l), parseFloat(r), parseFloat(w), parseFloat(s)];
+  const nums = [parseStrictScore(l), parseStrictScore(r), parseStrictScore(w), parseStrictScore(s)];
   if (nums.some(isNaN)) return "";
   const avg = nums.reduce((a, b) => a + b, 0) / 4;
   const rounded = Math.round(avg * 2) / 2;
@@ -106,7 +126,7 @@ export function calculateVstepOverall(l, r, w, s) {
  * 4. Cambridge English Scale (160 - 210)
  */
 export function calculateCambridgeOverall(l, r, w, s) {
-  const nums = [parseFloat(l), parseFloat(r), parseFloat(w), parseFloat(s)];
+  const nums = [parseStrictScore(l), parseStrictScore(r), parseStrictScore(w), parseStrictScore(s)];
   if (nums.some(isNaN)) return "";
   const avg = Math.round(nums.reduce((a, b) => a + b, 0) / 4);
   let grade = "Pass";
@@ -121,8 +141,8 @@ export function calculateCambridgeOverall(l, r, w, s) {
  * 5. TOEFL iBT (0 - 120, mỗi kỹ năng 0 - 30)
  */
 export function calculateToeflOverall(l, r, w, s) {
-  const nums = [parseInt(l, 10), parseInt(r, 10), parseInt(w, 10), parseInt(s, 10)];
-  if (nums.some(isNaN)) return "";
+  const nums = [parseStrictScore(l), parseStrictScore(r), parseStrictScore(w), parseStrictScore(s)];
+  if (nums.some((n) => isNaN(n) || !Number.isInteger(n))) return "";
   const total = nums.reduce((a, b) => a + Math.max(0, Math.min(30, b)), 0);
   return `${total}/120 iBT`;
 }
@@ -131,10 +151,10 @@ export function calculateToeflOverall(l, r, w, s) {
  * 6. Thang điểm tổng quát (GENERAL) theo max_score của khóa học
  */
 export function calculateGeneralOverall(l, r, w, s, maxScore = 100) {
-  const nums = [l, r, w, s]
-    .map((v) => parseFloat(v))
-    .filter((v) => !isNaN(v));
-  if (nums.length === 0) return "";
+  const rawList = [l, r, w, s].map(normalizeScoreInput).filter((v) => v !== "");
+  if (rawList.length === 0) return "";
+  const nums = rawList.map(parseStrictScore);
+  if (nums.some(isNaN)) return "";
   const maxVal = parseFloat(maxScore) > 0 ? parseFloat(maxScore) : 100;
   const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
   const formatted = Number.isInteger(avg) ? String(avg) : avg.toFixed(1);
@@ -189,9 +209,14 @@ export function validateSubScores(courseCode, { listening, reading, writing, spe
   const errors = [];
 
   const checkRange = (name, val, min, max, step = 0.5) => {
-    const num = parseFloat(val);
-    if (val === "" || val === null || val === undefined || isNaN(num)) {
+    const normalized = normalizeScoreInput(val);
+    if (!normalized) {
       errors.push(`${name} chưa được nhập điểm.`);
+      return;
+    }
+    const num = parseStrictScore(normalized);
+    if (isNaN(num)) {
+      errors.push(`${name} ("${val}") phải là số hợp lệ (không chứa chữ hoặc ký tự đặc biệt).`);
       return;
     }
     if (num < min || num > max) {
@@ -224,7 +249,12 @@ export function validateSubScores(courseCode, { listening, reading, writing, spe
       checkRange("Điểm Viết (Writing)", writing, 0, 10, 0.5);
       checkRange("Điểm Nói (Speaking)", speaking, 0, 10, 0.5);
       if (errors.length === 0) {
-        const avg = (parseFloat(listening) + parseFloat(reading) + parseFloat(writing) + parseFloat(speaking)) / 4;
+        const avg = (
+          parseStrictScore(listening) +
+          parseStrictScore(reading) +
+          parseStrictScore(writing) +
+          parseStrictScore(speaking)
+        ) / 4;
         const rounded = Math.round(avg * 2) / 2;
         if (rounded < 4.0) {
           errors.push(`Điểm trung bình VSTEP (${rounded.toFixed(1)}/10) chưa đạt ngưỡng tối thiểu Bậc 3 (4.0) để cấp chứng chỉ.`);
@@ -252,7 +282,7 @@ export function validateSubScores(courseCode, { listening, reading, writing, spe
         { name: "Reading", val: reading },
         { name: "Writing", val: writing },
         { name: "Speaking", val: speaking }
-      ].filter((item) => item.val !== "" && item.val !== null && item.val !== undefined);
+      ].filter((item) => normalizeScoreInput(item.val) !== "");
       if (filled.length === 0) {
         errors.push("Vui lòng nhập ít nhất 1 điểm kỹ năng.");
       } else {

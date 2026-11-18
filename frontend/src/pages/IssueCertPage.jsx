@@ -13,8 +13,8 @@ import {
   getCertificateContract,
   getAllCertificates
 } from "../services/web3Service";
-import { certificateApi, studentApi, courseApi } from "../services/apiService";
-import { computeOverallScore, getExpiryDateForCourse, validateSubScores, detectCourseType, getScoreRangeHint } from "../services/scoreEngine";
+import { API_BASE_URL, certificateApi, studentApi, courseApi } from "../services/apiService";
+import { computeOverallScore, getExpiryDateForCourse, validateSubScores, detectCourseType, getScoreRangeHint, normalizeScoreInput } from "../services/scoreEngine";
 import CertificateCard from "../components/CertificateCard";
 import { toast } from "../components/ToastContainer";
 
@@ -56,7 +56,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const [formData, setFormData] = useState({
-    certificate_code: `CERT-IELTS-2026-${Math.floor(100 + Math.random() * 900)}`,
+    certificate_code: `CERT-IELTS-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
     student_name: "",
     student_code: "",
     email: "",
@@ -255,15 +255,15 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
               expiry_date: getExpiryDateForCourse(nextCourseCode, prev.issue_date, courseOpts)
             };
           });
-        } else if (loadedCourses.length > 0 && !loadedCourses.some(c => c.course_code === "IELTS-ACAD")) {
-          const first = loadedCourses[0];
-          const courseOpts = { scoreType: first.score_type || "", maxScore: first.max_score || "" };
+        } else if (loadedCourses.length > 0) {
+          const matchedDefault = loadedCourses.find(c => c.course_code === "IELTS-ACAD") || loadedCourses[0];
+          const courseOpts = { scoreType: matchedDefault.score_type || "", maxScore: matchedDefault.max_score || "" };
           setFormData(prev => ({
             ...prev,
-            certificate_code: generateCertificateCode(first.course_code, courseOpts.scoreType),
-            course_code: first.course_code,
-            course_name: first.course_name,
-            expiry_date: getExpiryDateForCourse(first.course_code, prev.issue_date, courseOpts)
+            certificate_code: generateCertificateCode(matchedDefault.course_code, courseOpts.scoreType),
+            course_code: matchedDefault.course_code,
+            course_name: matchedDefault.course_name,
+            expiry_date: getExpiryDateForCourse(matchedDefault.course_code, prev.issue_date, courseOpts)
           }));
         }
       } catch {
@@ -307,26 +307,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     const code = e.target.value;
     setSelectedDraftCode(code);
     if (!code) {
-      setSelectedStudentId("");
-      setPreparedData(null);
-      setReconcilePending(null);
-      setFormData({
-        certificate_code: `CERT-IELTS-2026-${Math.floor(100 + Math.random() * 900)}`,
-        student_name: "",
-        student_code: "",
-        email: "",
-        wallet_address: "",
-        course_code: "IELTS-ACAD",
-        course_name: "IELTS Academic Master",
-        score: "",
-        listening: "",
-        reading: "",
-        writing: "",
-        speaking: "",
-        issue_date: new Date().toISOString().slice(0, 10),
-        expiry_date: getExpiryDateForCourse("IELTS-ACAD", new Date().toISOString().slice(0, 10)),
-        status: "DRAFT"
-      });
+      resetFormForNewEntry();
       return;
     }
     const draft = pendingDrafts.find(d => d.certificate_code === code);
@@ -456,10 +437,43 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     return checksumWallet;
   };
 
+  const buildNormalizedDraftPayload = () => {
+    const cleanCertCode = (formData.certificate_code || "").trim().toUpperCase();
+    const courseOpts = getCourseOptions(formData.course_code);
+    const isToeic = detectCourseType(formData.course_code, courseOpts.scoreType) === "TOEIC";
+    const normL = normalizeScoreInput(formData.listening);
+    const normR = normalizeScoreInput(formData.reading);
+    const normW = isToeic ? "" : normalizeScoreInput(formData.writing);
+    const normS = isToeic ? "" : normalizeScoreInput(formData.speaking);
+    const recomputedOverall = computeOverallScore(
+      formData.course_code,
+      { listening: normL, reading: normR, writing: normW, speaking: normS },
+      courseOpts
+    );
+
+    return {
+      cleanCertCode,
+      isToeic,
+      recomputedOverall,
+      payload: {
+        certificate_code: cleanCertCode,
+        student_code: formData.student_code,
+        course_code: formData.course_code,
+        score_overall: recomputedOverall || formData.score,
+        score_listening: normL || null,
+        score_reading: normR || null,
+        score_writing: isToeic ? null : (normW || null),
+        score_speaking: isToeic ? null : (normS || null),
+        issue_date: formData.issue_date,
+        expiry_date: formData.expiry_date || null
+      }
+    };
+  };
+
   const handleIssue = async (e) => {
     e.preventDefault();
 
-    const cleanCertCode = (formData.certificate_code || "").trim().toUpperCase();
+    const { cleanCertCode, recomputedOverall, payload } = buildNormalizedDraftPayload();
     if (!cleanCertCode || !/^[A-Z0-9_-]{4,50}$/.test(cleanCertCode)) {
       toast.warning("Mã chứng chỉ không hợp lệ (chỉ gồm chữ in hoa, số, dấu '-' hoặc '_').");
       return;
@@ -476,6 +490,11 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       return;
     }
 
+    if (!formData.issue_date) {
+      toast.warning("Vui lòng chọn ngày cấp chứng chỉ.");
+      return;
+    }
+
     if (!formData.wallet_address || !ethers.isAddress(formData.wallet_address.trim().toLowerCase())) {
       toast.warning("Địa chỉ ví học viên chưa hợp lệ (cần địa chỉ Ethereum 42 ký tự bắt đầu bằng 0x).");
       return;
@@ -488,26 +507,23 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       return;
     }
 
-    const isToeic = detectCourseType(formData.course_code, courseOpts.scoreType) === "TOEIC";
+    if (!recomputedOverall) {
+      toast.error("Không thể tính được điểm tổng Overall hợp lệ từ các kỹ năng đã nhập.");
+      return;
+    }
 
     if (user?.role === "STAFF") {
       setLoading(true);
       try {
-        await syncStudentWalletIfNeeded(formData.wallet_address);
-        const result = await certificateApi.createDraft({
-          certificate_code: cleanCertCode,
-          student_code: formData.student_code,
-          course_code: formData.course_code,
-          score_overall: formData.score,
-          score_listening: formData.listening || null,
-          score_reading: formData.reading || null,
-          score_writing: isToeic ? null : (formData.writing || null),
-          score_speaking: isToeic ? null : (formData.speaking || null),
-          issue_date: formData.issue_date,
-          expiry_date: formData.expiry_date || null
-        });
+        // Tạo bản nháp trước — tránh ghi đè ví học viên nếu createDraft thất bại (vd: trùng mã 409)
+        const result = await certificateApi.createDraft(payload);
         if (!result?.success || !result.data?.id) {
           throw new Error(result?.message || "Máy chủ chưa xác nhận lưu bản nháp.");
+        }
+        try {
+          await syncStudentWalletIfNeeded(formData.wallet_address);
+        } catch (walletSyncErr) {
+          toast.warning(`Đã lưu nháp ${cleanCertCode}, nhưng chưa đồng bộ được ví học viên: ${walletSyncErr.message || walletSyncErr}`);
         }
         toast.success(`Đã lưu bản nháp ${cleanCertCode}. Hồ sơ đang chờ Quản trị viên kiểm duyệt.`);
         navigate("/admin/certificates");
@@ -524,10 +540,19 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       return;
     }
 
-    // Đồng bộ ví học viên lên MySQL nếu Admin vừa bổ sung/chỉnh ví trước khi mở modal ký
+    // Đồng bộ ví học viên & chuẩn hóa điểm/mã trước khi mở modal ký
     try {
       const syncedWallet = await syncStudentWalletIfNeeded(formData.wallet_address);
-      setFormData((prev) => ({ ...prev, certificate_code: cleanCertCode, wallet_address: syncedWallet }));
+      setFormData((prev) => ({
+        ...prev,
+        certificate_code: cleanCertCode,
+        score: recomputedOverall,
+        listening: payload.score_listening || "",
+        reading: payload.score_reading || "",
+        writing: payload.score_writing || "",
+        speaking: payload.score_speaking || "",
+        wallet_address: syncedWallet
+      }));
     } catch (walletErr) {
       toast.error(walletErr.message || "Không thể đồng bộ địa chỉ ví học viên.");
       return;
@@ -544,6 +569,10 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       toast.warning("Vui lòng chọn hồ sơ chứng chỉ trước khi chuẩn bị phát hành.");
       return;
     }
+    if (!formData.issue_date) {
+      toast.warning("Vui lòng chọn ngày cấp chứng chỉ.");
+      return;
+    }
     const validation = validateSubScores(formData.course_code, formData, getCourseOptions(formData.course_code));
     if (!validation.isValid) {
       toast.error(`Dữ liệu điểm chưa hợp lệ:\n• ${validation.errors.join("\n• ")}`);
@@ -552,20 +581,14 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
     setPreparing(true);
     try {
+      const syncedWallet = await syncStudentWalletIfNeeded(formData.wallet_address);
+      const { cleanCertCode, recomputedOverall, payload } = buildNormalizedDraftPayload();
       let dbCertId = formData.id;
       if (!dbCertId) {
-        const draftRes = await certificateApi.createDraft({
-          certificate_code: formData.certificate_code,
-          student_code: formData.student_code,
-          course_code: formData.course_code,
-          score_overall: formData.score,
-          score_listening: formData.listening || null,
-          score_reading: formData.reading || null,
-          score_writing: formData.writing || null,
-          score_speaking: formData.speaking || null,
-          issue_date: formData.issue_date,
-          expiry_date: formData.expiry_date || null
-        });
+        if (!cleanCertCode || !/^[A-Z0-9_-]{4,50}$/.test(cleanCertCode)) {
+          throw new Error("Mã chứng chỉ không hợp lệ (chỉ gồm chữ in hoa, số, dấu '-' hoặc '_').");
+        }
+        const draftRes = await certificateApi.createDraft(payload);
         if (!draftRes?.success || !draftRes.data?.id) {
           throw new Error(draftRes?.message || "Không thể khởi tạo hồ sơ PENDING trên máy chủ.");
         }
@@ -587,6 +610,9 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       setFormData((prev) => ({
         ...prev,
         id: dbCertId,
+        certificate_code: cleanCertCode,
+        score: recomputedOverall || prev.score,
+        wallet_address: syncedWallet,
         ipfs_hash: nextPrepared.ipfs_hash,
         status: "READY_TO_MINT"
       }));
@@ -665,18 +691,8 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         setMintStageLabel("Bước 1/3: Tạo PDF + SHA-256 & Upload lên IPFS...");
         let dbCertId = formData.id;
         if (!dbCertId) {
-          const draftRes = await certificateApi.createDraft({
-            certificate_code: formData.certificate_code,
-            student_code: formData.student_code,
-            course_code: formData.course_code,
-            score_overall: formData.score,
-            score_listening: formData.listening || null,
-            score_reading: formData.reading || null,
-            score_writing: formData.writing || null,
-            score_speaking: formData.speaking || null,
-            issue_date: formData.issue_date,
-            expiry_date: formData.expiry_date || null
-          });
+          const { payload } = buildNormalizedDraftPayload();
+          const draftRes = await certificateApi.createDraft(payload);
           if (!draftRes?.success || !draftRes.data?.id) {
             throw new Error(draftRes?.message || "Không lưu được bản nháp lên máy chủ.");
           }
@@ -779,7 +795,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         token_id: tokenId,
         tx_hash: tx.hash,
         ipfs_hash: currentPrepared.ipfs_hash,
-        pdf_url: `http://localhost:5000/api/public/pdf/${formData.certificate_code}`
+        pdf_url: `${API_BASE_URL}/public/pdf/${formData.certificate_code}`
       };
 
       try {
@@ -1412,6 +1428,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     <label className="form-label" style={{ fontSize: "12px" }}>Ngày cấp chứng chỉ</label>
                     <input
                       type="date"
+                      required
                       value={formData.issue_date}
                       onChange={(e) => handleDateChange(e.target.value)}
                       className="form-input"
@@ -1546,7 +1563,11 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--text-muted)" }}>Điểm thành phần:</span>
-                <span>L: {formData.listening} • R: {formData.reading} • W: {formData.writing} • S: {formData.speaking}</span>
+                <span>
+                  {detectCourseType(formData.course_code, getCourseOptions(formData.course_code).scoreType) === "TOEIC"
+                    ? `L: ${formData.listening || "—"} • R: ${formData.reading || "—"}`
+                    : `L: ${formData.listening || "—"} • R: ${formData.reading || "—"} • W: ${formData.writing || "—"} • S: ${formData.speaking || "—"}`}
+                </span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "var(--text-muted)" }}>Điểm Overall:</span>
@@ -1715,7 +1736,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
               </button>
               <button
                 type="button"
-                onClick={() => window.open(`http://localhost:5000/api/public/pdf/${successCert.certificate_code}`, "_blank")}
+                onClick={() => window.open(`${API_BASE_URL}/public/pdf/${successCert.certificate_code}`, "_blank")}
                 className="btn btn-gold"
                 style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
               >

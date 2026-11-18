@@ -159,173 +159,160 @@ export default function CertificateVerifier({ syncUrl = false }) {
   };
 
   return (
-    <div style={{ maxWidth: "780px", margin: "0 auto", textAlign: "left" }}>
-      {/* Unified Search / QR Switcher Card */}
-      <div className="glass-panel" style={{ padding: "20px 24px", boxShadow: "var(--shadow-card)" }}>
-        {/* Compact Segmented Tabs inside Card */}
-        <div style={{
-          display: "inline-flex",
-          gap: "6px",
-          padding: "4px",
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border-subtle)",
-          borderRadius: "var(--radius-full)",
-          marginBottom: "16px"
-        }}>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("code");
-              if (syncUrl) setSearchParams(inputCode ? { code: inputCode } : {});
-            }}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "7px 16px",
-              borderRadius: "var(--radius-full)",
-              border: "none",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: 600,
-              background: activeTab === "code" ? "var(--primary)" : "transparent",
-              color: activeTab === "code" ? "#ffffff" : "var(--text-secondary)",
-              transition: "all var(--transition-fast)"
-            }}
-          >
-            <Search size={14} />
-            Nhập Mã Bằng
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("qr");
-              if (syncUrl) setSearchParams({ tab: "qr" });
-            }}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "7px 16px",
-              borderRadius: "var(--radius-full)",
-              border: "none",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: 600,
-              background: activeTab === "qr" ? "var(--primary)" : "transparent",
-              color: activeTab === "qr" ? "#ffffff" : "var(--text-secondary)",
-              transition: "all var(--transition-fast)"
-            }}
-          >
-            <QrCode size={14} />
-            Quét Mã QR
-          </button>
-        </div>
+    <div style={{ maxWidth: "740px", margin: "0 auto", textAlign: "left" }}>
+      {/* Single-row Spotlight Search Capsule (Input + inline QR Toggle + Verify CTA) */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSearch();
+        }}
+        className="search-spotlight-bar"
+      >
+        <Search size={19} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+        <input
+          type="text"
+          placeholder="Nhập mã chứng chỉ cần tra cứu..."
+          value={inputCode}
+          onChange={(e) => {
+            setInputCode(e.target.value);
+            if (activeTab === "qr") setActiveTab("code");
+          }}
+          className="search-spotlight-input"
+        />
 
-        {/* TAB 1: CODE INPUT */}
-        {activeTab === "code" && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSearch();
-            }}
-            style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}
-          >
-            <div style={{ position: "relative", flex: 1, minWidth: "240px" }}>
-              <input
-                type="text"
-                placeholder="Nhập mã chứng chỉ cần tra cứu..."
-                value={inputCode}
-                onChange={(e) => setInputCode(e.target.value)}
-                className="form-input"
-                style={{ paddingLeft: "42px", height: "48px", fontSize: "15px" }}
-              />
-              <Search size={18} color="var(--text-muted)" style={{ position: "absolute", left: "14px", top: "15px" }} />
+        <div style={{ width: "1px", height: "24px", background: "var(--border-subtle)", flexShrink: 0 }} />
+
+        <button
+          type="button"
+          onClick={() => {
+            const nextTab = activeTab === "qr" ? "code" : "qr";
+            setActiveTab(nextTab);
+            if (syncUrl) setSearchParams(nextTab === "qr" ? { tab: "qr" } : (inputCode ? { code: inputCode } : {}));
+          }}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            height: "42px",
+            padding: "0 14px",
+            borderRadius: "12px",
+            border: "none",
+            cursor: "pointer",
+            fontSize: "13px",
+            fontWeight: 600,
+            background: activeTab === "qr" ? "var(--primary-bg)" : "transparent",
+            color: activeTab === "qr" ? "var(--primary)" : "var(--text-secondary)",
+            transition: "all var(--transition-fast)",
+            flexShrink: 0
+          }}
+          title="Quét mã QR bằng camera hoặc tải ảnh"
+        >
+          <QrCode size={16} />
+          <span>Quét QR</span>
+        </button>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="btn btn-primary"
+          style={{ height: "44px", padding: "0 22px", borderRadius: "12px", fontSize: "14px", flexShrink: 0 }}
+        >
+          {loading ? (
+            <>
+              <RefreshCw size={16} className="animate-spin" />
+              Đang kiểm tra...
+            </>
+          ) : (
+            <>
+              <ShieldCheck size={16} />
+              Thẩm Định
+            </>
+          )}
+        </button>
+      </form>
+
+      {/* Slide-down Embedded QR Scanner Panel (Only visible when Quét QR is toggled on) */}
+      {activeTab === "qr" && (
+        <div className="glass-panel" style={{ padding: "24px", marginTop: "16px", maxWidth: "520px", marginLeft: "auto", marginRight: "auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+            <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "8px" }}>
+              <QrCode size={16} color="var(--primary)" /> Quét Mã QR Trên Bằng Cấp
             </div>
-
-            <button type="submit" disabled={loading} className="btn btn-primary" style={{ height: "48px", padding: "0 24px" }}>
-              {loading ? (
-                <>
-                  <RefreshCw size={18} className="animate-spin" />
-                  Đang đối soát...
-                </>
-              ) : (
-                <>
-                  <ShieldCheck size={18} />
-                  Thẩm Định
-                </>
-              )}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("code");
+                if (syncUrl) setSearchParams(inputCode ? { code: inputCode } : {});
+              }}
+              style={{ background: "transparent", border: "none", color: "var(--text-muted)", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
+            >
+              Đóng ✕
             </button>
-          </form>
-        )}
+          </div>
 
-        {/* TAB 2: EMBEDDED QR SCANNER */}
-        {activeTab === "qr" && (
-          <div style={{ paddingTop: "6px" }}>
-            <div style={{
-              position: "relative",
-              width: "100%",
-              maxWidth: "320px",
-              height: "320px",
-              margin: "0 auto",
-              background: "#050811",
-              borderRadius: "16px",
-              overflow: "hidden",
-              border: "2px solid var(--border-subtle)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}>
-              <div id={qrElementId} style={{ width: "100%", height: "100%" }} />
-              <div id={fileElementId} style={{ display: "none" }} />
-              {cameraActive && !scanResult && <div className="laser-beam" />}
-              {scanResult && (
-                <div style={{
-                  position: "absolute",
-                  inset: 0,
-                  background: "rgba(16, 185, 129, 0.95)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#ffffff",
-                  zIndex: 20
-                }}>
-                  <CheckCircle2 size={50} />
-                  <div style={{ fontWeight: 800, fontSize: "16px", marginTop: "10px" }}>ĐÃ NHẬN DIỆN MÃ QR!</div>
-                  <div style={{ fontSize: "13px", marginTop: "4px" }}>Đang thẩm định: {scanResult}</div>
-                </div>
-              )}
-            </div>
-
-            <div style={{ marginTop: "18px", textAlign: "center" }}>
-              <label className="btn btn-outline" style={{ cursor: "pointer", display: "inline-flex" }}>
-                <Upload size={16} />
-                Tải Ảnh Chụp Mã QR Từ Máy
-                <input type="file" accept="image/*" onChange={handleQrFileUpload} style={{ display: "none" }} />
-              </label>
-            </div>
-
-            {qrError && (
+          <div style={{
+            position: "relative",
+            width: "100%",
+            maxWidth: "300px",
+            height: "300px",
+            margin: "0 auto",
+            background: "#050811",
+            borderRadius: "14px",
+            overflow: "hidden",
+            border: "2px solid var(--border-subtle)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center"
+          }}>
+            <div id={qrElementId} style={{ width: "100%", height: "100%" }} />
+            <div id={fileElementId} style={{ display: "none" }} />
+            {cameraActive && !scanResult && <div className="laser-beam" />}
+            {scanResult && (
               <div style={{
-                marginTop: "14px",
-                background: "var(--warning-bg)",
-                border: "1px solid rgba(245, 158, 11, 0.3)",
-                color: "var(--warning-text)",
-                padding: "12px 14px",
-                borderRadius: "var(--radius-md)",
-                fontSize: "13px",
+                position: "absolute",
+                inset: 0,
+                background: "rgba(16, 185, 129, 0.95)",
                 display: "flex",
-                alignItems: "flex-start",
-                gap: "10px"
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#ffffff",
+                zIndex: 20
               }}>
-                <AlertCircle size={18} style={{ flexShrink: 0, marginTop: "2px" }} />
-                <span>{qrError}</span>
+                <CheckCircle2 size={48} />
+                <div style={{ fontWeight: 800, fontSize: "15px", marginTop: "10px" }}>ĐÃ NHẬN DIỆN MÃ QR!</div>
+                <div style={{ fontSize: "13px", marginTop: "4px" }}>Đang thẩm định: {scanResult}</div>
               </div>
             )}
           </div>
-        )}
-      </div>
+
+          <div style={{ marginTop: "16px", textAlign: "center" }}>
+            <label className="btn btn-outline" style={{ cursor: "pointer", display: "inline-flex", fontSize: "13px" }}>
+              <Upload size={15} />
+              Tải Ảnh Chụp Mã QR Từ Máy
+              <input type="file" accept="image/*" onChange={handleQrFileUpload} style={{ display: "none" }} />
+            </label>
+          </div>
+
+          {qrError && (
+            <div style={{
+              marginTop: "14px",
+              background: "var(--warning-bg)",
+              border: "1px solid rgba(245, 158, 11, 0.3)",
+              color: "var(--warning-text)",
+              padding: "10px 14px",
+              borderRadius: "var(--radius-md)",
+              fontSize: "12.5px",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "8px"
+            }}>
+              <AlertCircle size={16} style={{ flexShrink: 0, marginTop: "2px" }} />
+              <span>{qrError}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Verification Result Area */}
       <div ref={resultRef}>

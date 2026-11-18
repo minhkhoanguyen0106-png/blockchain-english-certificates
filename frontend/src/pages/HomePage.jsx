@@ -24,80 +24,76 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* Hero Section */}
-      <section style={{ padding: "80px 0 60px", textAlign: "center", position: "relative" }}>
-        <div className="container" style={{ maxWidth: "920px" }}>
+      {/* Hero Section with Modern Architectural Grid & Aura */}
+      <section className="hero-spotlight-section" style={{ textAlign: "center" }}>
+        <div className="container" style={{ maxWidth: "900px", position: "relative", zIndex: 1 }}>
           
           <div style={{
             display: "inline-flex",
             alignItems: "center",
             gap: "8px",
-            padding: "6px 16px",
-            background: "var(--primary-bg)",
-            border: "1px solid var(--border-subtle)",
+            padding: "6px 14px",
+            background: "var(--bg-surface-elevated)",
+            border: "1px solid var(--border-medium)",
             borderRadius: "var(--radius-full)",
-            fontSize: "13px",
+            fontSize: "12.5px",
             color: "var(--primary)",
-            marginBottom: "24px",
-            fontWeight: 600
+            marginBottom: "22px",
+            fontWeight: 600,
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.04)"
           }}>
-            <Sparkles size={16} />
-            <span>Nền Tảng Quản Lý & Xác Thực Bằng Cấp Tiếng Anh Điện Tử</span>
+            <Sparkles size={14} />
+            <span>Cổng Xác Thực Bằng Cấp Tiếng Anh Điện Tử</span>
           </div>
 
           <h1 style={{
-            fontSize: "46px",
+            fontSize: "clamp(32px, 4.6vw, 48px)",
             fontWeight: 800,
-            lineHeight: 1.25,
-            letterSpacing: "-1px",
-            marginBottom: "20px",
-            color: "var(--text-primary)"
+            lineHeight: 1.2,
+            letterSpacing: "-1.2px",
+            marginBottom: "16px",
+            color: "var(--text-primary)",
+            textWrap: "balance"
           }}>
-            Thẩm Định Chứng Chỉ Tiếng Anh <br />
-            <span className="text-gradient">Chống Làm Giả Tuyệt Đối & Xác Thực Bất Biến</span>
+            Xác Thực Chứng Chỉ Tiếng Anh <br />
+            <span className="text-gradient">Minh Bạch &amp; Chống Giả Mạo</span>
           </h1>
 
           <p style={{
-            fontSize: "18px",
+            fontSize: "16px",
             color: "var(--text-secondary)",
-            maxWidth: "720px",
-            margin: "0 auto 36px",
+            maxWidth: "600px",
+            margin: "0 auto 32px",
             lineHeight: 1.65
           }}>
-            Giải pháp cấp phát và đối soát chứng chỉ IELTS, TOEIC, VSTEP minh bạch. 
-            Mỗi chứng chỉ là một <strong>bằng cấp số định danh</strong> gắn liền danh tính học viên, 
-            không thể tẩy xóa hay chuyển nhượng.
+            Kiểm tra tức thì tính hợp lệ của chứng chỉ <strong>IELTS, TOEIC, VSTEP</strong> trực tiếp từ dữ liệu định danh bất biến — không cần đăng nhập.
           </p>
 
-          {/* Embedded Direct Verification Widget (Nhập Mã Bằng & Quét Mã QR ngay tại Trang Chủ) */}
+          {/* Embedded Single-row Spotlight Verification Widget */}
           <CertificateVerifier syncUrl={false} />
 
         </div>
       </section>
 
-      {/* Metrics Banner */}
-      <section style={{ padding: "20px 0 50px" }}>
-        <div className="container" style={{ maxWidth: "1000px" }}>
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: "20px"
-          }}>
-            <div className="glass-panel" style={{ padding: "24px", textAlign: "center" }}>
-              <div style={{ fontSize: "36px", fontWeight: 800, color: "var(--primary)" }}>{issuedCerts}</div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>Chứng chỉ số đã cấp</div>
+      {/* Unified Trust Stats Strip */}
+      <section style={{ padding: "8px 0 56px" }}>
+        <div className="container" style={{ maxWidth: "900px" }}>
+          <div className="trust-stats-strip">
+            <div className="trust-stat-item">
+              <div style={{ fontSize: "30px", fontWeight: 800, color: "var(--primary)", lineHeight: 1.1 }}>{issuedCerts}</div>
+              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Chứng chỉ đã phát hành</div>
             </div>
-            <div className="glass-panel" style={{ padding: "24px", textAlign: "center" }}>
-              <div style={{ fontSize: "36px", fontWeight: 800, color: "var(--accent-gold)" }}>{totalCourses}</div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>Kỳ thi hỗ trợ (IELTS, TOEIC, VSTEP)</div>
+            <div className="trust-stat-item">
+              <div style={{ fontSize: "30px", fontWeight: 800, color: "var(--accent-gold)", lineHeight: 1.1 }}>{totalCourses}</div>
+              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Chuẩn kỳ thi quốc tế</div>
             </div>
-            <div className="glass-panel" style={{ padding: "24px", textAlign: "center" }}>
-              <div style={{ fontSize: "36px", fontWeight: 800, color: "var(--success-text)" }}>100%</div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>Bất biến & Chống giả mạo</div>
+            <div className="trust-stat-item">
+              <div style={{ fontSize: "30px", fontWeight: 800, color: "var(--success-text)", lineHeight: 1.1 }}>100%</div>
+              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Bất biến &amp; Minh bạch</div>
             </div>
-            <div className="glass-panel" style={{ padding: "24px", textAlign: "center" }}>
-              <div style={{ fontSize: "36px", fontWeight: 800, color: "var(--primary)" }}>&lt; 2s</div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>Tốc độ đối soát mã QR</div>
+            <div className="trust-stat-item">
+              <div style={{ fontSize: "30px", fontWeight: 800, color: "var(--primary)", lineHeight: 1.1 }}>&lt; 2s</div>
+              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Thời gian đối soát QR</div>
             </div>
           </div>
         </div>

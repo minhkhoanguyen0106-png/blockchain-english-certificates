@@ -1039,7 +1039,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     )}
 
                     {/* Khóa thi & Điểm */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "13px", marginBottom: "14px" }}>
+                    <div className="issue-form-row-2col" style={{ fontSize: "13px", marginBottom: "14px" }}>
                       <div>
                         <div style={{ color: "var(--text-muted)", fontSize: "11px" }}>Kỳ thi / Khóa học</div>
                         <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{formData.course_name}</div>
@@ -1072,7 +1072,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                           <ShieldCheck size={12} /> Đã chốt điểm
                         </span>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", textAlign: "center" }}>
+                      <div className="issue-scores-4col" style={{ textAlign: "center" }}>
                         <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", padding: "8px 4px", borderRadius: "8px" }}>
                           <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>Listening</div>
                           <div style={{ fontWeight: 700, fontSize: "15px", color: "var(--text-primary)", marginTop: "2px" }}>{formData.listening || "—"}</div>
@@ -1322,7 +1322,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   </select>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="issue-form-row-2col">
                   <div className="form-group">
                     <label className="form-label">Họ tên học viên</label>
                     <input
@@ -1390,7 +1390,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     </span>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
+                  <div className="issue-scores-4col">
                     <div>
                       <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Listening</label>
                       <input
@@ -1455,7 +1455,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 </div>
 
                 {/* Ngày cấp chứng chỉ / hạn hiệu lực */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+                <div className="issue-form-row-2col" style={{ marginBottom: "16px" }}>
                   <div>
                     <label className="form-label" style={{ fontSize: "12px" }}>Ngày cấp chứng chỉ</label>
                     <input
@@ -1869,7 +1869,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
             {/* Các nút hành động cân đối */}
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <div className="modal-buttons-2col">
                 <button
                   type="button"
                   onClick={async () => {

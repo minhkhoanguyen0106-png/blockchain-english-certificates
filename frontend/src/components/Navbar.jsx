@@ -87,7 +87,7 @@ export default function Navbar({ user, setUser }) {
               }}
             >
               <LayoutDashboard size={15} />
-              <span>Trang Quản Trị</span>
+              <span className="public-nav-admin-text">Trang Quản Trị</span>
             </Link>
           )}
 
@@ -128,10 +128,10 @@ export default function Navbar({ user, setUser }) {
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <span style={{ fontWeight: 600, color: "var(--text-primary)", maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span className="public-nav-user-name" style={{ fontWeight: 600, color: "var(--text-primary)", maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {displayName}
                 </span>
-                <span style={{
+                <span className="public-nav-role-tag" style={{
                   fontSize: "10px",
                   fontWeight: 700,
                   padding: "2px 7px",

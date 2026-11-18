@@ -203,8 +203,9 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
               </button>
 
               <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                <span style={{ color: "var(--text-muted)", fontWeight: 500 }}>Hệ Thống</span>
-                <ChevronRight size={14} color="var(--text-muted)" />
+                <span className="admin-breadcrumb-prefix" style={{ color: "var(--text-muted)", fontWeight: 500 }}>
+                  Hệ Thống <ChevronRight size={14} color="var(--text-muted)" style={{ margin: "0 2px" }} />
+                </span>
                 <span style={{ color: "var(--text-primary)", fontWeight: 700 }}>{getBreadcrumb()}</span>
               </div>
             </div>
@@ -225,7 +226,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
                   }}>
                     <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 8px rgba(16, 185, 129, 0.7)" }} />
                     <span style={{ fontWeight: 700, color: "var(--success-text)" }}>{shortenAddress(wallet.address)}</span>
-                    <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>({wallet.balance} ETH)</span>
+                    <span className="admin-wallet-pill-balance" style={{ color: "var(--text-muted)", fontSize: "11px" }}>({wallet.balance} ETH)</span>
                   </div>
                 ) : (
                   <button
@@ -314,7 +315,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
           </header>
 
           {/* Main Content Body */}
-          <main style={{ flex: 1, padding: "20px 28px 60px" }}>
+          <main className="admin-workspace-main">
             {children}
           </main>
         </div>

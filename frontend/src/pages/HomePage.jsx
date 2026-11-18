@@ -388,7 +388,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "24px" }}>
+          <div className="home-features-grid">
             {features.map((feat, idx) => {
               const Icon = feat.icon;
               return (
@@ -440,7 +440,7 @@ export default function HomePage() {
               <div className="workflow-connector-fill" />
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "20px" }}>
+            <div className="home-workflow-grid">
               {workflowSteps.map((item, idx) => {
                 const isActive = activeStep === idx;
                 return (

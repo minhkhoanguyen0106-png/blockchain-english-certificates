@@ -458,7 +458,7 @@ export default function DataManagementPage({ user }) {
           </div>
 
           {/* Search */}
-          <div style={{ position: "relative", width: "360px", maxWidth: "100%" }}>
+          <div className="data-search-wrap" style={{ position: "relative", width: "360px", maxWidth: "100%" }}>
             <input
               type="text"
               placeholder={

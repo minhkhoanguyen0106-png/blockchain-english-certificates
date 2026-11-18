@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Lock, User, ArrowLeft, ShieldCheck, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Lock, User, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { authApi } from "../services/apiService";
 import LumiMascot from "../components/LumiMascot";
 import koheniLogo from "../assets/koheni-logo.png";
@@ -220,7 +220,7 @@ export default function LoginPage({ setUser }) {
           flexDirection: "column",
           zIndex: 2
         }}>
-          {/* Top-right Back to Home link + Mobile-only Logo */}
+          {/* Mobile-only Logo */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <Link
               to="/"
@@ -228,27 +228,6 @@ export default function LoginPage({ setUser }) {
               style={{ display: "none", alignItems: "center", gap: "8px", textDecoration: "none", background: "rgba(255,255,255,0.95)", padding: "5px 10px", borderRadius: "10px" }}
             >
               <img src={koheniLogo} alt="Koheni" style={{ height: "28px", width: "auto", display: "block" }} />
-            </Link>
-
-            <Link
-              to="/"
-              className="nav-drop-item"
-              style={{
-                marginLeft: "auto",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-                color: "rgba(186, 214, 230, 0.72)",
-                fontSize: "12.5px",
-                fontWeight: 500,
-                textDecoration: "none",
-                transition: "color var(--transition-fast)",
-                "--drop-delay": "0.18s"
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "#ffffff"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(186, 214, 230, 0.72)"; }}
-            >
-              <ArrowLeft size={14} /> Về trang chủ
             </Link>
           </div>
 

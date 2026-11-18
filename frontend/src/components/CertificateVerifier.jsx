@@ -288,8 +288,8 @@ const CertificateVerifier = forwardRef(function CertificateVerifier({ syncUrl = 
                 zIndex: 20
               }}>
                 <CheckCircle2 size={48} />
-                <div style={{ fontWeight: 800, fontSize: "15px", marginTop: "10px" }}>ĐÃ NHẬN DIỆN MÃ QR!</div>
-                <div style={{ fontSize: "13px", marginTop: "4px" }}>Đang thẩm định: {scanResult}</div>
+                <div style={{ fontWeight: 800, fontSize: "15px", marginTop: "10px" }}>Đã quét được mã QR!</div>
+                <div style={{ fontSize: "13px", marginTop: "4px" }}>Đang tra cứu mã: {scanResult}</div>
               </div>
             )}
           </div>
@@ -297,7 +297,7 @@ const CertificateVerifier = forwardRef(function CertificateVerifier({ syncUrl = 
           <div style={{ marginTop: "16px", textAlign: "center" }}>
             <label className="btn btn-outline" style={{ cursor: "pointer", display: "inline-flex", fontSize: "13px" }}>
               <Upload size={15} />
-              Tải Ảnh Chụp Mã QR Từ Máy
+              Chọn Ảnh Mã QR Từ Máy
               <input type="file" accept="image/*" onChange={handleQrFileUpload} style={{ display: "none" }} />
             </label>
           </div>
@@ -338,8 +338,8 @@ const CertificateVerifier = forwardRef(function CertificateVerifier({ syncUrl = 
               <rect x="20" y="54" width="66" height="5" rx="2.5" fill="var(--primary)" opacity="0.3" className="live-bar-pulse-3" />
               <line x1="16" y1="16" x2="94" y2="16" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" className="live-scan-beam" />
             </svg>
-            <h3 style={{ fontSize: "17px", fontWeight: 700, color: "var(--text-primary)" }}>Đang đối soát chứng chỉ điện tử...</h3>
-            <p style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "4px" }}>Xác thực chữ ký số và dữ liệu chứng chỉ trên hệ thống</p>
+            <h3 style={{ fontSize: "17px", fontWeight: 700, color: "var(--text-primary)" }}>Đang tìm kiếm chứng chỉ...</h3>
+            <p style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "4px" }}>Vui lòng chờ trong giây lát để kiểm tra thông tin văn bằng</p>
           </div>
         )}
 
@@ -363,12 +363,12 @@ const CertificateVerifier = forwardRef(function CertificateVerifier({ syncUrl = 
                 </div>
                 <div>
                   <h4 style={{ color: "var(--success-text)", fontWeight: 800, fontSize: "16px" }}>
-                    CHỨNG CHỈ HỢP LỆ &amp; XÁC THỰC THÀNH CÔNG
+                    Chứng Chỉ Hợp Lệ
                   </h4>
                   <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "2px" }}>
                     {result.onchain_verified
-                      ? "Đã đối soát khớp 100% dữ liệu trực tiếp với Hợp đồng Thông minh (chống chỉnh sửa tuyệt đối)."
-                      : "Chứng chỉ đã được xác nhận chữ ký số của Quản trị viên và lưu trữ an toàn trên hệ thống."}
+                      ? "Thông tin chứng chỉ trùng khớp hoàn toàn với hồ sơ lưu trữ gốc của Trung tâm Khảo thí."
+                      : "Chứng chỉ đã được Trung tâm Khảo thí cấp phát và hiện đang có hiệu lực."}
                   </p>
                 </div>
               </div>
@@ -389,7 +389,7 @@ const CertificateVerifier = forwardRef(function CertificateVerifier({ syncUrl = 
                   <XCircle size={24} color="#ffffff" />
                 </div>
                 <div>
-                  <h4 style={{ color: "var(--danger-text)", fontWeight: 800, fontSize: "16px" }}>CHỨNG CHỈ ĐÃ BỊ THU HỒI</h4>
+                  <h4 style={{ color: "var(--danger-text)", fontWeight: 800, fontSize: "16px" }}>Chứng Chỉ Đã Bị Thu Hồi</h4>
                   <p style={{ color: "var(--danger-text)", fontSize: "13px", marginTop: "2px", fontWeight: 600 }}>
                     Lý do thu hồi: {result.revoked_reason || "Vi phạm quy chế thi cử"}
                   </p>
@@ -417,9 +417,9 @@ const CertificateVerifier = forwardRef(function CertificateVerifier({ syncUrl = 
                   <AlertTriangle size={24} color="#ffffff" />
                 </div>
                 <div>
-                  <h4 style={{ color: "#d97706", fontWeight: 800, fontSize: "16px" }}>CẢNH BÁO: SAI LỆCH DỮ LIỆU TÀI LIỆU (TAMPERED)</h4>
+                  <h4 style={{ color: "#d97706", fontWeight: 800, fontSize: "16px" }}>Cảnh Báo: Thông Tin Chứng Chỉ Không Khớp</h4>
                   <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "2px" }}>
-                    Nội dung lưu trữ không trùng khớp với bản ghi gốc bất biến đã cam kết trên Hợp đồng Thông minh. Dấu hiệu dữ liệu đã bị chỉnh sửa trái phép!
+                    Nội dung hiển thị không trùng khớp với hồ sơ gốc đã cấp phát. Vui lòng liên hệ Trung tâm Khảo thí để xác minh lại.
                   </p>
                   {result.tamper_details && (
                     <p style={{ color: "#d97706", fontSize: "12px", fontWeight: 600, marginTop: "6px" }}>
@@ -447,12 +447,12 @@ const CertificateVerifier = forwardRef(function CertificateVerifier({ syncUrl = 
                 className="btn btn-primary"
               >
                 <Download size={16} />
-                Tải Phôi Bằng PDF In Ấn
+                Tải Bản PDF
               </button>
 
               <button type="button" onClick={handleCopyShareLink} className="btn btn-outline">
                 {copiedLink ? <Check size={16} color="var(--success-color)" /> : <Copy size={16} />}
-                {copiedLink ? "Đã Copy Link Xác Thực" : "Chia Sẻ Link Xác Thực"}
+                {copiedLink ? "Đã Sao Chép Link" : "Sao Chép Link Tra Cứu"}
               </button>
 
               <button type="button" onClick={handleReset} className="btn btn-outline">
@@ -469,7 +469,7 @@ const CertificateVerifier = forwardRef(function CertificateVerifier({ syncUrl = 
             </div>
             <h3 style={{ fontSize: "19px", fontWeight: 800, color: "var(--warning-text)" }}>Không Tìm Thấy Chứng Chỉ Này</h3>
             <p style={{ color: "var(--text-secondary)", fontSize: "14px", maxWidth: "500px", margin: "8px auto 0" }}>
-              Mã chứng chỉ <strong>"{inputCode}"</strong> chưa từng được cấp phát hoặc không tồn tại trên hệ thống xác thực. Cẩn trọng với các bằng cấp giả mạo!
+              Không tìm thấy chứng chỉ nào ứng với mã <strong>"{inputCode}"</strong>. Vui lòng kiểm tra lại mã đã nhập hoặc quét lại mã QR in trên văn bằng.
             </p>
           </div>
         )}

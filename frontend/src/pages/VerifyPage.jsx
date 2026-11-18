@@ -15,10 +15,10 @@ export default function VerifyPage() {
 
         <div style={{ textAlign: "center", marginBottom: "28px" }}>
           <h1 style={{ fontSize: "32px", fontWeight: 800, marginBottom: "8px", color: "var(--text-primary)" }}>
-            Tra Cứu &amp; Xác Thực <span className="text-gradient">Chứng Chỉ Số</span>
+            Tra Cứu <span className="text-gradient">Chứng Chỉ Tiếng Anh</span>
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "15px" }}>
-            Kiểm tra tính toàn vẹn trực tiếp từ dữ liệu xác thực điện tử — Học viên &amp; Nhà tuyển dụng không cần đăng nhập.
+            Nhập mã số trên văn bằng hoặc quét mã QR để kiểm tra kết quả thi và tình trạng hiệu lực — không cần đăng nhập.
           </p>
         </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { QrCode, Lock, Globe, Sparkles, CheckCircle2, Search, ArrowUpRight } from "lucide-react";
+import { QrCode, ShieldCheck, Globe, Sparkles, CheckCircle2, Search, ArrowUpRight } from "lucide-react";
 import { getAllCertificates } from "../services/web3Service";
 import { dashboardApi } from "../services/apiService";
 import CertificateVerifier from "../components/CertificateVerifier";
@@ -98,9 +98,9 @@ function LivingQrVerificationIllustration() {
         <rect x="118" y="54" width="224" height="248" rx="22" fill="#ffffff" stroke="url(#liveCardBorder)" strokeWidth="1.6" />
 
         {/* Subtle Top Header Pill */}
-        <rect x="142" y="76" width="52" height="20" rx="10" fill="#e0f2fe" />
-        <text x="168" y="89.5" textAnchor="middle" fill="#0284c7" fontSize="10" fontWeight="800" fontFamily="Plus Jakarta Sans, sans-serif">
-          EN • SBT
+        <rect x="142" y="76" width="60" height="20" rx="10" fill="#e0f2fe" />
+        <text x="172" y="89.5" textAnchor="middle" fill="#0284c7" fontSize="10" fontWeight="800" fontFamily="Plus Jakarta Sans, sans-serif">
+          EN • CERT
         </text>
         <circle cx="314" cy="86" r="5" fill="#10b981" />
 
@@ -132,7 +132,7 @@ function LivingQrVerificationIllustration() {
 
         {/* Self-Drawing Cursive Digital Signature (Deliverest Section 5 Signature Effect!) */}
         <text x="142" y="224" fill="#94a3b8" fontSize="9.5" fontWeight="700" letterSpacing="0.8" fontFamily="Plus Jakarta Sans, sans-serif">
-          CHỮ KÝ XÁC THỰC
+          ĐÃ XÁC NHẬN
         </text>
         <path
           d="M144 258 C154 236 164 236 166 254 C168 266 178 242 188 248 C196 253 200 264 212 250 C222 238 232 256 248 248"
@@ -171,7 +171,7 @@ function LivingQrVerificationIllustration() {
         <rect x="36" y="252" width="126" height="38" rx="19" fill="#0f2c42" />
         <circle cx="56" cy="271" r="6" fill="#38bdf8" />
         <text x="70" y="274.5" fill="#ffffff" fontSize="11" fontWeight="700" fontFamily="Plus Jakarta Sans, sans-serif">
-          Đối soát &lt; 2 giây
+          Tra cứu &lt; 2 giây
         </text>
       </g>
     </svg>
@@ -199,33 +199,33 @@ export default function HomePage() {
 
   const features = [
     {
-      icon: Lock,
+      icon: ShieldCheck,
       bg: "var(--primary-bg)",
       color: "var(--primary)",
-      title: "Định Danh Độc Bản Bất Biến",
-      desc: "Chứng chỉ được cấp theo chuẩn định danh độc bản: Gắn chặt vào danh tính học viên, khóa vĩnh viễn tính năng chuyển nhượng nhằm ngăn chặn triệt để hành vi mua bán bằng cấp."
+      title: "Thông Tin Chính Thống",
+      desc: "Kết quả điểm số, xếp loại và tình trạng hiệu lực được đối chiếu trực tiếp với hồ sơ gốc từ Trung tâm Khảo thí, loại bỏ hoàn toàn nguy cơ bằng giả."
     },
     {
       icon: Globe,
       bg: "var(--accent-gold-bg)",
       color: "var(--accent-gold)",
-      title: "Lưu Trữ Dữ Liệu Phân Tán",
-      desc: "Phôi bằng PDF và dữ liệu xác thực được lưu trên mạng lưu trữ phân tán, bảo đảm thông tin tồn tại vĩnh viễn không bị xóa mờ hay phụ thuộc vào một máy chủ duy nhất."
+      title: "Tra Cứu Mọi Lúc, Mọi Nơi",
+      desc: "Không cần tạo tài khoản hay cài đặt ứng dụng. Chỉ cần điện thoại hoặc máy tính có internet là học viên và nhà tuyển dụng có thể kiểm tra ngay."
     },
     {
       icon: QrCode,
       bg: "var(--success-bg)",
       color: "var(--success-text)",
-      title: "Thẩm Định Tức Thì Bằng QR",
-      desc: "Nhà tuyển dụng chỉ cần dùng camera điện thoại quét mã QR in trên bằng để đối soát trực tiếp với dữ liệu gốc của hệ thống trong vòng chưa tới 2 giây."
+      title: "Quét Mã QR Trong 2 Giây",
+      desc: "Đưa camera quét mã QR in trên chứng chỉ giấy hoặc tải ảnh chụp văn bằng lên để xem chi tiết điểm thi mà không cần nhập mã thủ công."
     }
   ];
 
   const workflowSteps = [
-    { step: "01", title: "Khảo Thí & Nhập Điểm", desc: "Học viên hoàn thành bài thi IELTS/TOEIC/VSTEP, hội đồng khảo thí nhập kết quả vào hệ thống." },
-    { step: "02", title: "Tự Động Sinh PDF & QR", desc: "Hệ thống tự động kết xuất phôi bằng PDF chuẩn in ấn có nhúng mã QR định danh độc bản." },
-    { step: "03", title: "Ký Xác Thực & Cấp Bằng", desc: "Quản trị viên ký số điện tử để cấp phát và ghi nhận chứng chỉ vĩnh viễn trên sổ cái bảo mật." },
-    { step: "04", title: "Xác Thực Công Khai", desc: "Bất kỳ ai cũng có thể quét QR hoặc tra mã bằng để kiểm tra tính hợp pháp tức thì." }
+    { step: "01", title: "Lấy Mã Số Hoặc Mã QR", desc: "Tìm dãy mã chứng chỉ in trên văn bằng hoặc mở sẵn ảnh chụp mã QR của chứng chỉ cần kiểm tra." },
+    { step: "02", title: "Nhập Mã Hoặc Quét QR", desc: "Gõ mã vào ô tìm kiếm phía trên, hoặc bấm biểu tượng QR để quét bằng camera hay chọn ảnh từ máy." },
+    { step: "03", title: "Xem Kết Quả & Điểm Thi", desc: "Thông tin học viên, điểm từng kỹ năng, xếp loại và trạng thái hiệu lực sẽ hiển thị rõ ràng ngay lập tức." },
+    { step: "04", title: "Tải PDF Hoặc Chia Sẻ", desc: "Tải bản chứng chỉ PDF sắc nét để nộp hồ sơ hoặc sao chép đường link gửi trực tiếp cho nhà tuyển dụng." }
   ];
 
   return (
@@ -249,7 +249,7 @@ export default function HomePage() {
             boxShadow: "0 2px 10px rgba(0, 0, 0, 0.04)"
           }}>
             <Sparkles size={14} />
-            <span>Cổng Xác Thực Bằng Cấp Tiếng Anh Điện Tử</span>
+            <span>Cổng Tra Cứu Chứng Chỉ Tiếng Anh Công Khai</span>
           </div>
 
           <h1 className="hero-anim hero-anim-2" style={{
@@ -261,9 +261,9 @@ export default function HomePage() {
             color: "var(--text-primary)",
             textWrap: "balance"
           }}>
-            Xác Thực Chứng Chỉ Tiếng Anh <br />
+            Tra Cứu Chứng Chỉ Tiếng Anh <br />
             <span style={{ position: "relative", display: "inline-block" }}>
-              <span className="text-gradient">Minh Bạch &amp; Chống Giả Mạo</span>
+              <span className="text-gradient">Nhanh Chóng &amp; Chính Xác</span>
               {/* Hand-drawn Smooth Swoosh Underline (Campty Signature) */}
               <svg
                 viewBox="0 0 320 18"
@@ -312,7 +312,7 @@ export default function HomePage() {
             margin: "0 auto 32px",
             lineHeight: 1.65
           }}>
-            Kiểm tra tức thì tính hợp lệ của chứng chỉ <strong>IELTS, TOEIC, VSTEP</strong> trực tiếp từ dữ liệu định danh bất biến — không cần đăng nhập.
+            Nhập mã số trên văn bằng hoặc quét mã QR để kiểm tra kết quả thi <strong>IELTS, TOEIC, VSTEP</strong> của học viên — hoàn toàn miễn phí, không cần đăng nhập.
           </p>
 
           {/* Embedded Single-row Spotlight Verification Widget */}
@@ -331,23 +331,23 @@ export default function HomePage() {
               <div style={{ fontSize: "30px", fontWeight: 800, color: "var(--primary)", lineHeight: 1.1 }}>
                 <AnimatedNumber value={issuedCerts} />
               </div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Chứng chỉ đã phát hành</div>
+              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Chứng chỉ đã cấp</div>
             </div>
             <div className="trust-stat-item">
               <div style={{ fontSize: "30px", fontWeight: 800, color: "var(--accent-gold)", lineHeight: 1.1 }}>
                 <AnimatedNumber value={totalCoursesNum} suffix="+" />
               </div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Chuẩn kỳ thi quốc tế</div>
+              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Kỳ thi tiếng Anh</div>
             </div>
             <div className="trust-stat-item">
               <div style={{ fontSize: "30px", fontWeight: 800, color: "var(--success-text)", lineHeight: 1.1 }}>
                 <AnimatedNumber value={100} suffix="%" />
               </div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Bất biến &amp; Minh bạch</div>
+              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Chính xác &amp; Tin cậy</div>
             </div>
             <div className="trust-stat-item">
               <div style={{ fontSize: "30px", fontWeight: 800, color: "var(--primary)", lineHeight: 1.1 }}>&lt; 2s</div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Thời gian đối soát QR</div>
+              <div style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px", fontWeight: 500 }}>Thời gian tra cứu</div>
             </div>
           </div>
         </div>
@@ -358,19 +358,19 @@ export default function HomePage() {
         <div className="container" style={{ maxWidth: "1060px" }}>
           <div className="living-verify-grid">
             <div className="reveal-header">
-              <div className="section-eyebrow">XÁC THỰC TRỰC QUAN</div>
+              <div className="section-eyebrow">TRA CỨU DỄ DÀNG</div>
               <h2 style={{ fontSize: "clamp(26px, 3.2vw, 34px)", fontWeight: 800, lineHeight: 1.24, letterSpacing: "-0.6px", color: "var(--text-primary)", marginBottom: "14px" }}>
-                Đối Soát Chứng Chỉ Trong 2 Giây — Minh Bạch Từng Chi Tiết
+                Kiểm Tra Thông Tin Bằng Cấp Chỉ Trong Vài Giây
               </h2>
               <p style={{ color: "var(--text-secondary)", fontSize: "15px", lineHeight: 1.68, marginBottom: "22px" }}>
-                Mỗi văn bằng phát hành đều mang một mã QR định danh duy nhất gắn liền chữ ký số của trung tâm. Nhà tuyển dụng hoặc cơ sở đào tạo chỉ cần nhập mã hoặc quét QR để xác minh ngay bản gốc.
+                Dù bạn là học viên cần tải lại bản điện tử hay nhà tuyển dụng muốn kiểm tra hồ sơ ứng viên, mọi thông tin điểm số và tình trạng bằng đều hiển thị rõ ràng ngay lập tức.
               </p>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "26px" }}>
                 {[
-                  "Tự động phát hiện bằng bị thu hồi hoặc chỉnh sửa dữ liệu",
-                  "Hiển thị đầy đủ điểm thành phần IELTS / TOEIC / VSTEP",
-                  "Tải phôi PDF gốc và sao chép liên kết chia sẻ tức thì"
+                  "Xem đầy đủ điểm từng kỹ năng Nghe, Nói, Đọc, Viết và xếp loại",
+                  "Nhận biết ngay chứng chỉ còn hiệu lực hay đã bị thu hồi",
+                  "Tải bản in PDF sắc nét hoặc chia sẻ đường link tra cứu cho nhà tuyển dụng"
                 ].map((line, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", color: "var(--text-primary)", fontWeight: 500 }}>
                     <CheckCircle2 size={17} color="var(--success-text)" style={{ flexShrink: 0 }} />
@@ -387,7 +387,7 @@ export default function HomePage() {
                   style={{ borderRadius: "9999px", padding: "11px 22px" }}
                 >
                   <Search size={16} />
-                  Nhập Mã Tra Cứu
+                  Nhập Mã Chứng Chỉ
                   <ArrowUpRight size={15} />
                 </button>
                 <button
@@ -397,7 +397,7 @@ export default function HomePage() {
                   style={{ borderRadius: "9999px", padding: "11px 20px" }}
                 >
                   <QrCode size={16} />
-                  Quét Mã QR Ngay
+                  Quét Mã QR
                 </button>
               </div>
             </div>
@@ -413,12 +413,12 @@ export default function HomePage() {
       <RevealSection style={{ padding: "56px 0" }}>
         <div className="container">
           <div className="reveal-header" style={{ textAlign: "center", marginBottom: "44px" }}>
-            <div className="section-eyebrow">CÔNG NGHỆ CỐT LÕI</div>
+            <div className="section-eyebrow">TIỆN ÍCH TRA CỨU</div>
             <h2 style={{ fontSize: "32px", fontWeight: 800, marginBottom: "12px", color: "var(--text-primary)", letterSpacing: "-0.6px" }}>
-              Công Nghệ Đột Phá Cho Khảo Thí
+              Rõ Ràng Cho Học Viên, An Tâm Cho Nhà Tuyển Dụng
             </h2>
             <p style={{ color: "var(--text-secondary)", fontSize: "15px", maxWidth: "600px", margin: "0 auto" }}>
-              Giải quyết trọn vẹn bài toán xác thực bằng cấp giữa Học viên – Trung tâm – Doanh nghiệp tuyển dụng.
+              Mọi thông tin bạn cần để kiểm tra và sử dụng chứng chỉ tiếng Anh đều sẵn sàng tại một nơi duy nhất.
             </p>
           </div>
 
@@ -462,11 +462,11 @@ export default function HomePage() {
       <RevealSection style={{ padding: "56px 0 96px" }}>
         <div className="container">
           <div className="reveal-header" style={{ textAlign: "center", marginBottom: "48px" }}>
-            <div className="section-eyebrow">QUY TRÌNH VẬN HÀNH</div>
+            <div className="section-eyebrow">HƯỚNG DẪN TRA CỨU</div>
             <h2 style={{ fontSize: "32px", fontWeight: 800, marginBottom: "12px", color: "var(--text-primary)", letterSpacing: "-0.6px" }}>
-              Quy Trình Cấp Phát &amp; Thẩm Định
+              Cách Kiểm Tra Chứng Chỉ Trong 4 Bước
             </h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: "15px" }}>Đơn giản, minh bạch và an toàn tuyệt đối</p>
+            <p style={{ color: "var(--text-secondary)", fontSize: "15px" }}>Đơn giản, ai cũng có thể thực hiện chỉ trong chưa đầy một phút</p>
           </div>
 
           <div className="workflow-grid-wrap">

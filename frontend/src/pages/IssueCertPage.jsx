@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FileCheck, Sparkles, CheckCircle2, RefreshCw, Download, ExternalLink } from "lucide-react";
+import { FileCheck, Sparkles, CheckCircle2, RefreshCw, Download } from "lucide-react";
 import confetti from "canvas-confetti";
-import { issueCertificateOnChain, INITIAL_STUDENTS, INITIAL_COURSES, connectMetaMask, isMetaMaskInstalled } from "../services/web3Service";
+import { issueCertificateOnChain, INITIAL_STUDENTS, INITIAL_COURSES, connectMetaMask } from "../services/web3Service";
 import { studentApi, courseApi } from "../services/apiService";
 import CertificateCard from "../components/CertificateCard";
 
@@ -11,7 +11,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   const [studentsList, setStudentsList] = useState(INITIAL_STUDENTS);
   const [coursesList, setCoursesList] = useState(INITIAL_COURSES);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => ({
     certificate_code: `CERT-IELTS-2026-${Math.floor(100 + Math.random() * 900)}`,
     student_name: "Phạm Quốc Hưng",
     student_code: "HV2026-0199",
@@ -27,7 +27,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     issue_date: new Date().toISOString().slice(0, 10),
     expiry_date: "2028-10-29",
     status: "ISSUED_ON_CHAIN"
-  });
+  }));
 
   const [loading, setLoading] = useState(false);
   const [successCert, setSuccessCert] = useState(null);

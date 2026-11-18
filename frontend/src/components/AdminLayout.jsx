@@ -12,8 +12,6 @@ import {
   ChevronRight,
   Menu,
   X,
-  Sparkles,
-  ExternalLink,
   Layers
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";

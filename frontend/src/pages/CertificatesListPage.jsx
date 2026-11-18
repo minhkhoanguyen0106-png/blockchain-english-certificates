@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2, ShieldCheck, ExternalLink, Clock, ShieldAlert, CheckCircle2, Copy, Check } from "lucide-react";
+import { Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2, ShieldCheck, ExternalLink, CheckCircle2, Copy, Check } from "lucide-react";
 import { getAllCertificates, revokeCertificateOnChain, shortenAddress, CONTRACT_ADDRESS, issueCertificateOnChain, connectMetaMask } from "../services/web3Service";
 import contractJson from "../contracts/EnglishCertificateNFT.json";
 import { certificateApi } from "../services/apiService";
@@ -54,7 +54,7 @@ export default function CertificatesListPage({ wallet, user }) {
     }
   };
 
-  const loadCerts = async () => {
+  const loadCerts = useCallback(async () => {
     setLoading(true);
     try {
       const res = await certificateApi.getCertificates({
@@ -87,11 +87,11 @@ export default function CertificatesListPage({ wallet, user }) {
       setLoading(false);
     }
     setCerts(getAllCertificates());
-  };
+  }, [statusFilter, searchTerm]);
 
   useEffect(() => {
     loadCerts();
-  }, [statusFilter]);
+  }, [loadCerts]);
 
   // Tự động bỏ bản nháp (Draft / PENDING) cũ khi học viên đã có chứng chỉ HỢP LỆ (ISSUED_ON_CHAIN)
   const validCertKeys = new Set(
@@ -136,7 +136,7 @@ export default function CertificatesListPage({ wallet, user }) {
           const list = JSON.parse(raw).filter(c => c.certificate_code !== cert.certificate_code);
           localStorage.setItem("certchain_certificates", JSON.stringify(list));
         }
-      } catch (e) {}
+      } catch {}
       alert(`Đã xóa bỏ bản nháp [${cert.certificate_code}] thành công!`);
     } catch (err) {
       alert("Lỗi khi xóa bản nháp: " + (err.message || err));
@@ -248,7 +248,14 @@ export default function CertificatesListPage({ wallet, user }) {
               </tr>
             </thead>
             <tbody>
-              {filteredCerts.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: "center", padding: "48px 20px", color: "var(--text-muted)" }}>
+                    <RefreshCw size={24} className="animate-spin" style={{ margin: "0 auto 8px" }} />
+                    <div style={{ fontSize: "14px", fontWeight: 600 }}>Đang tải danh sách chứng chỉ từ CSDL & Blockchain...</div>
+                  </td>
+                </tr>
+              ) : filteredCerts.length === 0 ? (
                 <tr>
                   <td colSpan="7" style={{ textAlign: "center", padding: "48px 20px", color: "var(--text-muted)" }}>
                     <div style={{ fontSize: "15px", fontWeight: 600 }}>Không tìm thấy chứng chỉ nào phù hợp</div>

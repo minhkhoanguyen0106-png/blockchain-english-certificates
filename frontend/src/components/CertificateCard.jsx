@@ -1,12 +1,12 @@
 import React from "react";
-import { ShieldCheck, Award, QrCode, ExternalLink, Calendar, Hash, CheckCircle2, XCircle } from "lucide-react";
+import { Award, QrCode, Calendar, CheckCircle2, XCircle } from "lucide-react";
 import { shortenAddress } from "../services/web3Service";
 
-export default function CertificateCard({ cert, isPreview = false }) {
+export default function CertificateCard({ cert }) {
   if (!cert) return null;
 
   const isRevoked = cert.status === "REVOKED";
-  const isExpired = cert.expiry_date && new Date(cert.expiry_date) < new Date();
+  const isExpired = Boolean(cert.expiry_date && new Date(cert.expiry_date).getTime() < Date.now());
   const isValidActive = cert.status === "ISSUED_ON_CHAIN" && !isExpired && !isRevoked;
 
   return (

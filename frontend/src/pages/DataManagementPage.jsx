@@ -29,7 +29,7 @@ export default function DataManagementPage() {
 
   // Modal states
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
-  const [newStudent, setNewStudent] = useState({
+  const [newStudent, setNewStudent] = useState(() => ({
     student_code: `HV2026-0${Math.floor(200 + Math.random() * 800)}`,
     citizen_id: `0792040${Math.floor(10000 + Math.random() * 90000)}`,
     full_name: "",
@@ -37,7 +37,7 @@ export default function DataManagementPage() {
     date_of_birth: "2003-05-15",
     phone: "0901234567",
     wallet_address: ""
-  });
+  }));
 
   const [showAddCourseModal, setShowAddCourseModal] = useState(false);
   const [newCourse, setNewCourse] = useState({
@@ -261,7 +261,14 @@ export default function DataManagementPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredStudents.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: "center", padding: "40px 20px", color: "var(--text-muted)" }}>
+                      <RefreshCw size={20} className="animate-spin" style={{ margin: "0 auto 8px" }} />
+                      <div>Đang đồng bộ dữ liệu học viên từ MySQL...</div>
+                    </td>
+                  </tr>
+                ) : filteredStudents.length === 0 ? (
                   <tr>
                     <td colSpan="6" style={{ textAlign: "center", padding: "40px 20px", color: "var(--text-muted)" }}>
                       Chưa tìm thấy học viên nào phù hợp.

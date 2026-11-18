@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { QrCode, Camera, Upload, ArrowLeft, AlertCircle, Sparkles, CheckCircle2 } from "lucide-react";
+import { QrCode, Upload, ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 
 export default function ScannerPage() {
@@ -9,6 +9,28 @@ export default function ScannerPage() {
   const [scanResult, setScanResult] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const scannerRef = useRef(null);
+
+  const handleScanSuccess = useCallback((text) => {
+    let certCode = text;
+    try {
+      if (text.includes("code=")) {
+        const url = new URL(text);
+        certCode = url.searchParams.get("code") || text;
+      }
+    } catch {
+      certCode = text;
+    }
+
+    setScanResult(certCode);
+
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      scannerRef.current.stop().catch(() => {});
+    }
+
+    setTimeout(() => {
+      navigate(`/verify?code=${encodeURIComponent(certCode)}`);
+    }, 800);
+  }, [navigate]);
 
   useEffect(() => {
     let html5QrCode = null;
@@ -28,7 +50,7 @@ export default function ScannerPage() {
           (decodedText) => {
             handleScanSuccess(decodedText);
           },
-          (errorMessage) => {
+          () => {
             // bỏ qua frame chưa nhận dạng
           }
         );
@@ -47,29 +69,7 @@ export default function ScannerPage() {
         scannerRef.current.stop().catch(() => {});
       }
     };
-  }, []);
-
-  const handleScanSuccess = (text) => {
-    let certCode = text;
-    try {
-      if (text.includes("code=")) {
-        const url = new URL(text);
-        certCode = url.searchParams.get("code") || text;
-      }
-    } catch (e) {
-      certCode = text;
-    }
-
-    setScanResult(certCode);
-
-    if (scannerRef.current && scannerRef.current.isScanning) {
-      scannerRef.current.stop().catch(() => {});
-    }
-
-    setTimeout(() => {
-      navigate(`/verify?code=${encodeURIComponent(certCode)}`);
-    }, 800);
-  };
+  }, [handleScanSuccess]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -81,7 +81,7 @@ export default function ScannerPage() {
       .then((decodedText) => {
         handleScanSuccess(decodedText);
       })
-      .catch((err) => {
+      .catch(() => {
         setErrorMsg("Không tìm thấy mã QR hợp lệ trong bức ảnh này. Vui lòng chọn ảnh chụp rõ nét hơn.");
       });
   };

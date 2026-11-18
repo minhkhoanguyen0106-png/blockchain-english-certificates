@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, Search, QrCode, Lock, Globe, Award, ArrowRight, CheckCircle2, Sparkles, Layers } from "lucide-react";
+import { Search, QrCode, Lock, Globe, Sparkles } from "lucide-react";
 import { getAllCertificates } from "../services/web3Service";
 import { dashboardApi } from "../services/apiService";
 
@@ -100,7 +100,7 @@ export default function HomePage() {
           }}>
             <div className="glass-panel" style={{ padding: "24px", textAlign: "center" }}>
               <div style={{ fontSize: "36px", fontWeight: 800, color: "var(--primary)" }}>{issuedCerts}</div>
-              <div style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>Chứng chỉ On-Chain (MySQL)</div>
+              <div style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>Chứng chỉ On-Chain (Tổng: {totalCerts})</div>
             </div>
             <div className="glass-panel" style={{ padding: "24px", textAlign: "center" }}>
               <div style={{ fontSize: "36px", fontWeight: 800, color: "var(--accent-gold)" }}>{totalCourses}</div>

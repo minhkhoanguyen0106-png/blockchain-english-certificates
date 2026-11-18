@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Award, FilePlus, ListFilter, Users, CheckCircle2, XCircle, Clock, ShieldAlert, ArrowUpRight, Wallet, Sparkles, Layers } from "lucide-react";
+import { Award, FilePlus, ListFilter, Users, CheckCircle2, XCircle, Clock, ArrowUpRight, Wallet, Sparkles } from "lucide-react";
 import { getAllCertificates, shortenAddress, connectMetaMask } from "../services/web3Service";
 import { dashboardApi, certificateApi } from "../services/apiService";
 
@@ -207,8 +207,15 @@ export default function DashboardPage({ wallet, setWallet, user }) {
               </tr>
             </thead>
             <tbody>
-              {certs.slice(0, 5).map(c => (
-                <tr key={c.id}>
+              {loading ? (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: "center", padding: "30px", color: "var(--text-muted)" }}>
+                    Đang đồng bộ dữ liệu bảng điều khiển từ MySQL & Blockchain...
+                  </td>
+                </tr>
+              ) : (
+                certs.slice(0, 5).map(c => (
+                  <tr key={c.id}>
                   <td style={{ fontWeight: 700, color: "var(--primary)" }}>{c.certificate_code}</td>
                   <td>
                     <div style={{ fontWeight: 600 }}>{c.student_name}</div>
@@ -240,7 +247,7 @@ export default function DashboardPage({ wallet, setWallet, user }) {
                     )}
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

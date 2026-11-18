@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Search, ShieldCheck, AlertTriangle, XCircle, Download, ExternalLink, QrCode, ArrowLeft, RefreshCw } from "lucide-react";
 import { getCertificateByCode } from "../services/web3Service";
@@ -13,7 +13,7 @@ export default function VerifyPage() {
   const [result, setResult] = useState(null);
   const [hasSearched, setHasSearched] = useState(false);
 
-  const handleSearch = async (codeToSearch) => {
+  const handleSearch = useCallback(async (codeToSearch) => {
     const code = (codeToSearch || inputCode).trim();
     if (!code) return;
 
@@ -31,14 +31,13 @@ export default function VerifyPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [inputCode, setSearchParams]);
 
   useEffect(() => {
     if (initialCode) {
-      setInputCode(initialCode);
       handleSearch(initialCode);
     }
-  }, [initialCode]);
+  }, [initialCode, handleSearch]);
 
   return (
     <div style={{ padding: "40px 0 80px" }}>

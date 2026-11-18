@@ -159,8 +159,8 @@ export default function CertificateVerifier({ syncUrl = false }) {
   };
 
   return (
-    <div style={{ maxWidth: "740px", margin: "0 auto", textAlign: "left" }}>
-      {/* Single-row Spotlight Search Capsule (Input + inline QR Toggle + Verify CTA) */}
+    <div style={{ maxWidth: "680px", margin: "0 auto", textAlign: "left" }}>
+      {/* Ultra-clean Pill Search Bar with Icon-only QR & Search actions */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -168,7 +168,6 @@ export default function CertificateVerifier({ syncUrl = false }) {
         }}
         className="search-spotlight-bar"
       >
-        <Search size={19} color="var(--text-muted)" style={{ flexShrink: 0 }} />
         <input
           type="text"
           placeholder="Nhập mã chứng chỉ cần tra cứu..."
@@ -180,8 +179,6 @@ export default function CertificateVerifier({ syncUrl = false }) {
           className="search-spotlight-input"
         />
 
-        <div style={{ width: "1px", height: "24px", background: "var(--border-subtle)", flexShrink: 0 }} />
-
         <button
           type="button"
           onClick={() => {
@@ -190,44 +187,40 @@ export default function CertificateVerifier({ syncUrl = false }) {
             if (syncUrl) setSearchParams(nextTab === "qr" ? { tab: "qr" } : (inputCode ? { code: inputCode } : {}));
           }}
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "6px",
+            width: "42px",
             height: "42px",
-            padding: "0 14px",
-            borderRadius: "12px",
+            borderRadius: "50%",
             border: "none",
             cursor: "pointer",
-            fontSize: "13px",
-            fontWeight: 600,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
             background: activeTab === "qr" ? "var(--primary-bg)" : "transparent",
             color: activeTab === "qr" ? "var(--primary)" : "var(--text-secondary)",
             transition: "all var(--transition-fast)",
             flexShrink: 0
           }}
           title="Quét mã QR bằng camera hoặc tải ảnh"
+          aria-label="Quét mã QR"
         >
-          <QrCode size={16} />
-          <span>Quét QR</span>
+          <QrCode size={19} />
         </button>
 
         <button
           type="submit"
           disabled={loading}
           className="btn btn-primary"
-          style={{ height: "44px", padding: "0 22px", borderRadius: "12px", fontSize: "14px", flexShrink: 0 }}
+          style={{
+            width: "42px",
+            height: "42px",
+            padding: 0,
+            borderRadius: "50%",
+            flexShrink: 0
+          }}
+          title="Tra cứu & xác thực chứng chỉ"
+          aria-label="Tra cứu chứng chỉ"
         >
-          {loading ? (
-            <>
-              <RefreshCw size={16} className="animate-spin" />
-              Đang kiểm tra...
-            </>
-          ) : (
-            <>
-              <ShieldCheck size={16} />
-              Thẩm Định
-            </>
-          )}
+          {loading ? <RefreshCw size={18} className="animate-spin" /> : <Search size={18} />}
         </button>
       </form>
 

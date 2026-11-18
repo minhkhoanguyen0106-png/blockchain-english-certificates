@@ -150,6 +150,44 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     }
   };
 
+  const generateCertificateCode = (courseCode, scoreType = "") => {
+    const type = detectCourseType(courseCode, scoreType);
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    return `CERT-${type}-${new Date().getFullYear()}-${rand}`;
+  };
+
+  const resetFormForNewEntry = (pool = coursesList) => {
+    const defaultCourse = pool[0] || {
+      course_code: "IELTS-ACAD",
+      course_name: "IELTS Academic Master",
+      score_type: "IELTS",
+      max_score: "9.0"
+    };
+    const nowStr = new Date().toISOString().slice(0, 10);
+    const courseOpts = { scoreType: defaultCourse.score_type || "", maxScore: defaultCourse.max_score || "" };
+    setSelectedDraftCode("");
+    setSelectedStudentId("");
+    setPreparedData(null);
+    setReconcilePending(null);
+    setFormData({
+      certificate_code: generateCertificateCode(defaultCourse.course_code, defaultCourse.score_type),
+      student_name: "",
+      student_code: "",
+      email: "",
+      wallet_address: "",
+      course_code: defaultCourse.course_code,
+      course_name: defaultCourse.course_name,
+      score: "",
+      listening: "",
+      reading: "",
+      writing: "",
+      speaking: "",
+      issue_date: nowStr,
+      expiry_date: getExpiryDateForCourse(defaultCourse.course_code, nowStr, courseOpts),
+      status: "DRAFT"
+    });
+  };
+
   // Load students, courses, and pending/ready-to-mint drafts from MySQL
   useEffect(() => {
     async function loadOptions() {
@@ -197,25 +235,36 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
             : null;
           const matchedCrs = courseParam
             ? loadedCourses.find(c => c.course_code === courseParam)
-            : null;
+            : loadedCourses[0];
 
           if (matchedStu) setSelectedStudentId(matchedStu.id);
 
           setFormData(prev => {
             const nextCourseCode = matchedCrs ? matchedCrs.course_code : prev.course_code;
-            const nextType = detectCourseType(nextCourseCode);
+            const courseOpts = { scoreType: matchedCrs?.score_type || "", maxScore: matchedCrs?.max_score || "" };
             return {
               ...prev,
-              certificate_code: `CERT-${nextType}-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+              id: undefined,
+              certificate_code: generateCertificateCode(nextCourseCode, courseOpts.scoreType),
               student_name: matchedStu ? matchedStu.full_name : prev.student_name,
               student_code: matchedStu ? matchedStu.student_code : prev.student_code,
               email: matchedStu ? (matchedStu.email || "") : prev.email,
               wallet_address: matchedStu ? (matchedStu.wallet_address || "") : prev.wallet_address,
               course_code: nextCourseCode,
               course_name: matchedCrs ? matchedCrs.course_name : prev.course_name,
-              expiry_date: getExpiryDateForCourse(nextCourseCode, prev.issue_date)
+              expiry_date: getExpiryDateForCourse(nextCourseCode, prev.issue_date, courseOpts)
             };
           });
+        } else if (loadedCourses.length > 0 && !loadedCourses.some(c => c.course_code === "IELTS-ACAD")) {
+          const first = loadedCourses[0];
+          const courseOpts = { scoreType: first.score_type || "", maxScore: first.max_score || "" };
+          setFormData(prev => ({
+            ...prev,
+            certificate_code: generateCertificateCode(first.course_code, courseOpts.scoreType),
+            course_code: first.course_code,
+            course_name: first.course_name,
+            expiry_date: getExpiryDateForCourse(first.course_code, prev.issue_date, courseOpts)
+          }));
         }
       } catch {
         // fallback to initial
@@ -359,65 +408,108 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     const found = coursesList.find(c => c.course_code === courseCode);
     if (found) {
       const courseOpts = { scoreType: found.score_type || "", maxScore: found.max_score || "" };
+      const nextType = detectCourseType(found.course_code, found.score_type);
+      const nextWriting = nextType === "TOEIC" ? "" : formData.writing;
+      const nextSpeaking = nextType === "TOEIC" ? "" : formData.speaking;
       const overall = computeOverallScore(found.course_code, {
         listening: formData.listening,
         reading: formData.reading,
-        writing: formData.writing,
-        speaking: formData.speaking
+        writing: nextWriting,
+        speaking: nextSpeaking
       }, courseOpts);
       const expiry = getExpiryDateForCourse(found.course_code, formData.issue_date, courseOpts);
-      const nextType = detectCourseType(found.course_code, found.score_type);
       setFormData(prev => ({
         ...prev,
         certificate_code: !selectedDraftCode
-          ? `CERT-${nextType}-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`
+          ? generateCertificateCode(found.course_code, found.score_type)
           : prev.certificate_code,
         course_code: found.course_code,
         course_name: found.course_name,
+        writing: nextWriting,
+        speaking: nextSpeaking,
         score: overall,
         expiry_date: expiry
       }));
     }
   };
 
+  const syncStudentWalletIfNeeded = async (rawWallet) => {
+    const cleanWallet = (rawWallet || "").trim();
+    if (!cleanWallet || !ethers.isAddress(cleanWallet.toLowerCase())) {
+      throw new Error("Địa chỉ ví học viên không hợp lệ (cần đúng địa chỉ Ethereum 42 ký tự bắt đầu bằng 0x).");
+    }
+    const checksumWallet = ethers.getAddress(cleanWallet.toLowerCase());
+    const matchedStudent = studentsList.find((s) => s.student_code === formData.student_code);
+    if (matchedStudent && String(matchedStudent.wallet_address || "").toLowerCase() !== checksumWallet.toLowerCase()) {
+      await studentApi.updateStudent(matchedStudent.id, {
+        full_name: matchedStudent.full_name,
+        email: matchedStudent.email,
+        citizen_id: matchedStudent.citizen_id,
+        phone: matchedStudent.phone || "",
+        date_of_birth: matchedStudent.date_of_birth ? String(matchedStudent.date_of_birth).slice(0, 10) : "2003-05-15",
+        wallet_address: checksumWallet
+      });
+      setStudentsList((prev) =>
+        prev.map((s) => (s.id === matchedStudent.id ? { ...s, wallet_address: checksumWallet } : s))
+      );
+    }
+    return checksumWallet;
+  };
+
   const handleIssue = async (e) => {
     e.preventDefault();
 
+    const cleanCertCode = (formData.certificate_code || "").trim().toUpperCase();
+    if (!cleanCertCode || !/^[A-Z0-9_-]{4,50}$/.test(cleanCertCode)) {
+      toast.warning("Mã chứng chỉ không hợp lệ (chỉ gồm chữ in hoa, số, dấu '-' hoặc '_').");
+      return;
+    }
+
     if (!formData.student_name || !formData.student_code) {
-      toast.warning("Vui lòng chọn học viên từ danh sách hoặc nhập đầy đủ họ tên và mã học viên.");
+      toast.warning("Vui lòng chọn học viên từ danh sách hệ thống.");
       return;
     }
 
-    if (!formData.wallet_address) {
-      toast.warning("Vui lòng nhập hoặc liên kết địa chỉ ví điện tử của học viên trước khi tiếp tục.");
+    const matchedStudent = studentsList.find((s) => s.student_code === formData.student_code);
+    if (!matchedStudent) {
+      toast.warning("Học viên chưa tồn tại trong hệ thống. Hãy chọn từ danh sách hoặc thêm mới tại Quản lý Học viên.");
       return;
     }
 
-    const validation = validateSubScores(formData.course_code, formData, getCourseOptions(formData.course_code));
+    if (!formData.wallet_address || !ethers.isAddress(formData.wallet_address.trim().toLowerCase())) {
+      toast.warning("Địa chỉ ví học viên chưa hợp lệ (cần địa chỉ Ethereum 42 ký tự bắt đầu bằng 0x).");
+      return;
+    }
+
+    const courseOpts = getCourseOptions(formData.course_code);
+    const validation = validateSubScores(formData.course_code, formData, courseOpts);
     if (!validation.isValid) {
       toast.error(`Dữ liệu điểm chưa hợp lệ:\n• ${validation.errors.join("\n• ")}`);
       return;
     }
 
+    const isToeic = detectCourseType(formData.course_code, courseOpts.scoreType) === "TOEIC";
+
     if (user?.role === "STAFF") {
       setLoading(true);
       try {
+        await syncStudentWalletIfNeeded(formData.wallet_address);
         const result = await certificateApi.createDraft({
-          certificate_code: formData.certificate_code,
+          certificate_code: cleanCertCode,
           student_code: formData.student_code,
           course_code: formData.course_code,
           score_overall: formData.score,
           score_listening: formData.listening || null,
           score_reading: formData.reading || null,
-          score_writing: formData.writing || null,
-          score_speaking: formData.speaking || null,
+          score_writing: isToeic ? null : (formData.writing || null),
+          score_speaking: isToeic ? null : (formData.speaking || null),
           issue_date: formData.issue_date,
           expiry_date: formData.expiry_date || null
         });
         if (!result?.success || !result.data?.id) {
           throw new Error(result?.message || "Máy chủ chưa xác nhận lưu bản nháp.");
         }
-        toast.success(`Đã lưu bản nháp ${formData.certificate_code}. Hồ sơ đang chờ Quản trị viên kiểm duyệt.`);
+        toast.success(`Đã lưu bản nháp ${cleanCertCode}. Hồ sơ đang chờ Quản trị viên kiểm duyệt.`);
         navigate("/admin/certificates");
       } catch (err) {
         toast.error("Lỗi khi lưu bản nháp: " + (err.message || err));
@@ -429,6 +521,15 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
     if (user?.role !== "ADMIN") {
       toast.error("Tài khoản hiện tại không có quyền phát hành chứng chỉ.");
+      return;
+    }
+
+    // Đồng bộ ví học viên lên MySQL nếu Admin vừa bổ sung/chỉnh ví trước khi mở modal ký
+    try {
+      const syncedWallet = await syncStudentWalletIfNeeded(formData.wallet_address);
+      setFormData((prev) => ({ ...prev, certificate_code: cleanCertCode, wallet_address: syncedWallet }));
+    } catch (walletErr) {
+      toast.error(walletErr.message || "Không thể đồng bộ địa chỉ ví học viên.");
       return;
     }
 
@@ -1076,7 +1177,10 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 <div style={{ textAlign: "center", marginTop: "14px" }}>
                   <button
                     type="button"
-                    onClick={() => setIsManualMode(true)}
+                    onClick={() => {
+                      resetFormForNewEntry();
+                      setIsManualMode(true);
+                    }}
                     style={{
                       background: "none",
                       border: "none",
@@ -1098,7 +1202,10 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     <span className="badge badge-info" style={{ fontSize: "11px" }}>Chế độ nhập mới thủ công</span>
                     <button
                       type="button"
-                      onClick={() => setIsManualMode(false)}
+                      onClick={() => {
+                        resetFormForNewEntry();
+                        setIsManualMode(false);
+                      }}
                       style={{
                         background: "none",
                         border: "none",
@@ -1114,9 +1221,53 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 )}
 
                 <div className="form-group">
-                  <label className="form-label">Chọn học viên từ danh sách</label>
-                  <select value={selectedStudentId} onChange={handleStudentSelect} className="form-select">
-                    <option value="">-- Chọn học viên có sẵn --</option>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label className="form-label" style={{ marginBottom: 0 }}>Mã chứng chỉ</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const opts = getCourseOptions(formData.course_code);
+                        setFormData((prev) => ({
+                          ...prev,
+                          certificate_code: generateCertificateCode(prev.course_code, opts.scoreType)
+                        }));
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--primary)",
+                        fontSize: "11.5px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px"
+                      }}
+                    >
+                      <RefreshCw size={12} /> Tạo mã mới
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    maxLength={50}
+                    value={formData.certificate_code}
+                    onChange={(e) => setFormData({ ...formData, certificate_code: e.target.value.toUpperCase().replace(/\s+/g, "-") })}
+                    className="form-input"
+                    style={{ fontFamily: "monospace", fontWeight: 700, color: "var(--primary)" }}
+                    placeholder="VD: CERT-IELTS-2026-1024"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label className="form-label" style={{ marginBottom: 0 }}>Chọn học viên từ danh sách</label>
+                    <Link to="/admin/data" style={{ fontSize: "11.5px", color: "var(--primary)", fontWeight: 600 }}>
+                      + Thêm học viên mới
+                    </Link>
+                  </div>
+                  <select required value={selectedStudentId} onChange={handleStudentSelect} className="form-select">
+                    <option value="">-- Chọn học viên đã đăng ký trong hệ thống --</option>
                     {studentsList.map(s => (
                       <option key={s.id} value={s.id}>{s.full_name} ({s.student_code})</option>
                     ))}
@@ -1128,28 +1279,22 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     <label className="form-label">Họ tên học viên</label>
                     <input
                       type="text"
-                      required
-                      placeholder="Nhập họ tên học viên..."
+                      readOnly
+                      placeholder="Tự động điền khi chọn học viên"
                       value={formData.student_name}
-                      onChange={(e) => {
-                        setSelectedStudentId("");
-                        setFormData({ ...formData, student_name: e.target.value });
-                      }}
                       className="form-input"
+                      style={{ opacity: 0.85, cursor: "not-allowed" }}
                     />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Mã học viên</label>
                     <input
                       type="text"
-                      required
-                      placeholder="HV2026-XXXX..."
+                      readOnly
+                      placeholder="Tự động điền..."
                       value={formData.student_code}
-                      onChange={(e) => {
-                        setSelectedStudentId("");
-                        setFormData({ ...formData, student_code: e.target.value });
-                      }}
                       className="form-input"
+                      style={{ opacity: 0.85, cursor: "not-allowed", fontFamily: "monospace" }}
                     />
                   </div>
                 </div>
@@ -1221,25 +1366,41 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Writing</label>
+                      <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>
+                        Writing {detectCourseType(formData.course_code, getCourseOptions(formData.course_code).scoreType) === "TOEIC" ? "(N/A)" : ""}
+                      </label>
                       <input
                         type="text"
-                        placeholder="—"
+                        disabled={detectCourseType(formData.course_code, getCourseOptions(formData.course_code).scoreType) === "TOEIC"}
+                        placeholder={detectCourseType(formData.course_code, getCourseOptions(formData.course_code).scoreType) === "TOEIC" ? "N/A" : "—"}
                         value={formData.writing}
                         onChange={(e) => handleSubScoreChange("writing", e.target.value)}
                         className="form-input"
-                        style={{ padding: "8px 10px", textAlign: "center" }}
+                        style={{
+                          padding: "8px 10px",
+                          textAlign: "center",
+                          opacity: detectCourseType(formData.course_code, getCourseOptions(formData.course_code).scoreType) === "TOEIC" ? 0.45 : 1,
+                          cursor: detectCourseType(formData.course_code, getCourseOptions(formData.course_code).scoreType) === "TOEIC" ? "not-allowed" : "text"
+                        }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Speaking</label>
+                      <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>
+                        Speaking {detectCourseType(formData.course_code, getCourseOptions(formData.course_code).scoreType) === "TOEIC" ? "(N/A)" : ""}
+                      </label>
                       <input
                         type="text"
-                        placeholder="—"
+                        disabled={detectCourseType(formData.course_code, getCourseOptions(formData.course_code).scoreType) === "TOEIC"}
+                        placeholder={detectCourseType(formData.course_code, getCourseOptions(formData.course_code).scoreType) === "TOEIC" ? "N/A" : "—"}
                         value={formData.speaking}
                         onChange={(e) => handleSubScoreChange("speaking", e.target.value)}
                         className="form-input"
-                        style={{ padding: "8px 10px", textAlign: "center" }}
+                        style={{
+                          padding: "8px 10px",
+                          textAlign: "center",
+                          opacity: detectCourseType(formData.course_code, getCourseOptions(formData.course_code).scoreType) === "TOEIC" ? 0.45 : 1,
+                          cursor: detectCourseType(formData.course_code, getCourseOptions(formData.course_code).scoreType) === "TOEIC" ? "not-allowed" : "text"
+                        }}
                       />
                     </div>
                   </div>

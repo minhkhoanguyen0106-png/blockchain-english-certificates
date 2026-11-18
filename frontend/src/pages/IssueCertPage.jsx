@@ -884,7 +884,9 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                         <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 600 }}>Điểm 4 kỹ năng thành phần</span>
-                        <span style={{ fontSize: "11px", color: "var(--primary)", fontWeight: 600 }}>🔒 Đã niêm phong</span>
+                        <span style={{ fontSize: "11px", color: "var(--primary)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                          <ShieldCheck size={12} /> Đã chốt điểm
+                        </span>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", textAlign: "center" }}>
                         <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", padding: "8px 4px", borderRadius: "8px" }}>
@@ -1285,8 +1287,8 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
             borderRadius: "16px",
             boxShadow: "0 25px 60px rgba(0,0,0,0.5)"
           }}>
-            <h3 style={{ fontSize: "20px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "6px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span>🛡️</span> Đối Soát Dữ Liệu Trước Khi Ký Phát Hành
+            <h3 style={{ fontSize: "19px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "6px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <ShieldCheck size={20} color="var(--primary)" /> Đối Soát Dữ Liệu Trước Khi Ký Phát Hành
             </h3>
             <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "18px" }}>
               Vui lòng kiểm tra kỹ lưỡng các thông số hồ sơ do Nhân viên Khảo thí lập trước khi kích hoạt giao dịch ký số.
@@ -1352,15 +1354,19 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
             </div>
 
             <div style={{
-              background: "rgba(239, 68, 68, 0.1)",
-              border: "1px solid rgba(239, 68, 68, 0.3)",
-              borderRadius: "8px",
-              padding: "10px 14px",
-              fontSize: "12px",
-              color: "#fca5a5",
-              marginBottom: "20px"
+              background: "var(--warning-bg)",
+              border: "1px solid rgba(217, 119, 6, 0.28)",
+              borderRadius: "10px",
+              padding: "11px 14px",
+              fontSize: "12.5px",
+              color: "var(--warning-text)",
+              marginBottom: "20px",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "8px"
             }}>
-              ⚠️ <strong>Lưu ý:</strong> Sau khi ký xác thực, chứng chỉ sẽ được cấp chính thức vào hệ thống và không thể chỉnh sửa điểm.
+              <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: "1px" }} />
+              <span><strong>Lưu ý:</strong> Sau khi ký xác thực, chứng chỉ sẽ được cấp chính thức và không thể chỉnh sửa điểm số.</span>
             </div>
 
             <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>

@@ -24,13 +24,13 @@ export default function Footer() {
           <div style={{
             width: "28px",
             height: "28px",
-            borderRadius: "7px",
-            background: "linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)",
+            borderRadius: "8px",
+            background: "#14364d",
             display: "flex",
             alignItems: "center",
             justifyContent: "center"
           }}>
-            <ShieldCheck size={16} color="#04121e" strokeWidth={2.5} />
+            <ShieldCheck size={15} color="#5cc4d8" strokeWidth={2.4} />
           </div>
           <span style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: "14px" }}>
             Koheni English Testing Center

@@ -227,12 +227,12 @@ export default function HomePage() {
             <span>Cổng Tra Cứu Chứng Chỉ Tiếng Anh Công Khai</span>
           </div>
 
-          <div style={{ overflow: "hidden", paddingBottom: "14px", marginBottom: "6px" }}>
+          <div style={{ overflow: "hidden", paddingBottom: "16px", marginBottom: "6px" }}>
             <h1 className="mask-slide-left" style={{
-              fontSize: "clamp(32px, 4.6vw, 48px)",
+              fontSize: "clamp(34px, 4.7vw, 50px)",
               fontWeight: 800,
-              lineHeight: 1.22,
-              letterSpacing: "-1.2px",
+              lineHeight: 1.18,
+              letterSpacing: "-1.4px",
               marginBottom: 0,
               color: "var(--text-primary)",
               textWrap: "balance",
@@ -240,8 +240,8 @@ export default function HomePage() {
             }}>
               Tra Cứu Chứng Chỉ Tiếng Anh <br />
               <span style={{ position: "relative", display: "inline-block" }}>
-                <span className="text-gradient">Nhanh Chóng &amp; Chính Xác</span>
-                {/* Hand-drawn Smooth Swoosh Underline (Campty Signature) */}
+                <span className="text-editorial-serif">Nhanh Chóng &amp; Chính Xác</span>
+                {/* Hand-drawn Smooth Swoosh Underline */}
                 <svg
                   viewBox="0 0 320 18"
                   fill="none"
@@ -258,11 +258,11 @@ export default function HomePage() {
                 >
                   <path
                     d="M4 12 C88 3 224 2 316 11"
-                    stroke="#0ea5e9"
-                    strokeWidth="3.5"
+                    stroke="#5cc4d8"
+                    strokeWidth="3.2"
                     strokeLinecap="round"
                     className="hero-swoosh-path"
-                    opacity="0.72"
+                    opacity="0.85"
                   />
                 </svg>
                 {/* Delicate 3-Ray Sparkle Flourish */}
@@ -273,11 +273,11 @@ export default function HomePage() {
                   fill="none"
                   aria-hidden="true"
                   className="hero-sparkle"
-                  style={{ position: "absolute", right: "-24px", top: "-8px", pointerEvents: "none" }}
+                  style={{ position: "absolute", right: "-24px", top: "-6px", pointerEvents: "none" }}
                 >
-                  <path d="M4 12 L10 6" stroke="#38bdf8" strokeWidth="2.4" strokeLinecap="round" />
-                  <path d="M12 10 L20 4" stroke="#6366f1" strokeWidth="2.4" strokeLinecap="round" />
-                  <path d="M13 17 L21 15" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" />
+                  <path d="M4 12 L10 6" stroke="#5cc4d8" strokeWidth="2.2" strokeLinecap="round" />
+                  <path d="M12 10 L20 4" stroke="#f0b44c" strokeWidth="2.2" strokeLinecap="round" />
+                  <path d="M13 17 L21 15" stroke="#5cc4d8" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               </span>
             </h1>

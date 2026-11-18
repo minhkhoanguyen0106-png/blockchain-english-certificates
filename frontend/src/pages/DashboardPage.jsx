@@ -93,45 +93,37 @@ export default function DashboardPage({ user }) {
         </div>
       </div>
 
-      {/* 4 Overview Metric Cards */}
+      {/* 4 Overview Metric Cards — Tactile Editorial Style */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "18px", marginBottom: "28px" }}>
-        
-        <Link to="/admin/certificates" className="glass-panel" style={{ padding: "22px", display: "block" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <span style={{ fontSize: "13px", color: "var(--text-secondary)", fontWeight: 600 }}>TỔNG CHỨNG CHỈ</span>
-            <Award size={18} color="var(--primary)" />
-          </div>
-          <div style={{ fontSize: "32px", fontWeight: 800, color: "var(--text-primary)" }}>{totalCount}</div>
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Toàn bộ hồ sơ trên hệ thống</div>
-        </Link>
-
-        <Link to="/admin/certificates?status=ISSUED_ON_CHAIN" className="glass-panel" style={{ padding: "22px", display: "block" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <span style={{ fontSize: "13px", color: "var(--success-text)", fontWeight: 600 }}>ĐÃ PHÁT HÀNH</span>
-            <CheckCircle2 size={18} color="var(--success-color)" />
-          </div>
-          <div style={{ fontSize: "32px", fontWeight: 800, color: "var(--success-text)" }}>{issuedCount}</div>
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Chứng chỉ số hợp lệ vĩnh viễn</div>
-        </Link>
-
-        <Link to="/admin/certificates?status=REVOKED" className="glass-panel" style={{ padding: "22px", display: "block" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <span style={{ fontSize: "13px", color: "var(--danger-text)", fontWeight: 600 }}>ĐÃ THU HỒI</span>
-            <XCircle size={18} color="var(--danger-color)" />
-          </div>
-          <div style={{ fontSize: "32px", fontWeight: 800, color: "var(--danger-text)" }}>{revokedCount}</div>
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Đã ghi nhận hủy hiệu lực</div>
-        </Link>
-
-        <Link to="/admin/certificates?status=PENDING" className="glass-panel" style={{ padding: "22px", display: "block" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <span style={{ fontSize: "13px", color: "var(--warning-text)", fontWeight: 600 }}>CHỜ PHÊ DUYỆT</span>
-            <Clock size={18} color="var(--warning-color)" />
-          </div>
-          <div style={{ fontSize: "32px", fontWeight: 800, color: "var(--warning-text)" }}>{pendingCount}</div>
-          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>Hồ sơ đang chờ phê duyệt</div>
-        </Link>
-
+        {[
+          { to: "/admin/certificates", label: "Tổng chứng chỉ", value: totalCount, sub: "Toàn bộ hồ sơ trung tâm", icon: Award, iconBg: "var(--primary-bg)", iconColor: "var(--primary)", valColor: "var(--text-primary)" },
+          { to: "/admin/certificates?status=ISSUED_ON_CHAIN", label: "Đã phát hành", value: issuedCount, sub: "Chứng chỉ đang có hiệu lực", icon: CheckCircle2, iconBg: "var(--success-bg)", iconColor: "var(--success-text)", valColor: "var(--success-text)" },
+          { to: "/admin/certificates?status=PENDING", label: "Chờ xử lý", value: pendingCount, sub: "Bản nháp & sẵn sàng ký cấp", icon: Clock, iconBg: "var(--warning-bg)", iconColor: "var(--warning-text)", valColor: "var(--warning-text)" },
+          { to: "/admin/certificates?status=REVOKED", label: "Đã thu hồi", value: revokedCount, sub: "Chứng chỉ đã hủy hiệu lực", icon: XCircle, iconBg: "var(--danger-bg)", iconColor: "var(--danger-text)", valColor: "var(--danger-text)" }
+        ].map((card) => {
+          const Icon = card.icon;
+          return (
+            <Link
+              key={card.label}
+              to={card.to}
+              className="glass-panel"
+              style={{ padding: "22px", display: "block" }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                <span style={{ fontSize: "13px", color: "var(--text-secondary)", fontWeight: 600 }}>{card.label}</span>
+                <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: card.iconBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Icon size={18} color={card.iconColor} />
+                </div>
+              </div>
+              <div style={{ fontSize: "30px", fontWeight: 800, color: card.valColor, letterSpacing: "-0.8px", lineHeight: 1.1 }}>
+                {card.value}
+              </div>
+              <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "6px" }}>{card.sub}</div>
+            </Link>
+          );
+        })}
       </div>
 
       {/* Recent Certificates Table Preview */}

@@ -39,16 +39,16 @@ export default function Navbar({ user, setUser }) {
         {/* Zone 1: Brand Logo */}
         <Link to="/" className="nav-drop-item" style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0, "--drop-delay": "0.04s" }}>
           <div style={{
-            width: "38px",
-            height: "38px",
+            width: "36px",
+            height: "36px",
             borderRadius: "10px",
-            background: "linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)",
+            background: "#14364d",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 0 15px var(--primary-glow)"
+            boxShadow: "0 4px 10px -2px rgba(20, 54, 77, 0.28)"
           }}>
-            <ShieldCheck size={22} color="#04121e" strokeWidth={2.5} />
+            <ShieldCheck size={20} color="#5cc4d8" strokeWidth={2.4} />
           </div>
           <div>
             <div style={{ fontWeight: 800, fontSize: "18px", letterSpacing: "-0.5px", color: "var(--text-primary)", lineHeight: 1.15 }}>

@@ -114,16 +114,16 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
         }}>
           <Link to="/admin/dashboard" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div style={{
-              width: "38px",
-              height: "38px",
+              width: "36px",
+              height: "36px",
               borderRadius: "10px",
-              background: "linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)",
+              background: "#14364d",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 0 15px var(--primary-glow)"
+              boxShadow: "0 4px 10px -2px rgba(20, 54, 77, 0.25)"
             }}>
-              <ShieldCheck size={22} color="#04121e" strokeWidth={2.5} />
+              <ShieldCheck size={20} color="#5cc4d8" strokeWidth={2.4} />
             </div>
             <div>
               <div style={{ fontWeight: 800, fontSize: "18px", letterSpacing: "-0.5px", lineHeight: 1.15 }}>
@@ -145,9 +145,9 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
         </div>
 
         {/* Navigation Menu */}
-        <nav style={{ padding: "12px 16px", flex: 1, overflowY: "auto" }}>
-          <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", padding: "8px 12px 6px" }}>
-            MODULE NGHIỆP VỤ
+        <nav style={{ padding: "16px 14px", flex: 1, overflowY: "auto" }}>
+          <div style={{ fontSize: "10.5px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.9px", padding: "6px 12px 10px" }}>
+            Điều hướng
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -163,18 +163,17 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    padding: "10px 14px",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "13px",
+                    padding: "10px 12px",
+                    borderRadius: "10px",
+                    fontSize: "13.5px",
                     fontWeight: active ? 700 : 500,
                     color: active ? "var(--primary)" : "var(--text-secondary)",
                     background: active ? "var(--primary-bg)" : "transparent",
-                    border: active ? "1px solid var(--border-subtle)" : "1px solid transparent",
-                    transition: "all var(--transition-fast)"
+                    transition: "background var(--transition-fast), color var(--transition-fast)"
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <Icon size={18} color={active ? "var(--primary)" : "var(--text-muted)"} />
+                    <Icon size={17} strokeWidth={active ? 2.3 : 1.9} color={active ? "var(--primary)" : "var(--text-muted)"} />
                     <span>{item.label}</span>
                   </div>
 
@@ -183,9 +182,9 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
                       style={{
                         fontSize: "10px",
                         fontWeight: 700,
-                        padding: "2px 6px",
-                        borderRadius: "4px",
-                        background: user?.role === "ADMIN" ? "rgba(245, 158, 11, 0.15)" : "rgba(56, 189, 248, 0.15)",
+                        padding: "2px 7px",
+                        borderRadius: "9999px",
+                        background: user?.role === "ADMIN" ? "var(--accent-gold-bg)" : "var(--primary-bg)",
                         color: user?.role === "ADMIN" ? "var(--accent-gold)" : "var(--primary)"
                       }}
                     >
@@ -198,24 +197,21 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
           </div>
         </nav>
 
-        {/* Sidebar Footer - System & Network status */}
+        {/* Minimal Institutional Sidebar Footer */}
         <div style={{
-          padding: "16px",
+          padding: "14px 18px",
           borderTop: "1px solid var(--border-subtle)",
-          background: "var(--bg-surface)",
-          fontSize: "11px"
+          fontSize: "11px",
+          color: "var(--text-muted)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between"
         }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-            <span style={{ color: "var(--text-muted)" }}>Hệ thống xác thực:</span>
-            <span style={{ color: "var(--success-text)", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
-              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--success-color)", display: "inline-block" }}></span>
-              Trực tuyến
-            </span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ color: "var(--text-muted)" }}>Lưu trữ dữ liệu:</span>
-            <span style={{ color: "var(--accent-gold)", fontWeight: 600 }}>Bảo mật phân tán</span>
-          </div>
+          <span style={{ fontWeight: 600 }}>Koheni Portal</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "var(--success-text)", fontWeight: 600 }}>
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--success-color)" }} />
+            Sẵn sàng
+          </span>
         </div>
       </aside>
 

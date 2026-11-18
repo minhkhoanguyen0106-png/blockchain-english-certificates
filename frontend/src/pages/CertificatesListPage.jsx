@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2, ShieldCheck, ExternalLink, Clock, ShieldAlert, CheckCircle2, Copy, Check } from "lucide-react";
-import { getAllCertificates, revokeCertificateOnChain, shortenAddress } from "../services/web3Service";
+import { getAllCertificates, revokeCertificateOnChain, shortenAddress, CONTRACT_ADDRESS } from "../services/web3Service";
+import contractJson from "../contracts/EnglishCertificateNFT.json";
 import { certificateApi } from "../services/apiService";
 
 export default function CertificatesListPage({ wallet, user }) {
@@ -650,7 +651,15 @@ export default function CertificatesListPage({ wallet, user }) {
                     Smart Contract:
                   </div>
                   <div style={{ fontFamily: "monospace", fontSize: "11px", color: "var(--primary)", wordBreak: "break-all" }}>
-                    0x5FbDB2315678afecb367f032d93F642f64180aa3
+                    <a
+                      href={contractJson.network === "sepolia" ? `https://sepolia.etherscan.io/address/${CONTRACT_ADDRESS}` : "#"}
+                      target={contractJson.network === "sepolia" ? "_blank" : "_self"}
+                      rel="noreferrer"
+                      style={{ color: "var(--primary)", textDecoration: "underline" }}
+                      title="Xem trên Etherscan"
+                    >
+                      {CONTRACT_ADDRESS}
+                    </a>
                   </div>
                 </div>
 
@@ -664,7 +673,10 @@ export default function CertificatesListPage({ wallet, user }) {
                     Mạng & Trạng Thái:
                   </div>
                   <div style={{ fontSize: "12px", fontWeight: 700, color: "#10b981", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <CheckCircle2 size={14} /> Hardhat Node (Chain 31337)
+                    <CheckCircle2 size={14} />
+                    {contractJson.network === "sepolia"
+                      ? "Ethereum Sepolia (Chain 11155111)"
+                      : "Hardhat Node (Chain 31337)"}
                   </div>
                 </div>
               </div>

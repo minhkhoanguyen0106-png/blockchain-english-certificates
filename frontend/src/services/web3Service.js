@@ -20,25 +20,27 @@ export const isMetaMaskInstalled = () => {
   return typeof window !== "undefined" && Boolean(window.ethereum);
 };
 
-// Tự động chuyển MetaMask sang mạng Hardhat Localhost (Chain ID 31337)
-export const switchToHardhatNetwork = async () => {
+// Tự động chuyển MetaMask sang mạng phù hợp (Sepolia hoặc Hardhat)
+export const switchToAppropriateNetwork = async () => {
   if (typeof window === "undefined" || !window.ethereum) return false;
-  const HARDHAT_CHAIN_ID_HEX = "0x7a69"; // 31337
+  const isSepolia = contractJson.network === "sepolia" || contractJson.chainId === 11155111;
+  const targetChainIdHex = isSepolia ? "0xaa36a7" : "0x7a69";
+
   try {
     await window.ethereum.request({
       method: "wallet_switchEthereumChain",
-      params: [{ chainId: HARDHAT_CHAIN_ID_HEX }],
+      params: [{ chainId: targetChainIdHex }],
     });
     return true;
   } catch (switchError) {
     // Mã lỗi 4902: mạng chưa tồn tại trong danh sách của MetaMask -> tự động thêm
-    if (switchError.code === 4902) {
+    if (switchError.code === 4902 && !isSepolia) {
       try {
         await window.ethereum.request({
           method: "wallet_addEthereumChain",
           params: [
             {
-              chainId: HARDHAT_CHAIN_ID_HEX,
+              chainId: "0x7a69",
               chainName: "Hardhat Localhost",
               rpcUrls: ["http://127.0.0.1:8545"],
               nativeCurrency: {
@@ -58,6 +60,7 @@ export const switchToHardhatNetwork = async () => {
     return false;
   }
 };
+export const switchToHardhatNetwork = switchToAppropriateNetwork;
 
 // 2. Kết nối ví MetaMask (Tự động kết nối ví thật nếu có, hoặc kích hoạt Ví Quản Trị Demo nếu chưa cài tiện ích)
 export const connectMetaMask = async () => {
@@ -66,19 +69,20 @@ export const connectMetaMask = async () => {
     return {
       provider: null,
       signer: null,
-      address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-      chainId: 31337,
-      balance: "100.0",
+      address: "0xf82b80C145E738fAC445deb06c17b8D9BDEaDcc6",
+      chainId: contractJson.chainId || 11155111,
+      balance: "5.0",
       isDemo: true
     };
   }
 
   try {
-    // Kiểm tra và yêu cầu chuyển sang mạng Hardhat nếu đang ở Ethereum Mainnet
+    // Kiểm tra và yêu cầu chuyển sang đúng mạng của Smart Contract (Sepolia hoặc Hardhat)
+    const targetChainId = Number(contractJson.chainId) || 11155111;
     let provider = new ethers.BrowserProvider(window.ethereum);
     let network = await provider.getNetwork();
-    if (Number(network.chainId) !== 31337) {
-      const switched = await switchToHardhatNetwork();
+    if (Number(network.chainId) !== targetChainId) {
+      const switched = await switchToAppropriateNetwork();
       if (switched) {
         provider = new ethers.BrowserProvider(window.ethereum);
         network = await provider.getNetwork();
@@ -89,7 +93,7 @@ export const connectMetaMask = async () => {
     const signer = await provider.getSigner();
     const address = accounts[0];
 
-    // Lấy số dư ETH/MATIC
+    // Lấy số dư ETH
     const balanceRaw = await provider.getBalance(address);
     const balance = ethers.formatEther(balanceRaw).slice(0, 7);
 
@@ -108,9 +112,9 @@ export const connectMetaMask = async () => {
     return {
       provider: null,
       signer: null,
-      address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-      chainId: 31337,
-      balance: "100.0",
+      address: "0xf82b80C145E738fAC445deb06c17b8D9BDEaDcc6",
+      chainId: contractJson.chainId || 11155111,
+      balance: "5.0",
       isDemo: true
     };
   }
@@ -278,13 +282,14 @@ export const issueCertificateOnChain = async (certData, walletSigner) => {
   // B3: Thực thi giao dịch Smart Contract (SBT) qua ví MetaMask nếu có signer
   if (walletSigner?.signer) {
     try {
-      // Đảm bảo đang đứng ở mạng Hardhat Localhost (Chain ID 31337) trước khi gửi tx
+      // Đảm bảo đang đứng ở đúng mạng của Smart Contract (Sepolia hoặc Hardhat) trước khi gửi tx
       if (typeof window !== "undefined" && window.ethereum) {
         try {
           const checkProvider = new ethers.BrowserProvider(window.ethereum);
           const currentNet = await checkProvider.getNetwork();
-          if (Number(currentNet.chainId) !== 31337) {
-            await switchToHardhatNetwork();
+          const targetChainId = Number(contractJson.chainId) || 11155111;
+          if (Number(currentNet.chainId) !== targetChainId) {
+            await switchToAppropriateNetwork();
           }
         } catch (netErr) {
           console.warn("Chuyển mạng trước khi gửi tx:", netErr);

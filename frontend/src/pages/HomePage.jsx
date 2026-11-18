@@ -76,7 +76,7 @@ export default function HomePage() {
               Tra Cứu Bằng Ngay
             </Link>
 
-            <Link to="/scanner" className="btn btn-outline" style={{ padding: "14px 28px", fontSize: "16px" }}>
+            <Link to="/verify?tab=qr" className="btn btn-outline" style={{ padding: "14px 28px", fontSize: "16px" }}>
               <QrCode size={18} />
               Quét Mã QR Xác Thực
             </Link>

@@ -74,7 +74,7 @@ export default function App() {
               }
             />
             <Route path="/verify" element={<VerifyPage user={user} />} />
-            <Route path="/scanner" element={<ScannerPage />} />
+            <Route path="/scanner" element={<Navigate to="/verify?tab=qr" replace />} />
             <Route
               path="/login"
               element={

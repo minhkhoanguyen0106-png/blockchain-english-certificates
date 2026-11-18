@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ShieldCheck, QrCode, Search, LayoutDashboard, LogOut, Lock } from "lucide-react";
+import { ShieldCheck, Search, LayoutDashboard, LogOut, Lock } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { authApi } from "../services/apiService";
 
@@ -103,37 +103,8 @@ export default function Navbar({ user, setUser }) {
             }}
           >
             <Search size={15} />
-            Tra Cứu Bằng Cấp
+            Tra Cứu &amp; Xác Thực
             {isActive("/verify") && (
-              <span style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: "2px",
-                background: "var(--primary)",
-                borderRadius: "2px"
-              }} />
-            )}
-          </Link>
-
-          <Link
-            to="/scanner"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "14px",
-              fontWeight: isActive("/scanner") ? 700 : 500,
-              color: isActive("/scanner") ? "var(--primary)" : "var(--text-secondary)",
-              transition: "color var(--transition-fast)",
-              position: "relative",
-              padding: "6px 0"
-            }}
-          >
-            <QrCode size={15} />
-            Quét Mã QR
-            {isActive("/scanner") && (
               <span style={{
                 position: "absolute",
                 bottom: 0,

@@ -1,21 +1,31 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Search, ShieldCheck, AlertTriangle, XCircle, Download, ExternalLink, QrCode, ArrowLeft, RefreshCw, Wallet, Award, Copy, Check } from "lucide-react";
+import { Search, ShieldCheck, AlertTriangle, XCircle, Download, QrCode, ArrowLeft, RefreshCw, Wallet, Award, Copy, Check, Upload, CheckCircle2, AlertCircle } from "lucide-react";
+import { Html5Qrcode } from "html5-qrcode";
 import { getCertificateByCode, getCertificatesByStudentWallet, connectMetaMask, isMetaMaskInstalled, shortenAddress } from "../services/web3Service";
 import CertificateCard from "../components/CertificateCard";
 
 export default function VerifyPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCode = searchParams.get("code") || "";
+  const initialTab = searchParams.get("tab") || "code";
 
-  const [activeTab, setActiveTab] = useState("code"); // "code" | "wallet"
+  const [activeTab, setActiveTab] = useState(
+    ["code", "qr", "wallet"].includes(initialTab) ? initialTab : "code"
+  );
   const [inputCode, setInputCode] = useState(initialCode);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Student Web3 Wallet Lookup state (Phương án 1 - Học viên không cần đăng nhập mật khẩu)
+  // Embedded QR Scanner state (Tab "qr")
+  const [cameraActive, setCameraActive] = useState(false);
+  const [scanResult, setScanResult] = useState("");
+  const [qrError, setQrError] = useState("");
+  const scannerRef = useRef(null);
+
+  // Student Web3 Wallet Lookup state (Tab "wallet")
   const [walletInput, setWalletInput] = useState("");
   const [walletCerts, setWalletCerts] = useState([]);
   const [walletSearched, setWalletSearched] = useState(false);
@@ -41,6 +51,89 @@ export default function VerifyPage() {
       setLoading(false);
     }
   };
+
+  const handleQrDecoded = (text) => {
+    let certCode = (text || "").trim();
+    try {
+      if (certCode.startsWith("http://") || certCode.startsWith("https://")) {
+        const url = new URL(certCode);
+        if (url.searchParams.get("code")) {
+          certCode = url.searchParams.get("code");
+        } else {
+          const segments = url.pathname.split("/").filter(Boolean);
+          const last = segments[segments.length - 1];
+          if (last && last !== "verify") certCode = last;
+        }
+      }
+    } catch {
+      certCode = text;
+    }
+
+    setScanResult(certCode);
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      scannerRef.current.stop().catch(() => {});
+    }
+    setTimeout(() => {
+      setScanResult("");
+      setInputCode(certCode);
+      handleSearch(certCode);
+    }, 650);
+  };
+
+  const handleQrFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setQrError("");
+    const html5QrCode = new Html5Qrcode("verify-file-reader-hidden");
+    html5QrCode
+      .scanFile(file, true)
+      .then((decodedText) => handleQrDecoded(decodedText))
+      .catch(() => {
+        setQrError("Không tìm thấy mã QR hợp lệ trong bức ảnh này. Vui lòng chọn ảnh rõ nét hơn.");
+      });
+  };
+
+  // Tự động bật/tắt camera khi chuyển vào/ra khỏi tab "Quét Mã QR"
+  useEffect(() => {
+    if (activeTab !== "qr") return;
+    let isMounted = true;
+    const html5QrCode = new Html5Qrcode("verify-qr-reader");
+    scannerRef.current = html5QrCode;
+    setQrError("");
+    setScanResult("");
+
+    html5QrCode
+      .start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 240, height: 240 } },
+        (decodedText) => handleQrDecoded(decodedText),
+        () => {}
+      )
+      .then(() => {
+        if (isMounted) setCameraActive(true);
+      })
+      .catch(() => {
+        if (isMounted) {
+          setCameraActive(false);
+          setQrError("Không thể mở Camera thiết bị (chưa cấp quyền hoặc không có webcam). Bạn có thể chọn Tải Ảnh Chụp Mã QR Từ Máy bên dưới.");
+        }
+      });
+
+    return () => {
+      isMounted = false;
+      setCameraActive(false);
+      if (scannerRef.current && scannerRef.current.isScanning) {
+        scannerRef.current.stop().catch(() => {});
+      }
+    };
+  }, [activeTab]);
+
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t && ["code", "qr", "wallet"].includes(t)) {
+      setActiveTab(t);
+    }
+  }, [searchParams]);
 
   const handleWalletLookup = async (addressToSearch) => {
     const addr = (addressToSearch || walletInput).trim();
@@ -114,27 +207,103 @@ export default function VerifyPage() {
           </p>
         </div>
 
-        {/* Mode Switch Tabs: Tra cứu mã vs Ví chứng chỉ học viên */}
-        <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginBottom: "20px", flexWrap: "wrap" }}>
+        {/* Mode Switch Tabs: 3 phương thức xác thực rõ ràng, không trùng lặp */}
+        <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginBottom: "22px", flexWrap: "wrap" }}>
           <button
             type="button"
-            onClick={() => setActiveTab("code")}
+            onClick={() => { setActiveTab("code"); setSearchParams(inputCode ? { code: inputCode } : {}); }}
             className={`btn ${activeTab === "code" ? "btn-primary" : "btn-outline"}`}
             style={{ padding: "10px 20px", fontSize: "13px" }}
           >
             <Search size={15} />
-            Tra Cứu Theo Mã / QR
+            Nhập Mã Bằng
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("wallet")}
+            onClick={() => { setActiveTab("qr"); setSearchParams({ tab: "qr" }); }}
+            className={`btn ${activeTab === "qr" ? "btn-primary" : "btn-outline"}`}
+            style={{ padding: "10px 20px", fontSize: "13px" }}
+          >
+            <QrCode size={15} />
+            Quét Mã QR
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActiveTab("wallet"); setSearchParams({ tab: "wallet" }); }}
             className={`btn ${activeTab === "wallet" ? "btn-primary" : "btn-outline"}`}
             style={{ padding: "10px 20px", fontSize: "13px" }}
           >
             <Wallet size={15} />
-            Ví Chứng Chỉ Của Học Viên
+            Ví Học Viên
           </button>
         </div>
+
+        {/* TAB 2: EMBEDDED QR SCANNER */}
+        {activeTab === "qr" && (
+          <div className="glass-panel" style={{ padding: "26px", maxWidth: "560px", margin: "0 auto" }}>
+            <div style={{
+              position: "relative",
+              width: "100%",
+              maxWidth: "340px",
+              height: "340px",
+              margin: "0 auto",
+              background: "#050811",
+              borderRadius: "16px",
+              overflow: "hidden",
+              border: "2px solid var(--border-subtle)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}>
+              <div id="verify-qr-reader" style={{ width: "100%", height: "100%" }} />
+              <div id="verify-file-reader-hidden" style={{ display: "none" }} />
+              {cameraActive && !scanResult && <div className="laser-beam" />}
+              {scanResult && (
+                <div style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "rgba(16, 185, 129, 0.95)",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#ffffff",
+                  zIndex: 20
+                }}>
+                  <CheckCircle2 size={52} />
+                  <div style={{ fontWeight: 800, fontSize: "16px", marginTop: "10px" }}>ĐÃ NHẬN DIỆN MÃ QR!</div>
+                  <div style={{ fontSize: "13px", marginTop: "4px" }}>Đang thẩm định: {scanResult}</div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: "20px", textAlign: "center" }}>
+              <label className="btn btn-outline" style={{ cursor: "pointer", display: "inline-flex" }}>
+                <Upload size={16} />
+                Tải Ảnh Chụp Mã QR Từ Máy
+                <input type="file" accept="image/*" onChange={handleQrFileUpload} style={{ display: "none" }} />
+              </label>
+            </div>
+
+            {qrError && (
+              <div style={{
+                marginTop: "16px",
+                background: "var(--warning-bg)",
+                border: "1px solid rgba(245, 158, 11, 0.3)",
+                color: "var(--warning-text)",
+                padding: "12px 14px",
+                borderRadius: "var(--radius-md)",
+                fontSize: "13px",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "10px"
+              }}>
+                <AlertCircle size={18} style={{ flexShrink: 0, marginTop: "2px" }} />
+                <span>{qrError}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* TAB 2: STUDENT WALLET LOOKUP (Web3-native, no password needed) */}
         {activeTab === "wallet" && (
@@ -315,10 +484,6 @@ export default function VerifyPage() {
                 </>
               )}
             </button>
-
-            <Link to="/scanner" className="btn btn-outline" style={{ height: "48px", padding: "0 18px" }} title="Quét camera">
-              <QrCode size={18} />
-            </Link>
           </form>
         </div>
 

@@ -35,7 +35,7 @@ export default function ScannerPage() {
         setCameraActive(true);
       } catch (err) {
         console.warn("Camera init:", err);
-        setErrorMsg("Không thể mở Camera thiết bị (do chưa cấp quyền hoặc không có webcam). Bạn có thể dùng tính năng Tải ảnh QR hoặc chọn Mã Mẫu bên dưới.");
+        setErrorMsg("Không thể mở Camera thiết bị (do chưa cấp quyền hoặc không có webcam). Bạn có thể dùng tính năng Tải Ảnh Chụp Mã QR Từ Máy bên dưới.");
         setCameraActive(false);
       }
     };
@@ -177,29 +177,6 @@ export default function ScannerPage() {
               Tải Ảnh Chụp Mã QR Từ Máy
               <input type="file" accept="image/*" onChange={handleFileUpload} style={{ display: "none" }} />
             </label>
-          </div>
-
-          {/* Quick Demo Test Trigger */}
-          <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid var(--border-subtle)", textAlign: "center" }}>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600 }}>Hoặc quét nhanh mã demo kiểm thử:</span>
-            <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginTop: "10px", flexWrap: "wrap" }}>
-              <button
-                type="button"
-                onClick={() => handleScanSuccess("CERT-IELTS-2026-001")}
-                className="btn btn-primary"
-                style={{ fontSize: "12px", padding: "6px 14px" }}
-              >
-                Mã Mẫu IELTS (8.0)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleScanSuccess("CERT-VSTEP-2026-012")}
-                className="btn btn-danger"
-                style={{ fontSize: "12px", padding: "6px 14px" }}
-              >
-                Mã Mẫu Bị Thu Hồi
-              </button>
-            </div>
           </div>
 
         </div>

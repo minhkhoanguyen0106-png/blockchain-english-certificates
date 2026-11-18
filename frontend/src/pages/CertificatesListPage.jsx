@@ -269,7 +269,7 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                     </td>
 
                     <td style={{ fontSize: "11px" }}>
-                      <div>Mã số: #{c.token_id || "N/A"}</div>
+                      <div>{c.token_id ? `Mã số: #${c.token_id}` : "Chưa cấp mã"}</div>
                       <div style={{ color: "var(--text-muted)" }}>
                         {c.tx_hash ? `Mã: ${shortenAddress(c.tx_hash)}` : "Chưa phát hành"}
                       </div>
@@ -288,15 +288,17 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                           Xem
                         </button>
 
-                        <button
-                          type="button"
-                          onClick={() => window.open(`http://localhost:5000/api/public/pdf/${c.certificate_code}`, "_blank")}
-                          className="btn btn-outline"
-                          style={{ padding: "6px 10px", fontSize: "12px" }}
-                          title="Tải phôi bằng PDF có mã QR thật"
-                        >
-                          <Download size={14} />
-                        </button>
+                        {(c.status === "ISSUED_ON_CHAIN" || c.status === "REVOKED") && (
+                          <button
+                            type="button"
+                            onClick={() => window.open(`http://localhost:5000/api/public/pdf/${c.certificate_code}`, "_blank")}
+                            className="btn btn-outline"
+                            style={{ padding: "6px 10px", fontSize: "12px" }}
+                            title="Tải phôi bằng PDF có mã QR thật"
+                          >
+                            <Download size={14} />
+                          </button>
+                        )}
 
                         {c.status === "PENDING" && (
                           user?.role === "ADMIN" ? (
@@ -511,25 +513,33 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
             </div>
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap", paddingTop: "16px", borderTop: "1px solid var(--border-subtle)" }}>
-              <a
-                href={`/verify?code=${selectedCert.certificate_code}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-outline"
-                style={{ fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-              >
-                <ExternalLink size={14} /> Mở Trang Tra Cứu Công Khai (Tab Mới)
-              </a>
-
-              <div style={{ display: "flex", gap: "10px" }}>
-                <button
-                  type="button"
-                  onClick={() => window.open(`http://localhost:5000/api/public/pdf/${selectedCert.certificate_code}`, "_blank")}
-                  className="btn btn-gold"
+              {(selectedCert.status === "ISSUED_ON_CHAIN" || selectedCert.status === "REVOKED") ? (
+                <a
+                  href={`/verify?code=${selectedCert.certificate_code}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-outline"
                   style={{ fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
                 >
-                  <Download size={14} /> Tải Bản In PDF
-                </button>
+                  <ExternalLink size={14} /> Mở Trang Tra Cứu Công Khai (Tab Mới)
+                </a>
+              ) : (
+                <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                  Hồ sơ chưa phát hành chính thức nên chưa hiển thị trên cổng tra cứu công khai.
+                </span>
+              )}
+
+              <div style={{ display: "flex", gap: "10px" }}>
+                {(selectedCert.status === "ISSUED_ON_CHAIN" || selectedCert.status === "REVOKED") && (
+                  <button
+                    type="button"
+                    onClick={() => window.open(`http://localhost:5000/api/public/pdf/${selectedCert.certificate_code}`, "_blank")}
+                    className="btn btn-gold"
+                    style={{ fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                  >
+                    <Download size={14} /> Tải Bản In PDF
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setSelectedCert(null)}

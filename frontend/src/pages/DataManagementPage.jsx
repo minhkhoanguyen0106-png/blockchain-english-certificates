@@ -157,10 +157,16 @@ export default function DataManagementPage({ user }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
         <div>
           <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-primary)" }}>
-            Quản Trị <span className="text-gradient">Học Viên & Khóa Học</span>
+            {canManageCourses ? (
+              <>Quản Trị <span className="text-gradient">Học Viên &amp; Khóa Học</span></>
+            ) : (
+              <>Quản Lý <span className="text-gradient">Học Viên &amp; Kỳ Thi</span></>
+            )}
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>
-            Cơ sở dữ liệu định danh học viên và danh mục các kỳ thi khảo thí tiếng Anh.
+            {canManageCourses
+              ? "Cơ sở dữ liệu định danh học viên và danh mục các kỳ thi khảo thí tiếng Anh."
+              : "Quản lý hồ sơ định danh học viên và tra cứu danh mục các kỳ thi tiếng Anh."}
           </p>
         </div>
 
@@ -258,7 +264,7 @@ export default function DataManagementPage({ user }) {
                           className="btn btn-outline"
                           style={{ padding: "6px 12px", fontSize: "12px" }}
                         >
-                          Cấp Bằng
+                          {canManageCourses ? "Cấp Bằng" : "Soạn Nháp"}
                         </Link>
                       </td>
                     </tr>
@@ -306,7 +312,7 @@ export default function DataManagementPage({ user }) {
                           className="btn btn-outline"
                           style={{ padding: "6px 12px", fontSize: "12px" }}
                         >
-                          Tạo Đợt Thi
+                          {canManageCourses ? "Cấp Bằng" : "Soạn Nháp"}
                         </Link>
                       </td>
                     </tr>

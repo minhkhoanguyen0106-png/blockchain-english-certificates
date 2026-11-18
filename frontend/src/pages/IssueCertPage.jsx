@@ -333,10 +333,16 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       {/* Page Title */}
       <div style={{ marginBottom: "26px" }}>
         <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-primary)" }}>
-          Cấp Phát & <span className="text-gradient">Xác Thực Chứng Chỉ Số</span>
+          {user?.role === "ADMIN" ? (
+            <>Duyệt &amp; <span className="text-gradient">Cấp Phát Chứng Chỉ Số</span></>
+          ) : (
+            <>Soạn <span className="text-gradient">Hồ Sơ Nháp Chứng Chỉ</span></>
+          )}
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>
-          Thông tin khảo thí và chứng chỉ điện tử được lưu trữ an toàn, minh bạch và xác thực bất biến.
+          {user?.role === "ADMIN"
+            ? "Đối soát hồ sơ khảo thí, ký xác thực và phát hành chứng chỉ điện tử bất biến."
+            : "Nhập điểm khảo thí và lập bản nháp chứng chỉ để trình Quản trị viên kiểm duyệt."}
         </p>
       </div>
 
@@ -358,7 +364,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 {/* 1. Bộ chọn duy nhất: Hồ sơ nháp chờ duyệt */}
                 <div className="form-group" style={{ marginBottom: "16px" }}>
                   <label className="form-label" style={{ fontWeight: 700, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span>📋 Chọn hồ sơ nháp chờ duyệt (PENDING)</span>
+                    <span>Chọn hồ sơ nháp chờ phê duyệt</span>
                     {pendingDrafts.length > 0 && (
                       <span className="badge badge-warning" style={{ fontSize: "11px", padding: "2px 8px" }}>
                         {pendingDrafts.length} hồ sơ chờ duyệt

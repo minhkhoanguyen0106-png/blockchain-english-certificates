@@ -6,15 +6,11 @@ import {
   FilePlus,
   Users,
   ShieldCheck,
-  Globe,
   Wallet,
   LogOut,
   ChevronRight,
   Menu,
   X,
-  Sparkles,
-  ExternalLink,
-  Layers,
   User
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
@@ -65,13 +61,13 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
     },
     {
       path: "/admin/certificates/issue",
-      label: user?.role === "ADMIN" ? "Cấp Chứng Chỉ Mới" : "Soạn Bản Nháp",
+      label: user?.role === "ADMIN" ? "Duyệt & Cấp Chứng Chỉ" : "Soạn Hồ Sơ Nháp",
       icon: FilePlus,
       badge: null
     },
     {
       path: "/admin/data-management",
-      label: "Học Viên & Kỳ Thi",
+      label: user?.role === "ADMIN" ? "Học Viên & Kỳ Thi" : "Quản Lý Học Viên",
       icon: Users,
       badge: null
     }
@@ -216,60 +212,6 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
               );
             })}
           </div>
-
-          <div style={{ margin: "20px 0 10px", borderTop: "1px solid var(--border-subtle)" }} />
-
-          <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", padding: "8px 12px 6px" }}>
-            LIÊN KẾT NGOÀI
-          </div>
-
-          <a
-            href="/verify"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              padding: "9px 14px",
-              borderRadius: "var(--radius-md)",
-              fontSize: "13px",
-              color: "var(--text-secondary)",
-              textDecoration: "none",
-              transition: "color var(--transition-fast)"
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--primary)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; }}
-            title="Mở cổng thẩm định công khai trên tab mới"
-          >
-            <Globe size={16} />
-            <span>Cổng Thẩm Định Công Khai</span>
-            <ExternalLink size={12} style={{ marginLeft: "auto", opacity: 0.6 }} />
-          </a>
-
-          <a
-            href="/scanner"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              padding: "9px 14px",
-              borderRadius: "var(--radius-md)",
-              fontSize: "13px",
-              color: "var(--text-secondary)",
-              textDecoration: "none",
-              transition: "color var(--transition-fast)"
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--primary)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; }}
-            title="Mở bộ quét mã QR trên tab mới"
-          >
-            <Layers size={16} />
-            <span>Bộ Quét Mã QR</span>
-            <ExternalLink size={12} style={{ marginLeft: "auto", opacity: 0.6 }} />
-          </a>
         </nav>
 
         {/* Sidebar Footer - System & Network status */}

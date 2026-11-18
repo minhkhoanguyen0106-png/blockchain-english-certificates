@@ -293,7 +293,7 @@ export default function VerifyPage() {
             <div style={{ position: "relative", flex: 1 }}>
               <input
                 type="text"
-                placeholder="Nhập mã chứng chỉ (Ví dụ: CERT-IELTS-2026-001 hoặc CERT-TOEIC-2026-088)..."
+                placeholder="Nhập mã chứng chỉ cần tra cứu..."
                 value={inputCode}
                 onChange={(e) => setInputCode(e.target.value)}
                 className="form-input"
@@ -320,59 +320,6 @@ export default function VerifyPage() {
               <QrCode size={18} />
             </Link>
           </form>
-
-          {/* Quick sample chips */}
-          <div style={{ marginTop: "14px", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", fontSize: "12px" }}>
-            <span style={{ color: "var(--text-muted)", fontWeight: 600 }}>Thử nhanh mã mẫu:</span>
-            <button
-              type="button"
-              onClick={() => { setInputCode("CERT-IELTS-2026-001"); handleSearch("CERT-IELTS-2026-001"); }}
-              style={{
-                background: "var(--primary-bg)",
-                border: "1px solid var(--border-subtle)",
-                color: "var(--primary)",
-                padding: "3px 10px",
-                borderRadius: "var(--radius-full)",
-                cursor: "pointer",
-                fontSize: "12px",
-                fontWeight: 600
-              }}
-            >
-              CERT-IELTS-2026-001 (IELTS 8.0 Hợp lệ)
-            </button>
-            <button
-              type="button"
-              onClick={() => { setInputCode("CERT-TOEIC-2026-088"); handleSearch("CERT-TOEIC-2026-088"); }}
-              style={{
-                background: "var(--accent-gold-bg)",
-                border: "1px solid var(--border-subtle)",
-                color: "var(--accent-gold)",
-                padding: "3px 10px",
-                borderRadius: "var(--radius-full)",
-                cursor: "pointer",
-                fontSize: "12px",
-                fontWeight: 600
-              }}
-            >
-              CERT-TOEIC-2026-088 (TOEIC 920)
-            </button>
-            <button
-              type="button"
-              onClick={() => { setInputCode("CERT-VSTEP-2026-012"); handleSearch("CERT-VSTEP-2026-012"); }}
-              style={{
-                background: "var(--danger-bg)",
-                border: "1px solid var(--border-subtle)",
-                color: "var(--danger-text)",
-                padding: "3px 10px",
-                borderRadius: "var(--radius-full)",
-                cursor: "pointer",
-                fontSize: "12px",
-                fontWeight: 600
-              }}
-            >
-              CERT-VSTEP-2026-012 (Bị thu hồi)
-            </button>
-          </div>
         </div>
 
         {/* Verification Result Showcase */}

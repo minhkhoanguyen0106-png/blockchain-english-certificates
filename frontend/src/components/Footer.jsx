@@ -1,6 +1,6 @@
 import React from "react";
-import { useLocation } from "react-router-dom";
-import { ShieldCheck, Globe, ExternalLink } from "lucide-react";
+import { useLocation, Link } from "react-router-dom";
+import { ShieldCheck } from "lucide-react";
 
 export default function Footer() {
   const location = useLocation();
@@ -14,13 +14,13 @@ export default function Footer() {
     <footer style={{
       borderTop: "1px solid var(--border-subtle)",
       background: "var(--bg-surface)",
-      padding: "36px 0 28px",
+      padding: "32px 0 24px",
       fontSize: "13px",
       color: "var(--text-muted)",
       transition: "background var(--transition-normal), border-color var(--transition-normal)"
     }}>
       <div className="container">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px", marginBottom: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px", marginBottom: "18px" }}>
           
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div style={{
@@ -35,26 +35,20 @@ export default function Footer() {
               <ShieldCheck size={18} color="#04121e" strokeWidth={2.5} />
             </div>
             <span style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: "15px" }}>
-              CertChain English Center
+              CertChain English Testing Center
             </span>
           </div>
 
-          <div style={{ display: "flex", gap: "16px", fontSize: "13px" }}>
-            <a
-              href="https://github.com/minhkhoanguyen0106-png/blockchain-english-certificates"
-              target="_blank"
-              rel="noreferrer"
-              style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--text-secondary)" }}
-            >
-              <Globe size={15} /> GitHub Repository <ExternalLink size={12} />
-            </a>
+          <div style={{ display: "flex", gap: "20px", fontSize: "13px" }}>
+            <Link to="/verify" style={{ color: "var(--text-secondary)" }}>Tra Cứu Bằng Cấp</Link>
+            <Link to="/scanner" style={{ color: "var(--text-secondary)" }}>Quét Mã QR</Link>
+            <Link to="/login" style={{ color: "var(--text-secondary)" }}>Cổng Nội Bộ</Link>
           </div>
 
         </div>
 
-        <div style={{ textAlign: "center", paddingTop: "18px", borderTop: "1px solid var(--border-subtle)", fontSize: "12px", color: "var(--text-muted)" }}>
-          Đề tài môn học: <strong>Blockchain & Ứng Dụng</strong> • 
-          Hệ Thống Quản Lý & Xác Thực Bằng Tiếng Anh Định Danh Điện Tử
+        <div style={{ textAlign: "center", paddingTop: "16px", borderTop: "1px solid var(--border-subtle)", fontSize: "12px", color: "var(--text-muted)" }}>
+          © 2026 <strong>CertChain English Testing Center</strong> • Hệ Thống Quản Lý &amp; Xác Thực Chứng Chỉ Tiếng Anh Điện Tử
         </div>
       </div>
     </footer>

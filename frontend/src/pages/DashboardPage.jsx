@@ -64,10 +64,12 @@ export default function DashboardPage({ wallet, setWallet, user }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
         <div>
           <h1 style={{ fontSize: "24px", fontWeight: 800, color: "var(--text-primary)" }}>
-            Bảng Điều Khiển <span className="text-gradient">Quản Trị</span>
+            Bảng Điều Khiển <span className="text-gradient">{user?.role === "ADMIN" ? "Quản Trị" : "Khảo Thí"}</span>
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "4px" }}>
-            Tổng quan số liệu cấp phát và hồ sơ chứng chỉ trên hệ thống.
+            {user?.role === "ADMIN"
+              ? "Tổng quan số liệu cấp phát, phê duyệt và quản lý chứng chỉ trên hệ thống."
+              : "Tổng quan hồ sơ khảo thí và tiến độ phê duyệt chứng chỉ của trung tâm."}
           </p>
         </div>
 
@@ -111,7 +113,7 @@ export default function DashboardPage({ wallet, setWallet, user }) {
 
         <Link to="/admin/certificates?status=PENDING" className="glass-panel" style={{ padding: "22px", display: "block" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <span style={{ fontSize: "13px", color: "var(--warning-text)", fontWeight: 600 }}>CHỜ DUYỆT (PENDING)</span>
+            <span style={{ fontSize: "13px", color: "var(--warning-text)", fontWeight: 600 }}>CHỜ PHÊ DUYỆT</span>
             <Clock size={18} color="var(--warning-color)" />
           </div>
           <div style={{ fontSize: "32px", fontWeight: 800, color: "var(--warning-text)" }}>{pendingCount}</div>

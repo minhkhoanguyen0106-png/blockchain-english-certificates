@@ -1262,7 +1262,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 <div className="form-group">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                     <label className="form-label" style={{ marginBottom: 0 }}>Chọn học viên từ danh sách</label>
-                    <Link to="/admin/data" style={{ fontSize: "11.5px", color: "var(--primary)", fontWeight: 600 }}>
+                    <Link to="/admin/data-management" style={{ fontSize: "11.5px", color: "var(--primary)", fontWeight: 600 }}>
                       + Thêm học viên mới
                     </Link>
                   </div>

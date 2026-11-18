@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Lock, User, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Lock, User, AlertCircle, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { authApi } from "../services/apiService";
 import LumiMascot from "../components/LumiMascot";
 import koheniLogo from "../assets/koheni-logo.png";
+
+const MIN_SUCCESS_ANIMATION_MS = 1500;
+const FALLBACK_SUCCESS_ANIMATION_MS = 2200;
 
 export default function LoginPage({ setUser }) {
   const navigate = useNavigate();
@@ -15,6 +18,42 @@ export default function LoginPage({ setUser }) {
   const [focusedField, setFocusedField] = useState(null);
   const [mascotHovered, setMascotHovered] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const pendingUserRef = useRef(null);
+  const successStartedAtRef = useRef(0);
+  const redirectTimerRef = useRef(null);
+
+  const completeLoginTransition = useCallback(() => {
+    const readyUser = pendingUserRef.current;
+    if (!readyUser) return;
+    pendingUserRef.current = null;
+    if (redirectTimerRef.current) {
+      clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = null;
+    }
+    setUser(readyUser);
+    navigate("/admin/dashboard", { replace: true });
+  }, [navigate, setUser]);
+
+  const handleSuccessAnimationCycle = useCallback(() => {
+    if (!pendingUserRef.current) return;
+    const elapsed = Date.now() - successStartedAtRef.current;
+    if (elapsed >= MIN_SUCCESS_ANIMATION_MS) {
+      completeLoginTransition();
+    } else {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = setTimeout(
+        completeLoginTransition,
+        MIN_SUCCESS_ANIMATION_MS - elapsed
+      );
+    }
+  }, [completeLoginTransition]);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    };
+  }, []);
 
   // Dynamic LUMI expression reacting to login state
   const mascotMood = loginSuccess
@@ -45,6 +84,7 @@ export default function LoginPage({ setUser }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading || loginSuccess) return;
     setLoading(true);
     setErrorMessage("");
     setLoginSuccess(false);
@@ -60,12 +100,16 @@ export default function LoginPage({ setUser }) {
         email: result.user.email,
         role: result.user.role
       };
-      setUser(userData);
-      localStorage.setItem("certchain_user", JSON.stringify(userData));
-
       if (["ADMIN", "STAFF"].includes(userData.role)) {
+        localStorage.setItem("certchain_user", JSON.stringify(userData));
+        pendingUserRef.current = userData;
+        successStartedAtRef.current = Date.now();
         setLoginSuccess(true);
-        setTimeout(() => navigate("/admin/dashboard"), 550);
+        if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = setTimeout(
+          completeLoginTransition,
+          FALLBACK_SUCCESS_ANIMATION_MS
+        );
       } else {
         authApi.logout();
         setUser(null);
@@ -199,7 +243,11 @@ export default function LoginPage({ setUser }) {
               </svg>
 
               <div style={{ position: "relative", zIndex: 2, width: "260px", height: "260px" }}>
-                <LumiMascot mood={mascotMood} size={260} />
+                <LumiMascot
+                  mood={mascotMood}
+                  size={260}
+                  onSuccessComplete={handleSuccessAnimationCycle}
+                />
               </div>
             </div>
           </div>
@@ -253,6 +301,7 @@ export default function LoginPage({ setUser }) {
                     name="username"
                     type="text"
                     required
+                    disabled={loading || loginSuccess}
                     autoComplete="username"
                     placeholder="Nhập tên đăng nhập"
                     value={username}
@@ -275,6 +324,7 @@ export default function LoginPage({ setUser }) {
                     name="password"
                     type={showPassword ? "text" : "password"}
                     required
+                    disabled={loading || loginSuccess}
                     autoComplete="current-password"
                     placeholder="Nhập mật khẩu"
                     value={password}
@@ -331,34 +381,52 @@ export default function LoginPage({ setUser }) {
               <div className="login-field-enter" style={{ "--field-delay": "0.62s" }}>
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || loginSuccess}
                   style={{
                     width: "100%",
                     height: "44px",
                     borderRadius: "9999px",
                     border: "none",
-                    background: "linear-gradient(135deg, #5cc4d8 0%, #38a8c7 100%)",
+                    background: loginSuccess
+                      ? "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+                      : "linear-gradient(135deg, #5cc4d8 0%, #38a8c7 100%)",
                     color: "#ffffff",
                     fontSize: "14.5px",
                     fontWeight: 700,
                     letterSpacing: "0.2px",
-                    cursor: loading ? "not-allowed" : "pointer",
+                    cursor: loading || loginSuccess ? "not-allowed" : "pointer",
                     opacity: loading ? 0.65 : 1,
-                    boxShadow: "0 10px 24px -6px rgba(56, 168, 199, 0.55)",
-                    transition: "transform var(--transition-fast), box-shadow var(--transition-fast)"
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    boxShadow: loginSuccess
+                      ? "0 10px 24px -6px rgba(16, 185, 129, 0.55)"
+                      : "0 10px 24px -6px rgba(56, 168, 199, 0.55)",
+                    transition: "transform var(--transition-fast), box-shadow var(--transition-fast), background 0.25s ease"
                   }}
                   onMouseEnter={(e) => {
-                    if (!loading) {
+                    if (!loading && !loginSuccess) {
                       e.currentTarget.style.transform = "translateY(-1px)";
                       e.currentTarget.style.boxShadow = "0 14px 28px -6px rgba(56, 168, 199, 0.7)";
                     }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow = "0 10px 24px -6px rgba(56, 168, 199, 0.55)";
+                    if (!loginSuccess) {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "0 10px 24px -6px rgba(56, 168, 199, 0.55)";
+                    }
                   }}
                 >
-                  {loading ? "Đang xác thực..." : "Đăng Nhập Hệ Thống"}
+                  {loginSuccess ? (
+                    <>
+                      <CheckCircle2 size={17} /> Đăng nhập thành công!
+                    </>
+                  ) : loading ? (
+                    "Đang xác thực..."
+                  ) : (
+                    "Đăng Nhập Hệ Thống"
+                  )}
                 </button>
               </div>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRive, Layout, Fit, Alignment } from "@rive-app/react-canvas";
 
 /**
@@ -31,7 +31,12 @@ function loadLumiBuffer() {
   return cachedBufferPromise;
 }
 
-function LumiLayer({ buffer, artboard, stateMachine, active }) {
+function LumiLayer({ buffer, artboard, stateMachine, active, onCycleComplete }) {
+  const activeRef = useRef(active);
+  const onCycleCompleteRef = useRef(onCycleComplete);
+  activeRef.current = active;
+  onCycleCompleteRef.current = onCycleComplete;
+
   const { rive, RiveComponent } = useRive({
     buffer,
     artboard,
@@ -40,7 +45,13 @@ function LumiLayer({ buffer, artboard, stateMachine, active }) {
     layout: new Layout({
       fit: Fit.Contain,
       alignment: Alignment.Center
-    })
+    }),
+    onStop: () => {
+      if (activeRef.current && onCycleCompleteRef.current) onCycleCompleteRef.current();
+    },
+    onLoop: () => {
+      if (activeRef.current && onCycleCompleteRef.current) onCycleCompleteRef.current();
+    }
   });
 
   useEffect(() => {
@@ -71,7 +82,7 @@ function LumiLayer({ buffer, artboard, stateMachine, active }) {
 
 const MOUNTED_MOODS = ["wave", "hey", "happy", "fly", "success", "no"];
 
-export default function LumiMascot({ mood = "wave", size = 260, onClick }) {
+export default function LumiMascot({ mood = "wave", size = 260, onClick, onSuccessComplete }) {
   const [buffer, setBuffer] = useState(null);
   const resolvedMood = MOOD_CONFIG[mood] ? mood : "wave";
   const activeMood = MOUNTED_MOODS.includes(resolvedMood) ? resolvedMood : "wave";
@@ -109,6 +120,7 @@ export default function LumiMascot({ mood = "wave", size = 260, onClick }) {
             artboard={MOOD_CONFIG[m].artboard}
             stateMachine={MOOD_CONFIG[m].stateMachine}
             active={activeMood === m}
+            onCycleComplete={m === "success" ? onSuccessComplete : undefined}
           />
         ))}
     </div>

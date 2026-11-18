@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Lock, User, ArrowLeft, ShieldCheck, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { authApi } from "../services/apiService";
-import loginIllustration from "../assets/login-illustration.jpg";
+import LumiMascot from "../components/LumiMascot";
 
 export default function LoginPage({ setUser }) {
   const navigate = useNavigate();
@@ -10,12 +10,43 @@ export default function LoginPage({ setUser }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
+  const [mascotHovered, setMascotHovered] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  // Dynamic LUMI expression reacting to login state
+  const mascotMood = loginSuccess
+    ? "success"
+    : loading
+    ? "fly"
+    : errorMessage
+    ? "no"
+    : mascotHovered
+    ? "happy"
+    : focusedField === "password"
+    ? "hey"
+    : focusedField === "username"
+    ? "happy"
+    : "wave";
+
+  const mascotSpeech = loginSuccess
+    ? "Đăng nhập thành công! Đang mở trang quản trị..."
+    : loading
+    ? "Đang kiểm tra tài khoản của bạn..."
+    : errorMessage
+    ? "Ôi! Kiểm tra lại tên đăng nhập hoặc mật khẩu nhé"
+    : focusedField === "password"
+    ? "Thông tin mật khẩu luôn được bảo mật an toàn"
+    : focusedField === "username"
+    ? "Nhập tài khoản nội bộ Koheni của bạn nhé!"
+    : "Xin chào! Chào mừng đến với Koheni";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setErrorMessage("");
+    setLoginSuccess(false);
 
     try {
       const result = await authApi.login(username, password);
@@ -32,7 +63,8 @@ export default function LoginPage({ setUser }) {
       localStorage.setItem("certchain_user", JSON.stringify(userData));
 
       if (["ADMIN", "STAFF"].includes(userData.role)) {
-        navigate("/admin/dashboard");
+        setLoginSuccess(true);
+        setTimeout(() => navigate("/admin/dashboard"), 550);
       } else {
         authApi.logout();
         setUser(null);
@@ -125,22 +157,64 @@ export default function LoginPage({ setUser }) {
             </div>
           </Link>
 
-          {/* Center Bespoke Certificate + English + Blockchain Illustration (Spring Focal Pop + Gentle Float) */}
-          <div style={{ position: "relative", paddingRight: "48px", margin: "4px 0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div className="spring-focal-pop" style={{ width: "100%", maxWidth: "380px", "--pop-delay": "0.22s" }}>
-              <img
-                src={loginIllustration}
-                alt="Minh họa hệ thống chứng chỉ tiếng Anh xác thực Blockchain"
-                className="login-float-slow"
-                draggable={false}
-                style={{
-                  width: "100%",
-                  height: "auto",
-                  display: "block",
-                  mixBlendMode: "multiply",
-                  userSelect: "none"
-                }}
-              />
+          {/* Center Interactive LUMI Rive Mascot inside Soft Pastel Blob Stage */}
+          <div style={{ position: "relative", paddingRight: "48px", margin: "8px 0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            {/* Dynamic Speech Pill above LUMI */}
+            <div
+              key={mascotSpeech}
+              className="result-phase-1"
+              style={{
+                background: errorMessage ? "#fef2f2" : loginSuccess ? "#ecfdf5" : "#f0f9ff",
+                border: `1px solid ${errorMessage ? "#fecaca" : loginSuccess ? "#a7f3d0" : "#bae6fd"}`,
+                color: errorMessage ? "#b91c1c" : loginSuccess ? "#047857" : "#0f3d5e",
+                padding: "8px 16px",
+                borderRadius: "9999px",
+                fontSize: "12.5px",
+                fontWeight: 600,
+                marginBottom: "8px",
+                boxShadow: "0 8px 20px -10px rgba(15, 44, 66, 0.16)",
+                textAlign: "center",
+                maxWidth: "300px"
+              }}
+            >
+              {mascotSpeech}
+            </div>
+
+            {/* Soft Pastel Organic Halo + Interactive LUMI Canvas */}
+            <div
+              className="spring-focal-pop"
+              onMouseEnter={() => setMascotHovered(true)}
+              onMouseLeave={() => setMascotHovered(false)}
+              style={{
+                position: "relative",
+                width: "300px",
+                height: "300px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                "--pop-delay": "0.18s"
+              }}
+            >
+              {/* Soft organic pastel backdrop behind transparent LUMI */}
+              <svg
+                viewBox="0 0 320 320"
+                fill="none"
+                aria-hidden="true"
+                className="live-blob-breathe"
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+              >
+                <path
+                  d="M78 44C128 10 218 18 266 64C314 110 318 196 276 250C234 304 146 314 82 276C18 238 4 166 28 104C52 42 28 78 78 44Z"
+                  fill="#dff2fb"
+                />
+                <circle cx="274" cy="64" r="10" fill="#bae6fd" opacity="0.8" />
+                <circle cx="48" cy="252" r="8" fill="#bae6fd" opacity="0.7" />
+                <circle cx="268" cy="264" r="6" fill="#fde68a" opacity="0.85" />
+              </svg>
+
+              <div style={{ position: "relative", zIndex: 2, width: "260px", height: "260px" }}>
+                <LumiMascot mood={mascotMood} size={260} />
+              </div>
             </div>
           </div>
 
@@ -216,16 +290,20 @@ export default function LoginPage({ setUser }) {
 
             <form onSubmit={handleSubmit}>
               <div className="login-field-enter" style={{ marginBottom: "16px", "--field-delay": "0.46s" }}>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#e2f1f8", marginBottom: "7px", paddingLeft: "4px" }}>
+                <label htmlFor="login-username" style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#e2f1f8", marginBottom: "7px", paddingLeft: "4px" }}>
                   Tên đăng nhập
                 </label>
                 <div style={{ position: "relative" }}>
                   <input
+                    id="login-username"
+                    name="username"
                     type="text"
                     required
                     autoComplete="username"
                     placeholder="Nhập tên đăng nhập"
                     value={username}
+                    onFocus={() => { setFocusedField("username"); if (errorMessage) setErrorMessage(""); }}
+                    onBlur={() => setFocusedField(null)}
                     onChange={(e) => setUsername(e.target.value)}
                     className="login-pill-input"
                   />
@@ -234,16 +312,20 @@ export default function LoginPage({ setUser }) {
               </div>
 
               <div className="login-field-enter" style={{ marginBottom: "20px", "--field-delay": "0.54s" }}>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#e2f1f8", marginBottom: "7px", paddingLeft: "4px" }}>
+                <label htmlFor="login-password" style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#e2f1f8", marginBottom: "7px", paddingLeft: "4px" }}>
                   Mật khẩu
                 </label>
                 <div style={{ position: "relative" }}>
                   <input
+                    id="login-password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
                     required
                     autoComplete="current-password"
                     placeholder="Nhập mật khẩu"
                     value={password}
+                    onFocus={() => { setFocusedField("password"); if (errorMessage) setErrorMessage(""); }}
+                    onBlur={() => setFocusedField(null)}
                     onChange={(e) => setPassword(e.target.value)}
                     className="login-pill-input"
                     style={{ paddingRight: "42px" }}

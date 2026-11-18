@@ -114,7 +114,11 @@ export const connectMetaMask = async () => {
     if (err.code === 4001) {
       throw new Error("Bạn đã từ chối yêu cầu kết nối ví MetaMask.");
     }
-    throw new Error("Không thể kết nối MetaMask. Hãy kiểm tra tiện ích ví và thử lại.");
+    // Mã lỗi -32002: Yêu cầu kết nối trước đó đang chờ xử lý (popup MetaMask đang mở ẩn)
+    if (err.code === -32002 || err?.error?.code === -32002 || String(err?.message || "").includes("already pending")) {
+      throw new Error("MetaMask đang có một yêu cầu kết nối chờ xử lý. Vui lòng bấm vào biểu tượng con cáo MetaMask trên góc thanh tiện ích trình duyệt để bấm 'Kết nối'!");
+    }
+    throw new Error(err.message || "Không thể kết nối MetaMask. Hãy kiểm tra tiện ích ví và thử lại.");
   }
 };
 

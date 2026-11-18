@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { ShieldCheck, Search, QrCode, Lock, Globe, Award, ArrowRight, CheckCircle2, Sparkles, Layers } from "lucide-react";
+import { QrCode, Lock, Globe, Sparkles } from "lucide-react";
 import { getAllCertificates } from "../services/web3Service";
 import { dashboardApi } from "../services/apiService";
+import CertificateVerifier from "../components/CertificateVerifier";
 
 export default function HomePage() {
   const [certs] = useState(() => getAllCertificates());
@@ -69,18 +69,8 @@ export default function HomePage() {
             không thể tẩy xóa hay chuyển nhượng.
           </p>
 
-          {/* Action CTA Buttons */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", flexWrap: "wrap" }}>
-            <Link to="/verify" className="btn btn-primary" style={{ padding: "14px 28px", fontSize: "16px" }}>
-              <Search size={18} />
-              Tra Cứu Bằng Ngay
-            </Link>
-
-            <Link to="/verify?tab=qr" className="btn btn-outline" style={{ padding: "14px 28px", fontSize: "16px" }}>
-              <QrCode size={18} />
-              Quét Mã QR Xác Thực
-            </Link>
-          </div>
+          {/* Embedded Direct Verification Widget (Nhập Mã Bằng & Quét Mã QR ngay tại Trang Chủ) */}
+          <CertificateVerifier syncUrl={false} />
 
         </div>
       </section>

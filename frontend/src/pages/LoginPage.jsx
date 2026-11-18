@@ -68,41 +68,41 @@ export default function LoginPage({ setUser }) {
       {/* Main Rounded Split-Wave Card */}
       <div className="login-split-card">
 
-        {/* LEFT PANEL: Crisp White Background + Organic S-Wave Edge + Blockchain Illustration */}
+        {/* LEFT PANEL: Seamless Organic White S-Wave over Deep Slate Card */}
         <div
           className="login-illustration-panel"
           style={{
             position: "relative",
-            background: "#ffffff",
+            background: "transparent",
             padding: "32px 36px 26px",
             display: "flex",
             flexDirection: "column",
-            justifyContent: "space-between",
-            zIndex: 2
+            justifyContent: "space-between"
           }}
         >
-          {/* Organic S-Wave SVG Divider overlapping right edge into dark panel */}
+          {/* Full-panel White Organic Wave Shape (zero subpixel seam at any DPI/zoom) */}
           <svg
-            viewBox="0 0 110 600"
+            viewBox="0 0 540 600"
             preserveAspectRatio="none"
+            aria-hidden="true"
             style={{
               position: "absolute",
-              top: 0,
-              right: "-1px",
+              inset: 0,
+              width: "100%",
               height: "100%",
-              width: "108px",
+              display: "block",
               pointerEvents: "none",
-              zIndex: 3
+              zIndex: 0
             }}
           >
             <path
-              d="M15,0 C-12,115 95,215 98,350 C100,455 58,535 12,600 L110,600 L110,0 Z"
-              fill="#14364d"
+              d="M-5,-5 L445,-5 C418,115 525,215 528,350 C530,455 488,535 442,605 L-5,605 Z"
+              fill="#ffffff"
             />
           </svg>
 
           {/* Top-Left Brand Crest */}
-          <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: "11px", textDecoration: "none", position: "relative", zIndex: 4, width: "fit-content" }}>
+          <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: "11px", textDecoration: "none", position: "relative", zIndex: 2, width: "fit-content" }}>
             <div style={{
               width: "40px",
               height: "40px",
@@ -126,7 +126,7 @@ export default function LoginPage({ setUser }) {
           </Link>
 
           {/* Center Bespoke Certificate + English + Blockchain Illustration */}
-          <div style={{ position: "relative", zIndex: 4, paddingRight: "48px", margin: "4px 0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ position: "relative", paddingRight: "48px", margin: "4px 0", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <img
               src={loginIllustration}
               alt="Minh họa hệ thống chứng chỉ tiếng Anh xác thực Blockchain"
@@ -144,7 +144,7 @@ export default function LoginPage({ setUser }) {
           </div>
 
           {/* Bottom-Left Subtle Institutional Attribution */}
-          <div style={{ position: "relative", zIndex: 4, fontSize: "10.5px", color: "#94a3b8", lineHeight: 1.5 }}>
+          <div style={{ position: "relative", zIndex: 2, fontSize: "10.5px", color: "#94a3b8", lineHeight: 1.5 }}>
             <div>© 2026 CertChain English Testing Center</div>
             <div style={{ fontWeight: 600, color: "#64748b" }}>Powered by Blockchain Verification</div>
           </div>
@@ -154,10 +154,9 @@ export default function LoginPage({ setUser }) {
         <div style={{
           position: "relative",
           background: "#14364d",
-          padding: "32px 44px 26px 36px",
+          padding: "32px 44px 36px 36px",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between",
           zIndex: 2
         }}>
           {/* Top-right Back to Home link + Mobile-only Logo */}
@@ -202,7 +201,7 @@ export default function LoginPage({ setUser }) {
           </div>
 
           {/* Centered Form Block */}
-          <div style={{ width: "100%", maxWidth: "320px", margin: "24px auto" }}>
+          <div style={{ width: "100%", maxWidth: "320px", margin: "auto", padding: "24px 0" }}>
             <h2 style={{ fontSize: "30px", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.5px", marginBottom: "6px" }}>
               Đăng Nhập
             </h2>
@@ -337,12 +336,6 @@ export default function LoginPage({ setUser }) {
                 </Link>
               </div>
             </form>
-          </div>
-
-          {/* Bottom-Right Subtle Support Text (matching reference corner footer) */}
-          <div style={{ textAlign: "right", fontSize: "10.5px", color: "rgba(186, 214, 230, 0.52)", lineHeight: 1.5 }}>
-            <div>Gặp sự cố đăng nhập?</div>
-            <div style={{ color: "#67d2e6" }}>Liên hệ Quản trị viên Trung tâm</div>
           </div>
         </div>
 

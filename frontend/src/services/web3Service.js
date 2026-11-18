@@ -5,7 +5,31 @@ import { certificateApi } from "./apiService";
 
 const STORAGE_KEY_CERTS = "certchain_certificates";
 
-export const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || contractJson.address || "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+export const LOCALHOST_CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+export const SEPOLIA_CONTRACT_ADDRESS = "0x3E7873866c44bD4212d092747D1D2E16b575b651";
+
+// Kiểm tra chainId có thuộc mạng được hỗ trợ (Hardhat Localhost hoặc Sepolia Testnet)
+export const isSupportedChain = (chainId) => {
+  const id = Number(chainId);
+  return id === 31337 || id === 1337 || id === 11155111;
+};
+
+// Lấy địa chỉ Smart Contract phù hợp theo Chain ID thực tế của ví
+export const getTargetContractAddress = (chainId) => {
+  if (import.meta.env.VITE_CONTRACT_ADDRESS) {
+    return import.meta.env.VITE_CONTRACT_ADDRESS;
+  }
+  const id = Number(chainId);
+  if (id === 31337 || id === 1337) {
+    return LOCALHOST_CONTRACT_ADDRESS;
+  }
+  if (id === 11155111) {
+    return SEPOLIA_CONTRACT_ADDRESS;
+  }
+  return contractJson.address || LOCALHOST_CONTRACT_ADDRESS;
+};
+
+export const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || contractJson.address || LOCALHOST_CONTRACT_ADDRESS;
 export const CONTRACT_ABI = contractJson.abi;
 
 // Khởi tạo LocalStorage nếu chưa có
@@ -21,9 +45,12 @@ export const isMetaMaskInstalled = () => {
 };
 
 // Tự động chuyển MetaMask sang mạng phù hợp (Sepolia hoặc Hardhat)
-export const switchToAppropriateNetwork = async () => {
+export const switchNetwork = async (networkTarget = "auto") => {
   if (typeof window === "undefined" || !window.ethereum) return false;
-  const isSepolia = contractJson.network === "sepolia" || contractJson.chainId === 11155111;
+  let isSepolia = networkTarget === "sepolia";
+  if (networkTarget === "auto") {
+    isSepolia = contractJson.network === "sepolia" || contractJson.chainId === 11155111;
+  }
   const targetChainIdHex = isSepolia ? "0xaa36a7" : "0x7a69";
 
   try {
@@ -60,7 +87,9 @@ export const switchToAppropriateNetwork = async () => {
     return false;
   }
 };
-export const switchToHardhatNetwork = switchToAppropriateNetwork;
+export const switchToAppropriateNetwork = () => switchNetwork("auto");
+export const switchToHardhatNetwork = () => switchNetwork("hardhat");
+export const switchToSepoliaNetwork = () => switchNetwork("sepolia");
 
 // 2. Kết nối ví MetaMask (Tự động kết nối ví thật nếu có, hoặc kích hoạt Ví Quản Trị Demo nếu chưa cài tiện ích)
 export const connectMetaMask = async () => {
@@ -77,15 +106,17 @@ export const connectMetaMask = async () => {
   }
 
   try {
-    // Kiểm tra và yêu cầu chuyển sang đúng mạng của Smart Contract (Sepolia hoặc Hardhat)
-    const targetChainId = Number(contractJson.chainId) || 11155111;
     let provider = new ethers.BrowserProvider(window.ethereum);
     let network = await provider.getNetwork();
-    if (Number(network.chainId) !== targetChainId) {
+    let currentChainId = Number(network.chainId);
+
+    // Chỉ yêu cầu chuyển mạng nếu ví đang kết nối mạng không được hỗ trợ
+    if (!isSupportedChain(currentChainId)) {
       const switched = await switchToAppropriateNetwork();
       if (switched) {
         provider = new ethers.BrowserProvider(window.ethereum);
         network = await provider.getNetwork();
+        currentChainId = Number(network.chainId);
       }
     }
 
@@ -101,7 +132,7 @@ export const connectMetaMask = async () => {
       provider,
       signer,
       address,
-      chainId: Number(network.chainId),
+      chainId: currentChainId,
       balance,
       isDemo: false
     };
@@ -132,11 +163,12 @@ export const getReadOnlyProvider = () => {
   return new ethers.JsonRpcProvider(import.meta.env.VITE_RPC_URL || contractJson.rpcUrl || defaultRpc);
 };
 
-export const getCertificateContract = (signerOrProvider) => {
+export const getCertificateContract = (signerOrProvider, customAddress) => {
+  const address = customAddress || CONTRACT_ADDRESS;
   if (!signerOrProvider) {
-    return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, getReadOnlyProvider());
+    return new ethers.Contract(address, CONTRACT_ABI, getReadOnlyProvider());
   }
-  return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signerOrProvider);
+  return new ethers.Contract(address, CONTRACT_ABI, signerOrProvider);
 };
 
 // 4. Rút gọn địa chỉ ví (VD: 0x1234...5678)
@@ -194,8 +226,42 @@ export const getCertificateByCode = async (code) => {
 
   // B2: Tra cứu on-chain qua Smart Contract (hoạt động cho mọi thiết bị kể cả không có MetaMask)
   try {
-    const contract = getCertificateContract();
-    const onchainResult = await contract.verifyByCertificateCode(cleanCode);
+    let checkContract = null;
+    let currentChainId = null;
+
+    if (typeof window !== "undefined" && window.ethereum) {
+      try {
+        const bp = new ethers.BrowserProvider(window.ethereum);
+        const net = await bp.getNetwork();
+        currentChainId = Number(net.chainId);
+        const addr = getTargetContractAddress(currentChainId);
+        checkContract = new ethers.Contract(addr, CONTRACT_ABI, bp);
+      } catch {}
+    }
+
+    if (!checkContract) {
+      checkContract = getCertificateContract();
+    }
+
+    let onchainResult = null;
+    try {
+      onchainResult = await checkContract.verifyByCertificateCode(cleanCode);
+    } catch {}
+
+    // Fallback sang Hardhat Localhost nếu đang tra cứu trên Sepolia mà không có hoặc ngược lại
+    if (!onchainResult || !(onchainResult.exists || onchainResult[0])) {
+      try {
+        const fallbackAddress = (checkContract?.target === LOCALHOST_CONTRACT_ADDRESS) ? SEPOLIA_CONTRACT_ADDRESS : LOCALHOST_CONTRACT_ADDRESS;
+        const fallbackRpc = (fallbackAddress === LOCALHOST_CONTRACT_ADDRESS) ? "http://127.0.0.1:8545" : "https://ethereum-sepolia-rpc.publicnode.com";
+        const fallbackProvider = new ethers.JsonRpcProvider(fallbackRpc);
+        const fallbackContract = new ethers.Contract(fallbackAddress, CONTRACT_ABI, fallbackProvider);
+        const fallbackRes = await fallbackContract.verifyByCertificateCode(cleanCode);
+        if (fallbackRes && (fallbackRes.exists || fallbackRes[0])) {
+          onchainResult = fallbackRes;
+        }
+      } catch {}
+    }
+
     const exists = onchainResult?.exists ?? onchainResult?.[0];
     if (exists) {
       const tokenIdVal = (onchainResult.tokenId ?? onchainResult[1]).toString();
@@ -301,21 +367,37 @@ export const issueCertificateOnChain = async (certData, walletSigner) => {
   // B3: Thực thi giao dịch Smart Contract (SBT) qua ví MetaMask nếu KHÔNG PHẢI BẢN NHÁP
   if (!isDraft && walletSigner?.signer) {
     try {
-      // Đảm bảo đang đứng ở đúng mạng của Smart Contract (Sepolia hoặc Hardhat) trước khi gửi tx
+      let activeSigner = walletSigner.signer;
+      let activeChainId = Number(walletSigner.chainId) || 31337;
+
+      // Đọc thông tin mạng và signer realtime từ MetaMask
       if (typeof window !== "undefined" && window.ethereum) {
         try {
           const checkProvider = new ethers.BrowserProvider(window.ethereum);
           const currentNet = await checkProvider.getNetwork();
-          const targetChainId = Number(contractJson.chainId) || 11155111;
-          if (Number(currentNet.chainId) !== targetChainId) {
-            await switchToAppropriateNetwork();
+          activeChainId = Number(currentNet.chainId);
+          activeSigner = await checkProvider.getSigner();
+
+          // Chỉ chuyển mạng nếu chain hiện tại không thuộc danh sách hỗ trợ
+          if (!isSupportedChain(activeChainId)) {
+            const switched = await switchToAppropriateNetwork();
+            if (switched) {
+              const refreshedProvider = new ethers.BrowserProvider(window.ethereum);
+              const refreshedNet = await refreshedProvider.getNetwork();
+              activeChainId = Number(refreshedNet.chainId);
+              activeSigner = await refreshedProvider.getSigner();
+            }
           }
         } catch (netErr) {
-          console.warn("Chuyển mạng trước khi gửi tx:", netErr);
+          console.warn("Kiểm tra mạng trước khi gửi tx:", netErr);
         }
       }
 
-      const contract = getCertificateContract(walletSigner.signer);
+      // Xác định địa chỉ contract chính xác theo mạng thực tế ví đang kết nối
+      const targetAddress = getTargetContractAddress(activeChainId);
+      console.log(`📡 Đang gửi giao dịch issueCertificate lên Smart Contract [${targetAddress}] (Chain ID: ${activeChainId})...`);
+      const contract = new ethers.Contract(targetAddress, CONTRACT_ABI, activeSigner);
+
       const expiryTimestamp = certData.expiry_date
         ? Math.floor(new Date(certData.expiry_date).getTime() / 1000)
         : 0;
@@ -374,6 +456,12 @@ export const issueCertificateOnChain = async (certData, walletSigner) => {
       }
       if (contractErr.message && contractErr.message.includes("CertificateCodeAlreadyExists")) {
         throw new Error(`Mã chứng chỉ ${certData.certificate_code} đã tồn tại trên Smart Contract! Vui lòng bấm tạo mã mới.`);
+      }
+      if (contractErr.message && contractErr.message.includes("CertificateHashAlreadyExists")) {
+        throw new Error(`Dữ liệu chứng chỉ này đã được cấp bằng trước đó (trùng mã băm mật mã)!`);
+      }
+      if (contractErr.message && contractErr.message.includes("AccessControlUnauthorizedAccount")) {
+        throw new Error(`Ví MetaMask đang kết nối (${shortenAddress(walletSigner?.address)}) không có quyền ISSUER_ROLE để cấp chứng chỉ!`);
       }
       throw new Error(`Lỗi Smart Contract: ${contractErr.reason || contractErr.shortMessage || contractErr.message}`);
     }
@@ -438,7 +526,22 @@ export const revokeCertificateOnChain = async (certCode, reason, certId, tokenId
   // B1: Thu hồi trên Smart Contract nếu có ví Admin
   if (walletSigner?.signer) {
     try {
-      const contract = getCertificateContract(walletSigner.signer);
+      let activeSigner = walletSigner.signer;
+      let activeChainId = Number(walletSigner.chainId) || 31337;
+
+      if (typeof window !== "undefined" && window.ethereum) {
+        try {
+          const checkProvider = new ethers.BrowserProvider(window.ethereum);
+          const currentNet = await checkProvider.getNetwork();
+          activeChainId = Number(currentNet.chainId);
+          activeSigner = await checkProvider.getSigner();
+        } catch (netErr) {
+          console.warn("Kiểm tra mạng trước khi thu hồi:", netErr);
+        }
+      }
+
+      const targetAddress = getTargetContractAddress(activeChainId);
+      const contract = new ethers.Contract(targetAddress, CONTRACT_ABI, activeSigner);
       let targetTokenId = tokenId;
       // Tra cứu Token ID thực tế từ Smart Contract nếu chưa có hoặc không hợp lệ
       if (!targetTokenId || isNaN(Number(targetTokenId))) {
@@ -448,7 +551,7 @@ export const revokeCertificateOnChain = async (certCode, reason, certId, tokenId
         }
       }
       if (targetTokenId) {
-        console.log(`🚀 Đang gửi giao dịch revokeCertificate cho Token #${targetTokenId}...`);
+        console.log(`🚀 Đang gửi giao dịch revokeCertificate cho Token #${targetTokenId} tại ${targetAddress}...`);
         const tx = await contract.revokeCertificate(targetTokenId, reason);
         await tx.wait();
         console.log("✅ Thu hồi on-chain thành công trên Smart Contract!");

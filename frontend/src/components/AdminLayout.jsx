@@ -17,6 +17,7 @@ import ThemeToggle from "./ThemeToggle";
 import { shortenAddress, connectMetaMask } from "../services/web3Service";
 import { authApi } from "../services/apiService";
 import { toast } from "./ToastContainer";
+import koheniLogo from "../assets/koheni-logo.png";
 import koheniLogoWhite from "../assets/koheni-logo-white.png";
 
 export default function AdminLayout({ children, wallet, setWallet, user, setUser }) {
@@ -97,34 +98,27 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
           />
         )}
 
-        {/* Deep Midnight Sidebar (Transparent Brand + Clean Vertical Nav) */}
+        {/* Airy Porcelain-White Sidebar (Auto-adapts to Obsidian Slate in Dark Mode) */}
         <aside className={`finnova-sidebar ${sidebarOpen ? "is-open" : ""}`}>
           {/* Top Brand Band (height: 68px — pixel-aligned with right topbar border) */}
-          <div
-            style={{
-              height: "68px",
-              padding: "0 18px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "8px",
-              borderBottom: "1px solid rgba(255, 255, 255, 0.07)",
-              flexShrink: 0
-            }}
-          >
+          <div className="finnova-sidebar-header">
             <Link
               to="/admin/dashboard"
               onClick={() => setSidebarOpen(false)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                textDecoration: "none"
-              }}
+              className="koheni-logo-wrap"
+              style={{ textDecoration: "none" }}
             >
+              <img
+                src={koheniLogo}
+                alt="Koheni — English Certificate & Management"
+                className="koheni-logo-on-light"
+                style={{ height: "38px", width: "auto", display: "block" }}
+              />
               <img
                 src={koheniLogoWhite}
                 alt="Koheni — English Certificate & Management"
-                style={{ height: "38px", width: "auto", display: "block" }}
+                className="koheni-logo-on-dark"
+                style={{ height: "38px", width: "auto" }}
               />
             </Link>
 
@@ -137,9 +131,9 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
                 width: "32px",
                 height: "32px",
                 borderRadius: "9px",
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(255,255,255,0.06)",
-                color: "#cbd5e1",
+                border: "1px solid var(--border-subtle)",
+                background: "var(--bg-surface)",
+                color: "var(--text-secondary)",
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
@@ -152,14 +146,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
 
           {/* Navigation Body */}
           <div style={{ padding: "20px 14px", display: "flex", flexDirection: "column", flex: 1, overflowY: "auto" }}>
-            <div style={{
-              fontSize: "10.5px",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "1px",
-              color: "rgba(159, 163, 184, 0.6)",
-              padding: "0 12px 10px"
-            }}>
+            <div className="finnova-sidebar-section-label">
               {isAdmin ? "Quản trị hệ thống" : "Phân hệ khảo thí"}
             </div>
 
@@ -186,25 +173,14 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
           </div>
 
           {/* Minimal Subtle System Footer */}
-          <div
-            style={{
-              padding: "14px 18px",
-              borderTop: "1px solid rgba(255, 255, 255, 0.06)",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              fontSize: "11.5px",
-              color: "rgba(159, 163, 184, 0.72)",
-              flexShrink: 0
-            }}
-          >
+          <div className="finnova-sidebar-footer">
             <span
               style={{
                 width: "7px",
                 height: "7px",
                 borderRadius: "50%",
                 background: "#10b981",
-                boxShadow: "0 0 8px rgba(16, 185, 129, 0.65)",
+                boxShadow: "0 0 8px rgba(16, 185, 129, 0.55)",
                 flexShrink: 0
               }}
             />

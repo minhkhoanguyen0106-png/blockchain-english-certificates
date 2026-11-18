@@ -289,21 +289,21 @@ export default function DashboardPage({ user }) {
   const statusMeta = (status) => {
     switch (status) {
       case "ISSUED_ON_CHAIN":
-        return { label: "Hợp lệ", darkBg: "rgba(16, 185, 129, 0.18)", darkColor: "#34d399" };
+        return { label: "Hợp lệ", pillBg: "rgba(16, 185, 129, 0.12)", pillColor: "#047857" };
       case "EXPIRED":
-        return { label: "Hết hạn", darkBg: "rgba(245, 158, 11, 0.18)", darkColor: "#fcd34d" };
+        return { label: "Hết hạn", pillBg: "rgba(245, 158, 11, 0.14)", pillColor: "#b45309" };
       case "PENDING":
-        return { label: "Chờ duyệt", darkBg: "rgba(245, 158, 11, 0.18)", darkColor: "#fbbf24" };
+        return { label: "Chờ duyệt", pillBg: "rgba(245, 158, 11, 0.14)", pillColor: "#b45309" };
       case "READY_TO_MINT":
-        return { label: "Sẵn sàng cấp", darkBg: "rgba(56, 189, 248, 0.2)", darkColor: "#38bdf8" };
+        return { label: "Sẵn sàng cấp", pillBg: "rgba(2, 132, 199, 0.12)", pillColor: "#0369a1" };
       case "PENDING_RECONCILE":
-        return { label: "Chờ đối soát", darkBg: "rgba(249, 115, 22, 0.22)", darkColor: "#fb923c" };
+        return { label: "Chờ đối soát", pillBg: "rgba(234, 88, 12, 0.14)", pillColor: "#c2410c" };
       case "REVOKED":
-        return { label: "Đã thu hồi", darkBg: "rgba(239, 68, 68, 0.2)", darkColor: "#f87171" };
+        return { label: "Đã thu hồi", pillBg: "rgba(239, 68, 68, 0.12)", pillColor: "#b91c1c" };
       case "REJECTED":
-        return { label: "Từ chối", darkBg: "rgba(239, 68, 68, 0.18)", darkColor: "#fca5a5" };
+        return { label: "Từ chối", pillBg: "rgba(239, 68, 68, 0.12)", pillColor: "#b91c1c" };
       default:
-        return { label: status || "Mới", darkBg: "rgba(255, 255, 255, 0.12)", darkColor: "#cbd5e1" };
+        return { label: status || "Mới", pillBg: "rgba(15, 39, 60, 0.08)", pillColor: "#475569" };
     }
   };
 
@@ -484,9 +484,9 @@ export default function DashboardPage({ user }) {
                   minHeight: bar.count > 0 ? "10px" : "4px",
                   borderRadius: "9999px",
                   background: bar.isPeak
-                    ? "linear-gradient(180deg, #0284c7 0%, #38bdf8 100%)"
+                    ? "linear-gradient(180deg, #0f2940 0%, #24577d 100%)"
                     : bar.count > 0
-                    ? "#7dd3fc"
+                    ? "#93c5e6"
                     : "var(--border-subtle)"
                 }} />
                 <span style={{ fontSize: "9.5px", color: "var(--text-muted)", fontWeight: 600 }}>{bar.label}</span>
@@ -567,7 +567,7 @@ export default function DashboardPage({ user }) {
             </span>
           </div>
 
-          {/* Top 3 Exam Channels — #1 Largest Highlighted in Koheni Ocean Sky-Teal */}
+          {/* Top 3 Exam Channels — #1 Largest Highlighted in Executive Deep Sapphire */}
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${topExamChannels.length}, minmax(0, 1fr))`, gap: "8px" }}>
             {topExamChannels.map((ch, idx) => {
               const isTop = idx === 0 && ch.count > 0;
@@ -579,9 +579,9 @@ export default function DashboardPage({ user }) {
                       ? {
                           padding: "9px 10px",
                           borderRadius: "13px",
-                          background: "linear-gradient(135deg, #0284c7 0%, #0ea5e9 55%, #38a8c7 100%)",
+                          background: "linear-gradient(135deg, #0f2940 0%, #1c4769 100%)",
                           color: "#ffffff",
-                          boxShadow: "0 8px 18px -6px rgba(2, 132, 199, 0.45)"
+                          boxShadow: "0 8px 18px -8px rgba(15, 41, 64, 0.5)"
                         }
                       : {
                           padding: "9px 10px",
@@ -628,9 +628,9 @@ export default function DashboardPage({ user }) {
           </div>
         </div>
 
-        {/* Dark Panel Title Row */}
+        {/* Panel Title Row */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
-          <h2 style={{ fontSize: "17px", fontWeight: 700, color: "#ffffff" }}>
+          <h2 style={{ fontSize: "17px", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.3px" }}>
             {activeTab === "PENDING"
               ? "Hồ Sơ Đang Chờ Phê Duyệt"
               : activeTab === "ISSUED_ON_CHAIN"
@@ -650,8 +650,9 @@ export default function DashboardPage({ user }) {
               gap: "6px",
               padding: "7px 14px",
               borderRadius: "9999px",
-              background: "rgba(255, 255, 255, 0.08)",
-              color: "#e2e8f0",
+              background: "var(--bg-page)",
+              border: "1px solid var(--border-subtle)",
+              color: "var(--text-secondary)",
               fontSize: "12.5px",
               fontWeight: 600,
               textDecoration: "none"
@@ -663,16 +664,16 @@ export default function DashboardPage({ user }) {
 
         {/* 2-Column Master-Detail Split */}
         {loading ? (
-          <div style={{ padding: "48px 20px", textAlign: "center", color: "#9fa3b8", fontSize: "14px" }}>
+          <div style={{ padding: "48px 20px", textAlign: "center", color: "var(--text-muted)", fontSize: "14px" }}>
             Đang tải dữ liệu hồ sơ chứng chỉ...
           </div>
         ) : filteredMasterList.length === 0 ? (
-          <div style={{ padding: "48px 20px", textAlign: "center", color: "#9fa3b8", fontSize: "14px" }}>
+          <div style={{ padding: "48px 20px", textAlign: "center", color: "var(--text-muted)", fontSize: "14px" }}>
             Không có hồ sơ nào trong trạng thái này.
           </div>
         ) : (
           <div className="finnova-master-detail">
-            {/* Left Master List (Stacked Rounded Pill Rows) */}
+            {/* Left Master List (Clean Airy Porcelain Rows) */}
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {filteredMasterList.map((c) => {
                 const isSelected = activeCert?.id === c.id;
@@ -689,8 +690,8 @@ export default function DashboardPage({ user }) {
                         width: "36px",
                         height: "36px",
                         borderRadius: "50%",
-                        background: isSelected ? "rgba(255, 255, 255, 0.22)" : "rgba(56, 189, 248, 0.2)",
-                        color: "#ffffff",
+                        background: isSelected ? "#0f2940" : "rgba(2, 132, 199, 0.1)",
+                        color: isSelected ? "#ffffff" : "#0369a1",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -701,10 +702,10 @@ export default function DashboardPage({ user }) {
                         {(c.student_name || "K").charAt(0).toUpperCase()}
                       </div>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: "13.5px", fontWeight: 700, color: "#ffffff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        <div style={{ fontSize: "13.5px", fontWeight: 700, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {c.certificate_code}
                         </div>
-                        <div style={{ fontSize: "11.5px", color: isSelected ? "rgba(255,255,255,0.8)" : "#9fa3b8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        <div style={{ fontSize: "11.5px", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {c.student_name} • {formatDateVN(c.issue_date)}
                         </div>
                       </div>
@@ -716,12 +717,12 @@ export default function DashboardPage({ user }) {
                         borderRadius: "9999px",
                         fontSize: "11px",
                         fontWeight: 700,
-                        background: isSelected ? "#ffffff" : sm.darkBg,
-                        color: isSelected ? "#0e2a3f" : sm.darkColor
+                        background: sm.pillBg,
+                        color: sm.pillColor
                       }}>
                         {sm.label}
                       </span>
-                      <span style={{ fontSize: "13px", fontWeight: 800, color: "#ffffff", minWidth: "56px", textAlign: "right" }}>
+                      <span style={{ fontSize: "13px", fontWeight: 800, color: "var(--text-primary)", minWidth: "56px", textAlign: "right" }}>
                         {c.score}
                       </span>
                     </div>

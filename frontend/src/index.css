@@ -1337,25 +1337,30 @@ html {
 }
 
 /* ==========================================================================
-   Koheni Ocean-Navy & Sky-Teal Logged-In Admin Workspace
-   (Harmonized with LoginPage #14364d/#38a8c7 & Public Verify #0284c7/#f4f8fb)
+   Koheni Luxury Pearl & Ocean-Sapphire Admin Workspace
+   (Airy Porcelain Canvas + Crisp White Sidebar + Single Deep-Sapphire Jewel Card)
    ========================================================================== */
 .admin-shell-outer {
   min-height: 100vh;
   width: 100%;
   padding: 0;
-  background: #f4f8fb;
+  background:
+    radial-gradient(circle at 86% 0%, rgba(186, 230, 253, 0.34) 0%, transparent 42%),
+    radial-gradient(circle at 22% 100%, rgba(224, 242, 254, 0.36) 0%, transparent 45%),
+    #f7f9fc;
 }
 
 [data-theme="dark"] .admin-shell-outer {
-  background: #09131d;
+  background:
+    radial-gradient(circle at 85% 0%, rgba(14, 165, 233, 0.1) 0%, transparent 45%),
+    #0a121c;
 }
 
 .admin-shell-frame {
   width: 100%;
   min-height: 100vh;
   margin: 0;
-  background: #f4f8fb;
+  background: transparent;
   border-radius: 0;
   border: none;
   box-shadow: none;
@@ -1365,17 +1370,18 @@ html {
 }
 
 [data-theme="dark"] .admin-shell-frame {
-  background: #09131d;
+  background: transparent;
   border-color: transparent;
   box-shadow: none;
 }
 
-/* Koheni Deep Ocean-Slate Sidebar (echoes LoginPage #102e44 -> #0b2030) */
+/* Airy Porcelain-White Luxury Sidebar (Dark Mode: Obsidian Slate) */
 .finnova-sidebar {
-  width: 244px;
+  width: 248px;
   flex-shrink: 0;
-  background: linear-gradient(180deg, #102d42 0%, #0c2233 100%);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(18px);
+  color: #0f273c;
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -1383,8 +1389,54 @@ html {
   top: 0;
   height: 100vh;
   z-index: 95;
-  border-right: 1px solid rgba(148, 197, 224, 0.09);
-  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  border-right: 1px solid rgba(15, 39, 60, 0.08);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), background 0.25s ease;
+}
+
+[data-theme="dark"] .finnova-sidebar {
+  background: rgba(13, 23, 36, 0.95);
+  color: #f1f5f9;
+  border-right-color: rgba(148, 197, 224, 0.1);
+}
+
+.finnova-sidebar-header {
+  height: 68px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid rgba(15, 39, 60, 0.07);
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .finnova-sidebar-header {
+  border-bottom-color: rgba(148, 197, 224, 0.09);
+}
+
+.finnova-sidebar-section-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #8a9bb0;
+  padding: 0 12px 10px;
+}
+
+.finnova-sidebar-footer {
+  padding: 14px 18px;
+  border-top: 1px solid rgba(15, 39, 60, 0.07);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .finnova-sidebar-footer {
+  border-top-color: rgba(148, 197, 224, 0.09);
+  color: #94a3b8;
 }
 
 /* Topbar User Profile + Logout Pill */
@@ -1395,8 +1447,12 @@ html {
   padding: 4px 6px 4px 6px;
   border-radius: 9999px;
   background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-subtle);
-  box-shadow: 0 2px 8px rgba(15, 42, 62, 0.05);
+  border: 1px solid rgba(15, 39, 60, 0.09);
+  box-shadow: 0 2px 10px rgba(15, 39, 60, 0.04);
+}
+
+[data-theme="dark"] .admin-user-pill {
+  border-color: rgba(148, 197, 224, 0.14);
 }
 
 .admin-logout-icon-btn {
@@ -1424,25 +1480,39 @@ html {
   justify-content: space-between;
   gap: 10px;
   padding: 11px 14px;
-  border-radius: 14px;
+  border-radius: 13px;
   font-size: 13.5px;
   font-weight: 500;
-  color: rgba(186, 214, 230, 0.78);
-  transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  color: #52657a;
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
   text-decoration: none;
 }
 
+[data-theme="dark"] .finnova-sidebar-link {
+  color: #94a9be;
+}
+
 .finnova-sidebar-link:hover {
-  color: #ffffff;
-  background: rgba(92, 196, 216, 0.12);
+  color: #0f273c;
+  background: #f1f6fb;
   transform: translateX(2px);
 }
 
+[data-theme="dark"] .finnova-sidebar-link:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .finnova-sidebar-link.is-active {
-  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 55%, #2bb3c9 100%);
+  background: linear-gradient(135deg, #0f2940 0%, #173d5c 100%);
   color: #ffffff;
   font-weight: 600;
-  box-shadow: 0 10px 22px -6px rgba(14, 165, 233, 0.52);
+  box-shadow: 0 10px 22px -8px rgba(15, 41, 64, 0.45);
+}
+
+[data-theme="dark"] .finnova-sidebar-link.is-active {
+  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+  box-shadow: 0 10px 22px -8px rgba(14, 165, 233, 0.45);
 }
 
 .finnova-sidebar-close {
@@ -1456,53 +1526,18 @@ html {
   justify-content: space-between;
   gap: 16px;
   height: 68px;
-  padding: 0 26px;
+  padding: 0 28px;
   position: sticky;
   top: 0;
   z-index: 80;
-  background: rgba(244, 248, 251, 0.9);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid #e2ecf3;
+  background: rgba(247, 249, 252, 0.82);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(15, 39, 60, 0.07);
 }
 
 [data-theme="dark"] .admin-topbar {
-  background: rgba(9, 19, 29, 0.9);
-  border-bottom-color: rgba(148, 197, 224, 0.1);
-}
-
-.admin-floating-pill-nav {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: #102d42;
-  padding: 5px;
-  border-radius: 9999px;
-  box-shadow: 0 10px 26px -10px rgba(12, 34, 51, 0.45);
-}
-
-.admin-pill-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 17px;
-  border-radius: 9999px;
-  font-size: 13px;
-  font-weight: 500;
-  color: rgba(186, 214, 230, 0.78);
-  transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
-  white-space: nowrap;
-}
-
-.admin-pill-link:hover {
-  color: #ffffff;
-  background: rgba(92, 196, 216, 0.12);
-}
-
-.admin-pill-link.is-active {
-  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
-  color: #ffffff;
-  font-weight: 600;
-  box-shadow: 0 6px 16px -4px rgba(14, 165, 233, 0.5);
+  background: rgba(10, 18, 28, 0.84);
+  border-bottom-color: rgba(148, 197, 224, 0.09);
 }
 
 .finnova-icon-circle {
@@ -1510,29 +1545,31 @@ html {
   height: 38px;
   border-radius: 50%;
   background: #ffffff;
-  border: 1px solid #dce8f1;
-  color: #3b556b;
+  border: 1px solid rgba(15, 39, 60, 0.1);
+  color: #425a70;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgba(15, 39, 60, 0.04);
   transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
   flex-shrink: 0;
 }
 
 .finnova-icon-circle:hover {
-  border-color: #0284c7;
-  color: #0284c7;
+  border-color: #0f2940;
+  color: #0f2940;
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px -4px rgba(2, 132, 199, 0.22);
+  box-shadow: 0 6px 14px -4px rgba(15, 41, 64, 0.16);
 }
 
 [data-theme="dark"] .finnova-icon-circle {
-  background: #102334;
-  border-color: rgba(148, 197, 224, 0.14);
+  background: #122132;
+  border-color: rgba(148, 197, 224, 0.15);
   color: #cbd5e1;
 }
 
+/* Executive Deep-Ink Primary CTA Pill (Refined & Timeless) */
 .finnova-cta-pill {
   display: inline-flex;
   align-items: center;
@@ -1540,18 +1577,19 @@ html {
   padding: 10px 20px;
   border-radius: 9999px;
   border: none;
-  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 55%, #38a8c7 100%);
+  background: linear-gradient(135deg, #0f2940 0%, #1b4363 100%);
   color: #ffffff;
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 10px 22px -6px rgba(2, 132, 199, 0.45);
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+  box-shadow: 0 10px 24px -8px rgba(15, 41, 64, 0.45);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .finnova-cta-pill:hover {
   transform: translateY(-1.5px);
-  box-shadow: 0 14px 28px -6px rgba(2, 132, 199, 0.58);
+  background: linear-gradient(135deg, #133552 0%, #0284c7 100%);
+  box-shadow: 0 14px 28px -8px rgba(2, 132, 199, 0.42);
 }
 
 /* 4-Column Bento KPI Strip */
@@ -1559,15 +1597,16 @@ html {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1.38fr;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 22px;
 }
 
 .finnova-kpi-card {
-  background: #ffffff;
-  border: 1px solid #e2ecf3;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(15, 39, 60, 0.075);
   border-radius: 22px;
-  padding: 18px 20px;
-  box-shadow: 0 4px 20px rgba(15, 42, 62, 0.04);
+  padding: 19px 20px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 12px 30px -14px rgba(15, 39, 60, 0.08);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1576,48 +1615,56 @@ html {
 
 .finnova-kpi-card:hover {
   transform: translateY(-3px);
-  border-color: #bae0f5;
-  box-shadow: 0 14px 30px -12px rgba(2, 132, 199, 0.14);
+  border-color: rgba(2, 132, 199, 0.24);
+  box-shadow: 0 16px 34px -14px rgba(15, 39, 60, 0.14);
 }
 
 [data-theme="dark"] .finnova-kpi-card {
-  background: #0f2030;
+  background: rgba(15, 28, 43, 0.92);
   border-color: rgba(148, 197, 224, 0.12);
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
 }
 
-/* Deep Ocean-Slate Bottom Master-Detail Stage (echoes LoginPage #14364d -> #0b2030) */
+/* Light Frosted Master-Detail Workbench (Airy Container + Single Deep Sapphire Jewel Card!) */
 .finnova-dark-stage {
   position: relative;
-  background: linear-gradient(160deg, #102e44 0%, #0b2030 100%);
-  border-radius: 28px;
-  padding: 20px 22px 24px;
-  color: #ffffff;
-  border: 1px solid rgba(125, 211, 252, 0.1);
-  box-shadow: 0 24px 50px -18px rgba(9, 29, 45, 0.5);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  border-radius: 26px;
+  padding: 20px 24px 24px;
+  color: var(--text-primary);
+  border: 1px solid rgba(15, 39, 60, 0.08);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 20px 46px -22px rgba(15, 39, 60, 0.12);
 }
 
-/* Top-Center Inverted-Notch Cutout Tab Bar */
+[data-theme="dark"] .finnova-dark-stage {
+  background: rgba(15, 28, 43, 0.92);
+  border-color: rgba(148, 197, 224, 0.12);
+  box-shadow: 0 20px 48px -18px rgba(0, 0, 0, 0.55);
+}
+
+/* Sleek Segmented Pill Tab Bar */
 .finnova-notch-wrap {
   display: flex;
   justify-content: center;
-  margin-top: -20px;
-  margin-bottom: 18px;
+  margin-top: -2px;
+  margin-bottom: 20px;
 }
 
 .finnova-notch-bar {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: #f4f8fb;
-  padding: 8px 14px 10px;
-  border-bottom-left-radius: 22px;
-  border-bottom-right-radius: 22px;
+  gap: 4px;
+  background: #f1f5f9;
+  padding: 5px;
+  border-radius: 9999px;
+  border: 1px solid rgba(15, 39, 60, 0.06);
 }
 
 [data-theme="dark"] .finnova-notch-bar {
-  background: #09131d;
+  background: #0b1623;
+  border-color: rgba(148, 197, 224, 0.1);
 }
 
 .finnova-notch-tab {
@@ -1628,7 +1675,7 @@ html {
   border-radius: 9999px;
   border: none;
   background: transparent;
-  color: #466075;
+  color: #52657a;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1640,23 +1687,30 @@ html {
 }
 
 .finnova-notch-tab:hover {
-  color: #0e2638;
-  background: rgba(2, 132, 199, 0.08);
+  color: #0f273c;
+  background: rgba(255, 255, 255, 0.65);
 }
 
 [data-theme="dark"] .finnova-notch-tab:hover {
   color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .finnova-notch-tab.is-active {
-  background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+  background: #ffffff;
+  color: #0f2940;
+  box-shadow: 0 3px 10px -2px rgba(15, 39, 60, 0.14);
+}
+
+[data-theme="dark"] .finnova-notch-tab.is-active {
+  background: #17344f;
   color: #ffffff;
-  box-shadow: 0 6px 16px -4px rgba(2, 132, 199, 0.48);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
 .finnova-notch-count {
-  min-width: 21px;
-  height: 21px;
+  min-width: 20px;
+  height: 20px;
   padding: 0 6px;
   border-radius: 9999px;
   font-size: 11px;
@@ -1664,72 +1718,100 @@ html {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #e1edf5;
-  color: #1e3a52;
+  background: rgba(15, 39, 60, 0.08);
+  color: #475b70;
+}
+
+[data-theme="dark"] .finnova-notch-count {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
 }
 
 .finnova-notch-tab.is-active .finnova-notch-count {
-  background: #ffffff;
-  color: #0284c7;
+  background: #e0f2fe;
+  color: #0369a1;
 }
 
-/* Master-Detail 2-Column Split inside Dark Stage */
+[data-theme="dark"] .finnova-notch-tab.is-active .finnova-notch-count {
+  background: rgba(56, 189, 248, 0.2);
+  color: #7dd3fc;
+}
+
+/* Master-Detail 2-Column Split */
 .finnova-master-detail {
   display: grid;
-  grid-template-columns: minmax(290px, 38%) 1fr;
+  grid-template-columns: minmax(300px, 38%) 1fr;
   gap: 20px;
   align-items: stretch;
 }
 
+/* Clean Porcelain Master List Rows (Gentle & Crisp) */
 .finnova-master-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 13px 16px;
+  padding: 13px 15px;
   border-radius: 16px;
-  background: #15364e;
-  border: 1px solid rgba(148, 197, 224, 0.1);
+  background: #f8fafc;
+  border: 1px solid rgba(15, 39, 60, 0.07);
   cursor: pointer;
   text-align: left;
   width: 100%;
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), background 0.22s ease, box-shadow 0.22s ease;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-theme="dark"] .finnova-master-row {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(148, 197, 224, 0.09);
 }
 
 .finnova-master-row:hover {
-  background: #1b4360;
+  background: #f0f6fb;
+  border-color: rgba(2, 132, 199, 0.22);
   transform: translateX(3px);
 }
 
+[data-theme="dark"] .finnova-master-row:hover {
+  background: rgba(56, 189, 248, 0.08);
+}
+
 .finnova-master-row.is-selected {
-  background: linear-gradient(90deg, #0284c7 0%, #0ea5e9 65%, #38a8c7 100%);
-  border-color: rgba(255, 255, 255, 0.24);
-  box-shadow: 0 12px 26px -8px rgba(14, 165, 233, 0.55);
+  background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
+  border-color: rgba(2, 132, 199, 0.42);
+  box-shadow: 0 10px 24px -12px rgba(2, 132, 199, 0.28), inset 3px 0 0 #0284c7;
   transform: translateX(4px);
 }
 
-/* Right Ocean Teal-Navy Glassmorphic Detail Hero Card */
+[data-theme="dark"] .finnova-master-row.is-selected {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.18) 0%, rgba(15, 41, 64, 0.7) 100%);
+  border-color: rgba(56, 189, 248, 0.48);
+  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.45), inset 3px 0 0 #38bdf8;
+}
+
+/* THE SINGLE LUXURY JEWEL: Deep Ocean-Sapphire Aurora Glassmorphic Hero Card */
 .finnova-detail-hero {
-  background: linear-gradient(135deg, #16546d 0%, #12425e 52%, #0e324c 100%);
+  background:
+    radial-gradient(circle at 92% 8%, rgba(56, 189, 248, 0.28) 0%, transparent 46%),
+    radial-gradient(circle at 8% 96%, rgba(251, 191, 36, 0.14) 0%, transparent 44%),
+    linear-gradient(140deg, #0d2438 0%, #133550 52%, #194863 100%);
   border-radius: 22px;
-  padding: 24px;
-  border: 1px solid rgba(125, 211, 252, 0.22);
+  padding: 26px;
+  border: 1px solid rgba(186, 230, 253, 0.18);
+  color: #ffffff;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 22px 44px -18px rgba(13, 36, 56, 0.55);
 }
 
 .finnova-detail-hero::before {
   content: "";
   position: absolute;
-  top: -70px;
-  right: -60px;
-  width: 240px;
-  height: 240px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(92, 196, 216, 0.28) 0%, transparent 70%);
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 40%);
   pointer-events: none;
 }
 
@@ -1749,61 +1831,39 @@ html {
 }
 
 .finnova-glass-tile {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(186, 230, 253, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 16px;
   padding: 15px 16px;
-  backdrop-filter: blur(8px);
-  transition: background 0.2s ease, transform 0.2s ease;
+  backdrop-filter: blur(10px);
+  transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
 
 .finnova-glass-tile:hover {
-  background: rgba(255, 255, 255, 0.16);
-  transform: translateY(-2px);
-}
-
-.finnova-glass-tile-dashed {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1.5px dashed rgba(186, 230, 253, 0.35);
-  border-radius: 16px;
-  padding: 15px 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.finnova-glass-tile-dashed:hover {
   background: rgba(255, 255, 255, 0.13);
-  border-color: rgba(255, 255, 255, 0.65);
-  color: #ffffff;
+  border-color: rgba(186, 230, 253, 0.3);
+  transform: translateY(-2px);
 }
 
 .finnova-white-cta {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 11px 22px;
+  padding: 10px 20px;
   border-radius: 9999px;
   border: none;
   background: #ffffff;
-  color: #0e2a3f;
-  font-size: 13.5px;
+  color: #0d2438;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 10px 24px -8px rgba(9, 29, 45, 0.45);
+  box-shadow: 0 10px 24px -8px rgba(9, 24, 38, 0.45);
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
 }
 
 .finnova-white-cta:hover {
   transform: translateY(-1.5px);
-  box-shadow: 0 14px 28px -8px rgba(9, 29, 45, 0.55);
+  box-shadow: 0 14px 28px -8px rgba(9, 24, 38, 0.55);
 }
 
 .finnova-mobile-nav-btn {

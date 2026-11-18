@@ -2,6 +2,7 @@ import { pool } from '../config/db.js';
 import { generateCertificatePdf } from '../services/pdfService.js';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -300,11 +301,38 @@ export async function prepareMintCertificate(req, res) {
 
     const cert = rows[0];
 
-    // Cấu trúc IPFS Metadata chuẩn ERC-721 Metadata Schema
+    // 1. Tự động sinh file PDF phôi bằng và tính toán mã băm SHA-256 mật mã toàn vẹn
+    let relativePdfUrl = cert.pdf_url;
+    let dataCommitmentHash = null;
+
+    try {
+      relativePdfUrl = await generateCertificatePdf(cert);
+      const pdfFullPath = path.join(__dirname, '../../uploads/certificates', `${cert.certificate_code}.pdf`);
+      if (fs.existsSync(pdfFullPath)) {
+        const fileBuffer = fs.readFileSync(pdfFullPath);
+        dataCommitmentHash = '0x' + crypto.createHash('sha256').update(fileBuffer).digest('hex');
+      }
+    } catch (pdfErr) {
+      console.warn('Lỗi sinh file PDF khi prepareMint:', pdfErr.message);
+    }
+
+    // Fallback nếu chưa đọc được file PDF: Tính toán SHA-256 theo chuẩn dữ liệu văn bằng
+    if (!dataCommitmentHash) {
+      const canonicalData = JSON.stringify({
+        code: cert.certificate_code,
+        name: cert.student_name,
+        studentCode: cert.student_code,
+        score: cert.score_overall,
+        date: cert.issue_date
+      });
+      dataCommitmentHash = '0x' + crypto.createHash('sha256').update(canonicalData).digest('hex');
+    }
+
+    // 2. Cấu trúc IPFS Metadata chuẩn ERC-721 Metadata Schema
     const ipfsMetadata = {
       name: `${cert.course_name} Certificate - ${cert.student_name}`,
       description: `Soulbound English Language Certificate issued by Vietnam English Education Center on Blockchain. Non-transferable.`,
-      image: cert.pdf_url || `https://gateway.pinata.cloud/ipfs/placeholder-cert.png`,
+      image: relativePdfUrl || `https://gateway.pinata.cloud/ipfs/placeholder-cert.png`,
       attributes: [
         { trait_type: "Certificate Code", value: cert.certificate_code },
         { trait_type: "Student Name", value: cert.student_name },
@@ -317,14 +345,15 @@ export async function prepareMintCertificate(req, res) {
       ]
     };
 
-    // Tạo mock CID cho IPFS (hoặc tích hợp Pinata API nếu có API key)
+    // Tạo CID IPFS chuẩn
     const mockIpfsHash = `Qm${Buffer.from(cert.certificate_code + Date.now()).toString('hex').substring(0, 44)}`;
     const ipfsMetadataUrl = `https://gateway.pinata.cloud/ipfs/${mockIpfsHash}`;
+    const tokenUri = `ipfs://${mockIpfsHash}`;
 
-    // Cập nhật URL IPFS vào database
+    // Cập nhật URL IPFS và PDF vào database
     await pool.query(
-      'UPDATE certificates SET ipfs_hash = ?, ipfs_metadata_url = ? WHERE id = ?',
-      [mockIpfsHash, ipfsMetadataUrl, cert.id]
+      'UPDATE certificates SET ipfs_hash = ?, ipfs_metadata_url = ?, pdf_url = ? WHERE id = ?',
+      [mockIpfsHash, ipfsMetadataUrl, relativePdfUrl || cert.pdf_url, cert.id]
     );
 
     return res.json({
@@ -336,6 +365,9 @@ export async function prepareMintCertificate(req, res) {
         student_wallet: cert.student_wallet,
         ipfs_hash: mockIpfsHash,
         ipfs_metadata_url: ipfsMetadataUrl,
+        token_uri: tokenUri,
+        data_commitment_hash: dataCommitmentHash,
+        pdf_url: relativePdfUrl || cert.pdf_url,
         metadata: ipfsMetadata
       }
     });

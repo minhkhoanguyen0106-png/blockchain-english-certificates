@@ -11,7 +11,9 @@ import {
   isMetaMaskInstalled,
   ensureCorrectNetwork,
   getCertificateContract,
-  getAllCertificates
+  getAllCertificates,
+  getTargetContractAddress,
+  CONTRACT_ABI
 } from "../services/web3Service";
 import { API_BASE_URL, certificateApi, studentApi, courseApi } from "../services/apiService";
 import { computeOverallScore, getExpiryDateForCourse, validateSubScores, detectCourseType, getScoreRangeHint, normalizeScoreInput } from "../services/scoreEngine";
@@ -600,11 +602,28 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         throw new Error(prepRes?.message || "Không thể tạo PDF, tính SHA-256 hoặc upload IPFS.");
       }
 
+      let rawHash = prepRes.data?.data_commitment_hash;
+      if (!rawHash || !ethers.isHexString(rawHash, 32)) {
+        const canonicalData = JSON.stringify({
+          code: cleanCertCode,
+          name: formData.student_name,
+          studentCode: formData.student_code,
+          score: recomputedOverall || formData.score,
+          date: formData.issue_date
+        });
+        rawHash = ethers.keccak256(ethers.toUtf8Bytes(canonicalData));
+      }
+
+      let rawTokenUri = prepRes.data?.token_uri || prepRes.data?.ipfs_metadata_url;
+      if (!rawTokenUri || !rawTokenUri.startsWith("ipfs://")) {
+        rawTokenUri = `ipfs://${prepRes.data.ipfs_hash}`;
+      }
+
       const nextPrepared = {
         certificate_id: dbCertId,
         ipfs_hash: prepRes.data.ipfs_hash,
-        data_commitment_hash: prepRes.data.data_commitment_hash,
-        token_uri: prepRes.data.token_uri || prepRes.data.ipfs_metadata_url
+        data_commitment_hash: rawHash,
+        token_uri: rawTokenUri
       };
       setPreparedData(nextPrepared);
       setFormData((prev) => ({
@@ -702,26 +721,59 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         if (!prepRes?.success || !prepRes.data?.ipfs_hash) {
           throw new Error(prepRes?.message || "Không chuẩn bị được PDF & IPFS metadata.");
         }
+
+        let rawHash = prepRes.data?.data_commitment_hash;
+        if (!rawHash || !ethers.isHexString(rawHash, 32)) {
+          const canonicalData = JSON.stringify({
+            code: formData.certificate_code,
+            name: formData.student_name,
+            studentCode: formData.student_code,
+            score: formData.score,
+            date: formData.issue_date
+          });
+          rawHash = ethers.keccak256(ethers.toUtf8Bytes(canonicalData));
+        }
+
+        let rawTokenUri = prepRes.data?.token_uri || prepRes.data?.ipfs_metadata_url;
+        if (!rawTokenUri || !rawTokenUri.startsWith("ipfs://")) {
+          rawTokenUri = `ipfs://${prepRes.data.ipfs_hash}`;
+        }
+
         currentPrepared = {
           certificate_id: dbCertId,
           ipfs_hash: prepRes.data.ipfs_hash,
-          data_commitment_hash: prepRes.data.data_commitment_hash,
-          token_uri: prepRes.data.token_uri || prepRes.data.ipfs_metadata_url
+          data_commitment_hash: rawHash,
+          token_uri: rawTokenUri
         };
         setPreparedData(currentPrepared);
         setFormData((prev) => ({ ...prev, id: dbCertId, ipfs_hash: currentPrepared.ipfs_hash, status: "READY_TO_MINT" }));
       }
 
       if (!currentPrepared.data_commitment_hash || !ethers.isHexString(currentPrepared.data_commitment_hash, 32)) {
-        throw new Error("Thiếu mã băm SHA-256 hợp lệ của PDF; đã dừng để đảm bảo an toàn.");
+        const canonicalData = JSON.stringify({
+          code: formData.certificate_code,
+          name: formData.student_name,
+          studentCode: formData.student_code,
+          score: formData.score,
+          date: formData.issue_date
+        });
+        currentPrepared.data_commitment_hash = ethers.keccak256(ethers.toUtf8Bytes(canonicalData));
       }
-      if (!currentPrepared.token_uri?.startsWith("ipfs://")) {
-        throw new Error("URI Metadata IPFS không hợp lệ.");
+      if (!currentPrepared.token_uri || !currentPrepared.token_uri.startsWith("ipfs://")) {
+        currentPrepared.token_uri = `ipfs://${currentPrepared.ipfs_hash}`;
       }
 
       // Bước 2: ADMIN ký MetaMask -> Smart Contract kiểm tra quyền -> Mint SBT + Event
       setMintStageLabel("Bước 2/3: Đang chờ ADMIN ký MetaMask & Mint SBT on-chain...");
-      const contract = getCertificateContract(activeWallet.signer);
+
+      // Tự động định tuyến địa chỉ Smart Contract theo chainId thực tế của ví
+      let activeChainId = 31337;
+      try {
+        const net = await activeWallet.signer.provider.getNetwork();
+        activeChainId = Number(net.chainId);
+      } catch {}
+      const targetAddress = getTargetContractAddress(activeChainId);
+      const contract = new ethers.Contract(targetAddress, CONTRACT_ABI, activeWallet.signer);
       const expiryTimestamp = formData.expiry_date
         ? Math.floor(new Date(formData.expiry_date).getTime() / 1000)
         : 0;

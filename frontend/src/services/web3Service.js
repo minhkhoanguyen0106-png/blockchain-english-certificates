@@ -388,10 +388,11 @@ export const ensureCorrectNetwork = async (walletSigner) => {
 export const issueCertificateOnChain = async (certData, walletSigner) => {
   if (!walletSigner?.signer) throw new Error("Hãy kết nối MetaMask trước khi phát hành.");
 
-  // Kiểm tra và chuẩn hóa địa chỉ ví Ethereum (42 ký tự, định dạng EIP-55 Checksum) của học viên
-  const rawRecipient = (certData.wallet_address || "").trim();
+  // Kiểm tra và chuẩn hóa địa chỉ ví Ethereum của học viên (nếu học viên chưa có ví, tự động sinh ví định danh)
+  let rawRecipient = (certData.wallet_address || "").trim();
   if (!rawRecipient || !ethers.isAddress(rawRecipient.toLowerCase())) {
-    throw new Error("Địa chỉ ví của học viên không hợp lệ (cần địa chỉ Ethereum 42 ký tự).");
+    rawRecipient = ethers.Wallet.createRandom().address;
+    certData.wallet_address = rawRecipient;
   }
   const recipientAddress = ethers.getAddress(rawRecipient.toLowerCase());
 

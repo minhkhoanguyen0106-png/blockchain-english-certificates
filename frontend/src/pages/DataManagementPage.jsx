@@ -816,10 +816,36 @@ export default function DataManagementPage({ user }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Địa chỉ ví điện tử định danh (tùy chọn)</label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+                  <label className="form-label" style={{ marginBottom: 0 }}>Địa chỉ ví điện tử định danh (tùy chọn)</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rand = ethers.Wallet.createRandom().address;
+                      setNewStudent({ ...newStudent, wallet_address: rand });
+                      toast.success("Đã sinh ví Ethereum định danh cho học viên!");
+                    }}
+                    style={{
+                      background: "rgba(14, 165, 233, 0.12)",
+                      border: "1px dashed var(--accent-primary, #0ea5e9)",
+                      color: "var(--accent-primary, #0ea5e9)",
+                      fontSize: "11px",
+                      padding: "2px 8px",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px"
+                    }}
+                    title="Tự động sinh ví Ethereum 42 ký tự chuẩn cho học viên"
+                  >
+                    ✨ Tạo ví tự động
+                  </button>
+                </div>
                 <input
                   type="text"
-                  placeholder="0x... (42 ký tự, có thể bổ sung sau)"
+                  placeholder="0x... (42 ký tự, hoặc bấm 'Tạo ví tự động')"
                   value={newStudent.wallet_address}
                   onChange={(e) => setNewStudent({ ...newStudent, wallet_address: e.target.value })}
                   className="form-input"
@@ -943,10 +969,36 @@ export default function DataManagementPage({ user }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Địa chỉ ví điện tử định danh (0x...)</label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+                  <label className="form-label" style={{ marginBottom: 0 }}>Địa chỉ ví điện tử định danh (0x...)</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rand = ethers.Wallet.createRandom().address;
+                      setEditingStudent({ ...editingStudent, wallet_address: rand });
+                      toast.success("Đã sinh ví Ethereum định danh mới cho học viên!");
+                    }}
+                    style={{
+                      background: "rgba(14, 165, 233, 0.12)",
+                      border: "1px dashed var(--accent-primary, #0ea5e9)",
+                      color: "var(--accent-primary, #0ea5e9)",
+                      fontSize: "11px",
+                      padding: "2px 8px",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px"
+                    }}
+                    title="Tự động sinh ví Ethereum 42 ký tự chuẩn cho học viên"
+                  >
+                    ✨ Tạo ví tự động
+                  </button>
+                </div>
                 <input
                   type="text"
-                  placeholder="0x..."
+                  placeholder="0x... (hoặc bấm 'Tạo ví tự động')"
                   value={editingStudent.wallet_address || ""}
                   onChange={(e) => setEditingStudent({ ...editingStudent, wallet_address: e.target.value })}
                   className="form-input"

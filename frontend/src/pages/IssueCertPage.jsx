@@ -412,10 +412,18 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     }
   };
 
+  const handleAutoGenerateWallet = () => {
+    const randomWallet = ethers.Wallet.createRandom().address;
+    setFormData((prev) => ({ ...prev, wallet_address: randomWallet }));
+    toast.success("Đã tự động tạo địa chỉ ví định danh Ethereum cho học viên!");
+    return randomWallet;
+  };
+
   const syncStudentWalletIfNeeded = async (rawWallet) => {
-    const cleanWallet = (rawWallet || "").trim();
+    let cleanWallet = (rawWallet || "").trim();
     if (!cleanWallet || !ethers.isAddress(cleanWallet.toLowerCase())) {
-      throw new Error("Địa chỉ ví học viên không hợp lệ (cần đúng địa chỉ Ethereum 42 ký tự bắt đầu bằng 0x).");
+      cleanWallet = ethers.Wallet.createRandom().address;
+      setFormData((prev) => ({ ...prev, wallet_address: cleanWallet }));
     }
     const checksumWallet = ethers.getAddress(cleanWallet.toLowerCase());
     const matchedStudent = studentsList.find((s) => s.student_code === formData.student_code);
@@ -494,8 +502,10 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     }
 
     if (!formData.wallet_address || !ethers.isAddress(formData.wallet_address.trim().toLowerCase())) {
-      toast.warning("Địa chỉ ví học viên chưa hợp lệ (cần địa chỉ Ethereum 42 ký tự bắt đầu bằng 0x).");
-      return;
+      const generatedWallet = ethers.Wallet.createRandom().address;
+      formData.wallet_address = generatedWallet;
+      setFormData((prev) => ({ ...prev, wallet_address: generatedWallet }));
+      toast.info("Học viên chưa có ví — Hệ thống đã tự động tạo địa chỉ ví định danh Ethereum mới!");
     }
 
     const courseOpts = getCourseOptions(formData.course_code);
@@ -675,9 +685,12 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         setWallet(activeWallet);
       }
 
-      const rawRecipient = (formData.wallet_address || "").trim();
+      let rawRecipient = (formData.wallet_address || "").trim();
       if (!rawRecipient || !ethers.isAddress(rawRecipient.toLowerCase())) {
-        throw new Error("Địa chỉ ví của học viên không hợp lệ (cần địa chỉ Ethereum 42 ký tự).");
+        rawRecipient = ethers.Wallet.createRandom().address;
+        formData.wallet_address = rawRecipient;
+        setFormData((prev) => ({ ...prev, wallet_address: rawRecipient }));
+        toast.info("Đã tự động tạo địa chỉ ví định danh Ethereum cho học viên.");
       }
       const recipientAddress = ethers.getAddress(rawRecipient.toLowerCase());
 
@@ -1081,13 +1094,35 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
                     {/* Địa chỉ ví nhận NFT */}
                     <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px", flexWrap: "wrap", gap: "6px" }}>
                         <label className="form-label" style={{ fontSize: "11.5px", marginBottom: 0 }}>
                           Địa chỉ ví nhận chứng chỉ của học viên
                         </label>
-                        <span style={{ fontSize: "11px", color: formData.wallet_address ? "var(--success-text)" : "var(--warning-text)", fontWeight: 600 }}>
-                          {formData.wallet_address ? "Tự động từ hồ sơ học viên" : "Học viên chưa có ví"}
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span style={{ fontSize: "11px", color: formData.wallet_address ? "var(--success-text)" : "var(--warning-text)", fontWeight: 600 }}>
+                            {formData.wallet_address ? "Đã có ví định danh" : "Chưa có ví"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={handleAutoGenerateWallet}
+                            style={{
+                              background: "rgba(14, 165, 233, 0.12)",
+                              border: "1px dashed var(--accent-primary, #0ea5e9)",
+                              color: "var(--accent-primary, #0ea5e9)",
+                              fontSize: "11px",
+                              padding: "2px 8px",
+                              borderRadius: "6px",
+                              cursor: "pointer",
+                              fontWeight: 600,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px"
+                            }}
+                            title="Tự động sinh ví Ethereum 42 ký tự chuẩn cho học viên"
+                          >
+                            ✨ Tạo ví tự động
+                          </button>
+                        </div>
                       </div>
                       <input
                         type="text"
@@ -1095,7 +1130,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                         onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
                         className="form-input"
                         style={{ fontSize: "12px", fontFamily: "monospace" }}
-                        placeholder="0x... (tự động điền từ hồ sơ học viên)"
+                        placeholder="0x... (tự động điền hoặc bấm 'Tạo ví tự động')"
                       />
                     </div>
                   </div>
@@ -1442,14 +1477,36 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Địa chỉ ví điện tử học viên</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+                    <label className="form-label" style={{ marginBottom: 0 }}>Địa chỉ ví điện tử học viên</label>
+                    <button
+                      type="button"
+                      onClick={handleAutoGenerateWallet}
+                      style={{
+                        background: "rgba(14, 165, 233, 0.12)",
+                        border: "1px dashed var(--accent-primary, #0ea5e9)",
+                        color: "var(--accent-primary, #0ea5e9)",
+                        fontSize: "11px",
+                        padding: "2px 8px",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px"
+                      }}
+                      title="Tự động sinh ví Ethereum 42 ký tự chuẩn cho học viên"
+                    >
+                      ✨ Tạo ví tự động
+                    </button>
+                  </div>
                   <input
                     type="text"
-                    placeholder="0x... (Địa chỉ ví điện tử học viên)"
+                    placeholder="0x... (tự động điền hoặc bấm 'Tạo ví tự động')"
                     value={formData.wallet_address}
                     onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
                     className="form-input"
-                    style={{ fontSize: "12px" }}
+                    style={{ fontSize: "12px", fontFamily: "monospace" }}
                   />
                 </div>
 

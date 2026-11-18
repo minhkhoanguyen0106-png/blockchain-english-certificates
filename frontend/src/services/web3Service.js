@@ -233,9 +233,15 @@ export const getCertificateByCode = async (code) => {
 export const issueCertificateOnChain = async (certData, walletSigner) => {
   initStorage();
 
-  const recipientAddress = certData.wallet_address && ethers.isAddress(certData.wallet_address)
-    ? certData.wallet_address
-    : (walletSigner?.address || "0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
+  // Chuẩn hóa địa chỉ ví người nhận (chống lỗi EIP-55 Checksum)
+  let recipientAddress = walletSigner?.address || "0xf82b80C145E738fAC445deb06c17b8D9BDEaDcc6";
+  if (certData.wallet_address && typeof certData.wallet_address === "string" && certData.wallet_address.trim().length === 42) {
+    try {
+      recipientAddress = ethers.getAddress(certData.wallet_address.trim().toLowerCase());
+    } catch {
+      recipientAddress = walletSigner?.address || recipientAddress;
+    }
+  }
 
   // B1: Tính toán mã băm Keccak256 chuẩn mật mã toàn vẹn dữ liệu
   const canonicalData = JSON.stringify({
@@ -326,7 +332,14 @@ export const issueCertificateOnChain = async (certData, walletSigner) => {
       txHash = receipt.hash || txHash;
       console.log("✅ Giao dịch on-chain thành công:", txHash);
     } catch (contractErr) {
-      console.warn("Thực thi Smart Contract fallback (do mạng testnet khác hoặc hủy ký):", contractErr.message);
+      console.error("Lỗi thực thi Smart Contract:", contractErr);
+      if (contractErr.code === "ACTION_REJECTED" || contractErr.code === 4001) {
+        throw new Error("Bạn đã hủy thao tác ký xác nhận trên ví MetaMask.");
+      }
+      if (contractErr.message && contractErr.message.includes("CertificateCodeAlreadyExists")) {
+        throw new Error(`Mã chứng chỉ ${certData.certificate_code} đã tồn tại trên Smart Contract! Vui lòng bấm tạo mã mới.`);
+      }
+      throw new Error(`Lỗi Smart Contract: ${contractErr.reason || contractErr.shortMessage || contractErr.message}`);
     }
   }
 

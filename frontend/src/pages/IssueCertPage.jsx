@@ -100,8 +100,11 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     const studentId = Number(e.target.value);
     const found = studentsList.find(s => s.id === studentId);
     if (found) {
+      const prefix = formData.course_code.includes("TOEIC") ? "CERT-TOEIC" : formData.course_code.includes("VSTEP") ? "CERT-VSTEP" : "CERT-IELTS";
+      const newCode = `${prefix}-2026-${Math.floor(100 + Math.random() * 900)}`;
       setFormData(prev => ({
         ...prev,
+        certificate_code: newCode,
         student_name: found.full_name,
         student_code: found.student_code,
         email: found.email,
@@ -157,6 +160,13 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       const newCert = await issueCertificateOnChain(formData, activeWallet);
       setSuccessCert(newCert);
 
+      // Tự động sinh mã chứng chỉ ngẫu nhiên mới cho lần cấp bằng tiếp theo
+      const prefix = formData.course_code.includes("TOEIC") ? "CERT-TOEIC" : formData.course_code.includes("VSTEP") ? "CERT-VSTEP" : "CERT-IELTS";
+      setFormData(prev => ({
+        ...prev,
+        certificate_code: `${prefix}-2026-${Math.floor(100 + Math.random() * 900)}`
+      }));
+
       confetti({
         particleCount: 100,
         spread: 70,
@@ -193,6 +203,30 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
           <form onSubmit={handleIssue}>
             
+            <div className="form-group">
+              <label className="form-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>Mã chứng chỉ (Hệ thống tự sinh)</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const prefix = formData.course_code.includes("TOEIC") ? "CERT-TOEIC" : formData.course_code.includes("VSTEP") ? "CERT-VSTEP" : "CERT-IELTS";
+                    setFormData(prev => ({ ...prev, certificate_code: `${prefix}-2026-${Math.floor(100 + Math.random() * 900)}` }));
+                  }}
+                  style={{ background: "none", border: "none", color: "var(--primary)", cursor: "pointer", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                >
+                  <RefreshCw size={12} /> Đổi mã mới
+                </button>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.certificate_code}
+                onChange={(e) => setFormData({ ...formData, certificate_code: e.target.value.trim().toUpperCase() })}
+                className="form-input"
+                style={{ fontWeight: 700, letterSpacing: "0.5px" }}
+              />
+            </div>
+
             <div className="form-group">
               <label className="form-label">Chọn học viên từ CSDL</label>
               <select onChange={handleStudentSelect} className="form-select">

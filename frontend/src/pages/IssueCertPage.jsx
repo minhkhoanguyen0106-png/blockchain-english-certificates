@@ -1,12 +1,48 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { FileCheck, Sparkles, CheckCircle2, RefreshCw, Download, ExternalLink, AlertTriangle } from "lucide-react";
+import { FileCheck, Sparkles, CheckCircle2, RefreshCw, Download, ExternalLink, AlertTriangle, UploadCloud, ShieldCheck } from "lucide-react";
+import { ethers } from "ethers";
 import confetti from "canvas-confetti";
-import { issueCertificateOnChain, INITIAL_STUDENTS, INITIAL_COURSES, connectMetaMask, isMetaMaskInstalled } from "../services/web3Service";
+import {
+  issueCertificateOnChain,
+  INITIAL_STUDENTS,
+  INITIAL_COURSES,
+  connectMetaMask,
+  isMetaMaskInstalled,
+  ensureCorrectNetwork,
+  getCertificateContract,
+  getAllCertificates
+} from "../services/web3Service";
 import { certificateApi, studentApi, courseApi } from "../services/apiService";
-import { computeOverallScore, getExpiryDateForCourse, validateSubScores, detectCourseType, CERTIFICATE_TYPES } from "../services/scoreEngine";
+import { computeOverallScore, getExpiryDateForCourse, validateSubScores, detectCourseType } from "../services/scoreEngine";
 import CertificateCard from "../components/CertificateCard";
 import { toast } from "../components/ToastContainer";
+
+const PENDING_RECONCILE_KEY = "koheni_pending_reconcile";
+
+function readPendingReconcileMap() {
+  try {
+    return JSON.parse(localStorage.getItem(PENDING_RECONCILE_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function savePendingReconcile(record) {
+  try {
+    const map = readPendingReconcileMap();
+    map[record.certificate_code] = record;
+    localStorage.setItem(PENDING_RECONCILE_KEY, JSON.stringify(map));
+  } catch {}
+}
+
+function clearPendingReconcile(certificateCode) {
+  try {
+    const map = readPendingReconcileMap();
+    delete map[certificateCode];
+    localStorage.setItem(PENDING_RECONCILE_KEY, JSON.stringify(map));
+  } catch {}
+}
 
 export default function IssueCertPage({ wallet, setWallet, user }) {
   const navigate = useNavigate();
@@ -38,6 +74,11 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   });
 
   const [loading, setLoading] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
+  const [preparedData, setPreparedData] = useState(null);
+  const [mintStageLabel, setMintStageLabel] = useState("");
+  const [reconcilePending, setReconcilePending] = useState(null);
   const [successCert, setSuccessCert] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -56,13 +97,28 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
   const loadDraftIntoForm = (draft) => {
     setSelectedDraftCode(draft.certificate_code);
+    const pendingMap = readPendingReconcileMap();
+    const savedReconcile = pendingMap[draft.certificate_code] || null;
+    setReconcilePending(savedReconcile);
+
+    if (draft.ipfs_hash && draft.ipfs_metadata_url) {
+      setPreparedData({
+        certificate_id: draft.id,
+        ipfs_hash: draft.ipfs_hash,
+        data_commitment_hash: draft.data_commitment_hash || null,
+        token_uri: draft.ipfs_metadata_url
+      });
+    } else {
+      setPreparedData(null);
+    }
+
     setFormData({
       id: draft.id,
       certificate_code: draft.certificate_code,
       student_name: draft.student_name || "",
       student_code: draft.student_code || "",
       email: draft.email || "",
-      wallet_address: draft.wallet_address || "",
+      wallet_address: draft.wallet_address || draft.student_wallet || "",
       course_code: draft.course_code || "IELTS-ACAD",
       course_name: draft.course_name || "IELTS Academic Master",
       score: draft.score_overall || draft.score || "",
@@ -72,18 +128,19 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       speaking: draft.score_speaking || "",
       issue_date: draft.issue_date ? String(draft.issue_date).slice(0, 10) : new Date().toISOString().slice(0, 10),
       expiry_date: draft.expiry_date ? String(draft.expiry_date).slice(0, 10) : "",
-      status: draft.status || "PENDING"
+      ipfs_hash: draft.ipfs_hash || null,
+      status: draft.status === "READY_TO_MINT" || draft.ipfs_hash ? "READY_TO_MINT" : (draft.status || "PENDING")
     });
   };
 
-  // Load students, courses, and pending drafts from MySQL
+  // Load students, courses, and pending/ready-to-mint drafts from MySQL
   useEffect(() => {
     async function loadOptions() {
       try {
         const [stuRes, crsRes, draftRes] = await Promise.allSettled([
           studentApi.getStudents(),
           courseApi.getCourses(),
-          certificateApi.getCertificates({ status: "PENDING", limit: 50 })
+          certificateApi.getCertificates({ status: "ALL", limit: 100 })
         ]);
         let loadedStudents = INITIAL_STUDENTS;
         let loadedCourses = INITIAL_COURSES;
@@ -102,9 +159,12 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         const courseParam = searchParams.get("course");
 
         if (draftRes.status === "fulfilled" && draftRes.value?.success && Array.isArray(draftRes.value.data)) {
-          setPendingDrafts(draftRes.value.data);
+          const actionables = draftRes.value.data.filter(
+            (d) => d.status === "PENDING" || d.status === "READY_TO_MINT" || d.status === "PENDING_RECONCILE"
+          );
+          setPendingDrafts(actionables);
           if (codeParam) {
-            const draft = draftRes.value.data.find(d => d.certificate_code === codeParam);
+            const draft = actionables.find(d => d.certificate_code === codeParam);
             if (draft) {
               loadDraftIntoForm(draft);
               return;
@@ -347,13 +407,107 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     setShowConfirmModal(true);
   };
 
+  // Bước 1 (ADMIN): Chuẩn bị phát hành -> Tạo PDF + SHA-256 -> Upload PDF & Metadata lên IPFS -> Lưu CID & trạng thái READY_TO_MINT
+  const handlePrepareMint = async () => {
+    if (user?.role !== "ADMIN") return;
+    if (!formData.student_name || !formData.student_code) {
+      toast.warning("Vui lòng chọn hồ sơ chứng chỉ trước khi chuẩn bị phát hành.");
+      return;
+    }
+    const validation = validateSubScores(formData.course_code, formData);
+    if (!validation.isValid) {
+      toast.error(`Dữ liệu điểm chưa hợp lệ:\n• ${validation.errors.join("\n• ")}`);
+      return;
+    }
+
+    setPreparing(true);
+    try {
+      let dbCertId = formData.id;
+      if (!dbCertId) {
+        const draftRes = await certificateApi.createDraft({
+          certificate_code: formData.certificate_code,
+          student_code: formData.student_code,
+          course_code: formData.course_code,
+          score_overall: formData.score,
+          score_listening: formData.listening || null,
+          score_reading: formData.reading || null,
+          score_writing: formData.writing || null,
+          score_speaking: formData.speaking || null,
+          issue_date: formData.issue_date,
+          expiry_date: formData.expiry_date || null
+        });
+        if (!draftRes?.success || !draftRes.data?.id) {
+          throw new Error(draftRes?.message || "Không thể khởi tạo hồ sơ PENDING trên máy chủ.");
+        }
+        dbCertId = draftRes.data.id;
+      }
+
+      const prepRes = await certificateApi.prepareMint(dbCertId);
+      if (!prepRes?.success || !prepRes.data?.ipfs_hash) {
+        throw new Error(prepRes?.message || "Không thể tạo PDF, tính SHA-256 hoặc upload IPFS.");
+      }
+
+      const nextPrepared = {
+        certificate_id: dbCertId,
+        ipfs_hash: prepRes.data.ipfs_hash,
+        data_commitment_hash: prepRes.data.data_commitment_hash,
+        token_uri: prepRes.data.token_uri || prepRes.data.ipfs_metadata_url
+      };
+      setPreparedData(nextPrepared);
+      setFormData((prev) => ({
+        ...prev,
+        id: dbCertId,
+        ipfs_hash: nextPrepared.ipfs_hash,
+        status: "READY_TO_MINT"
+      }));
+      toast.success("Đã tạo PDF + SHA-256 và tải lên IPFS thành công! Hồ sơ chuyển sang READY_TO_MINT.");
+    } catch (err) {
+      toast.error("Lỗi chuẩn bị phát hành: " + (err.message || err));
+    } finally {
+      setPreparing(false);
+    }
+  };
+
+  // Nhánh đối soát lại khi Mint on-chain thành công nhưng Backend xác minh chưa đồng bộ được DB
+  const handleRetryReconcile = async () => {
+    if (!reconcilePending) return;
+    setReconciling(true);
+    try {
+      const res = await certificateApi.confirmMint({
+        certificate_id: reconcilePending.certificate_id,
+        tx_hash: reconcilePending.tx_hash,
+        token_id: reconcilePending.token_id
+      });
+      if (!res?.success) {
+        throw new Error(res?.message || "Backend vẫn chưa xác minh được giao dịch.");
+      }
+      clearPendingReconcile(reconcilePending.certificate_code);
+      const syncedCert = {
+        ...formData,
+        id: reconcilePending.certificate_id,
+        tx_hash: reconcilePending.tx_hash,
+        token_id: reconcilePending.token_id,
+        ipfs_hash: preparedData?.ipfs_hash || formData.ipfs_hash,
+        status: "ISSUED_ON_CHAIN"
+      };
+      setReconcilePending(null);
+      setSuccessCert(syncedCert);
+      toast.success(`Đối soát thành công! Chứng chỉ ${syncedCert.certificate_code} đã chuyển sang ISSUED_ON_CHAIN.`);
+    } catch (err) {
+      toast.error("Đối soát chưa thành công: " + (err.message || err));
+    } finally {
+      setReconciling(false);
+    }
+  };
+
   const executeMintOnChain = async () => {
     setShowConfirmModal(false);
     setLoading(true);
+    setMintStageLabel("Đang kết nối ví MetaMask & kiểm tra mạng...");
 
     try {
       if (!isMetaMaskInstalled()) {
-        throw new Error("Hãy kết nối ví ký điện tử trước khi phát hành chứng chỉ.");
+        throw new Error("Hãy kết nối ví MetaMask trước khi phát hành chứng chỉ.");
       }
 
       let activeWallet = wallet;
@@ -361,13 +515,152 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         activeWallet = await connectMetaMask();
       }
       if (!activeWallet?.signer) {
-        throw new Error("Không lấy được chữ ký số của Quản trị viên. Hãy kết nối ví rồi thử lại.");
+        throw new Error("Không lấy được chữ ký ví MetaMask của Quản trị viên.");
       }
       if (activeWallet && setWallet) {
         setWallet(activeWallet);
       }
 
-      const newCert = await issueCertificateOnChain(formData, activeWallet);
+      const rawRecipient = (formData.wallet_address || "").trim();
+      if (!rawRecipient || !ethers.isAddress(rawRecipient.toLowerCase())) {
+        throw new Error("Địa chỉ ví của học viên không hợp lệ (cần địa chỉ Ethereum 42 ký tự).");
+      }
+      const recipientAddress = ethers.getAddress(rawRecipient.toLowerCase());
+
+      await ensureCorrectNetwork(activeWallet);
+
+      // Bước 1: Đảm bảo đã có dữ liệu chuẩn bị (PDF + SHA-256 + IPFS CID + Metadata URI)
+      let currentPrepared = preparedData;
+      if (!currentPrepared?.ipfs_hash || !currentPrepared?.data_commitment_hash || !currentPrepared?.token_uri) {
+        setMintStageLabel("Bước 1/3: Tạo PDF + SHA-256 & Upload lên IPFS...");
+        let dbCertId = formData.id;
+        if (!dbCertId) {
+          const draftRes = await certificateApi.createDraft({
+            certificate_code: formData.certificate_code,
+            student_code: formData.student_code,
+            course_code: formData.course_code,
+            score_overall: formData.score,
+            score_listening: formData.listening || null,
+            score_reading: formData.reading || null,
+            score_writing: formData.writing || null,
+            score_speaking: formData.speaking || null,
+            issue_date: formData.issue_date,
+            expiry_date: formData.expiry_date || null
+          });
+          if (!draftRes?.success || !draftRes.data?.id) {
+            throw new Error(draftRes?.message || "Không lưu được bản nháp lên máy chủ.");
+          }
+          dbCertId = draftRes.data.id;
+        }
+        const prepRes = await certificateApi.prepareMint(dbCertId);
+        if (!prepRes?.success || !prepRes.data?.ipfs_hash) {
+          throw new Error(prepRes?.message || "Không chuẩn bị được PDF & IPFS metadata.");
+        }
+        currentPrepared = {
+          certificate_id: dbCertId,
+          ipfs_hash: prepRes.data.ipfs_hash,
+          data_commitment_hash: prepRes.data.data_commitment_hash,
+          token_uri: prepRes.data.token_uri || prepRes.data.ipfs_metadata_url
+        };
+        setPreparedData(currentPrepared);
+        setFormData((prev) => ({ ...prev, id: dbCertId, ipfs_hash: currentPrepared.ipfs_hash, status: "READY_TO_MINT" }));
+      }
+
+      if (!currentPrepared.data_commitment_hash || !ethers.isHexString(currentPrepared.data_commitment_hash, 32)) {
+        throw new Error("Thiếu mã băm SHA-256 hợp lệ của PDF; đã dừng để đảm bảo an toàn.");
+      }
+      if (!currentPrepared.token_uri?.startsWith("ipfs://")) {
+        throw new Error("URI Metadata IPFS không hợp lệ.");
+      }
+
+      // Bước 2: ADMIN ký MetaMask -> Smart Contract kiểm tra quyền -> Mint SBT + Event
+      setMintStageLabel("Bước 2/3: Đang chờ ADMIN ký MetaMask & Mint SBT on-chain...");
+      const contract = getCertificateContract(activeWallet.signer);
+      const expiryTimestamp = formData.expiry_date
+        ? Math.floor(new Date(formData.expiry_date).getTime() / 1000)
+        : 0;
+
+      const tx = await contract.issueCertificate(
+        recipientAddress,
+        formData.certificate_code,
+        formData.student_name,
+        formData.student_code,
+        formData.course_code,
+        formData.course_name,
+        formData.score,
+        expiryTimestamp,
+        currentPrepared.ipfs_hash,
+        currentPrepared.data_commitment_hash,
+        currentPrepared.token_uri
+      );
+      const receipt = await tx.wait();
+      if (receipt?.status !== 1) {
+        throw new Error(`Giao dịch phát hành thất bại trên blockchain (${tx.hash}).`);
+      }
+
+      const onchainResult = await contract.verifyByCertificateCode(formData.certificate_code);
+      if (!onchainResult?.exists) {
+        throw new Error(`Giao dịch ${tx.hash} đã hoàn tất nhưng chưa đọc được Token ID từ Smart Contract.`);
+      }
+      const tokenId = onchainResult.tokenId.toString();
+
+      // Bước 3: Backend xác minh giao dịch -> ISSUED_ON_CHAIN hoặc Ghi nhận giao dịch chờ đối soát
+      setMintStageLabel("Bước 3/3: Backend đang xác minh giao dịch, event & SHA-256 PDF...");
+      try {
+        await certificateApi.confirmMint({
+          certificate_id: currentPrepared.certificate_id,
+          tx_hash: tx.hash,
+          token_id: tokenId
+        });
+      } catch (confirmErr) {
+        const reconcileRecord = {
+          certificate_id: currentPrepared.certificate_id,
+          certificate_code: formData.certificate_code,
+          tx_hash: tx.hash,
+          token_id: tokenId,
+          reason: confirmErr.message || "Backend chưa xác minh kịp giao dịch on-chain",
+          created_at: new Date().toISOString()
+        };
+        savePendingReconcile(reconcileRecord);
+        setReconcilePending(reconcileRecord);
+        toast.warning("Giao dịch đã lên Blockchain nhưng Backend chưa đồng bộ kịp — đã ghi nhận vào hàng chờ đối soát!");
+        return;
+      }
+
+      clearPendingReconcile(formData.certificate_code);
+      const newCert = {
+        id: currentPrepared.certificate_id,
+        certificate_code: formData.certificate_code,
+        data_hash: currentPrepared.data_commitment_hash,
+        student_name: formData.student_name,
+        student_code: formData.student_code,
+        email: formData.email,
+        course_name: formData.course_name,
+        course_code: formData.course_code,
+        score: formData.score,
+        listening: formData.listening || "-",
+        reading: formData.reading || "-",
+        writing: formData.writing || "-",
+        speaking: formData.speaking || "-",
+        issue_date: formData.issue_date || new Date().toISOString().slice(0, 10),
+        expiry_date: formData.expiry_date || null,
+        status: "ISSUED_ON_CHAIN",
+        wallet_address: recipientAddress,
+        token_id: tokenId,
+        tx_hash: tx.hash,
+        ipfs_hash: currentPrepared.ipfs_hash,
+        pdf_url: `http://localhost:5000/api/public/pdf/${formData.certificate_code}`
+      };
+
+      try {
+        const list = getAllCertificates().filter(c => !(
+          (c.status === "PENDING" || c.status === "READY_TO_MINT") &&
+          c.certificate_code === formData.certificate_code
+        ));
+        list.unshift(newCert);
+        localStorage.setItem("certchain_certificates", JSON.stringify(list));
+      } catch {}
+
       setSuccessCert(newCert);
       toast.success(`Phát hành thành công chứng chỉ ${newCert.certificate_code}!`);
 
@@ -380,6 +673,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       toast.error("Lỗi khi xử lý: " + (err.message || err));
     } finally {
       setLoading(false);
+      setMintStageLabel("");
     }
   };
 
@@ -459,8 +753,106 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                           {formData.email && <span> • {formData.email}</span>}
                         </div>
                       </div>
-                      <span className="badge badge-warning" style={{ fontSize: "11px" }}>Chờ phê duyệt</span>
+                      <span
+                        className={`badge ${reconcilePending ? "badge-warning" : preparedData ? "badge-info" : "badge-warning"}`}
+                        style={{ fontSize: "11px" }}
+                      >
+                        {reconcilePending
+                          ? "Chờ đối soát"
+                          : preparedData
+                          ? "READY_TO_MINT"
+                          : "PENDING"}
+                      </span>
                     </div>
+
+                    {/* Thanh tiến độ 4 bước chuẩn luồng phát hành */}
+                    <div style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(4, 1fr)",
+                      gap: "6px",
+                      marginBottom: "14px",
+                      fontSize: "10.5px",
+                      fontWeight: 700,
+                      textAlign: "center"
+                    }}>
+                      {[
+                        { label: "1. PENDING", done: true },
+                        { label: "2. READY_TO_MINT", done: Boolean(preparedData || reconcilePending || successCert) },
+                        { label: "3. Ký MetaMask", done: Boolean(reconcilePending || successCert) },
+                        { label: "4. ISSUED", done: Boolean(successCert) }
+                      ].map((st, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            padding: "5px 4px",
+                            borderRadius: "6px",
+                            background: st.done ? "rgba(14, 165, 233, 0.14)" : "var(--bg-surface-elevated)",
+                            color: st.done ? "var(--primary)" : "var(--text-muted)",
+                            border: `1px solid ${st.done ? "rgba(14, 165, 233, 0.35)" : "var(--border-subtle)"}`
+                          }}
+                        >
+                          {st.label}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Khối hiển thị bằng chứng IPFS & SHA-256 khi đã ở trạng thái READY_TO_MINT */}
+                    {preparedData && (
+                      <div style={{
+                        background: "rgba(14, 165, 233, 0.08)",
+                        border: "1px solid rgba(14, 165, 233, 0.3)",
+                        borderRadius: "10px",
+                        padding: "10px 12px",
+                        marginBottom: "14px",
+                        fontSize: "11.5px"
+                      }}>
+                        <div style={{ fontWeight: 700, color: "var(--primary)", marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                          <ShieldCheck size={14} /> Đã tạo PDF + SHA-256 &amp; Upload IPFS (READY_TO_MINT)
+                        </div>
+                        <div style={{ color: "var(--text-secondary)", wordBreak: "break-all", lineHeight: 1.5 }}>
+                          <div><strong>PDF CID:</strong> <code>{preparedData.ipfs_hash}</code></div>
+                          {preparedData.data_commitment_hash && (
+                            <div><strong>SHA-256:</strong> <code>{preparedData.data_commitment_hash.slice(0, 26)}...</code></div>
+                          )}
+                          {preparedData.token_uri && (
+                            <div><strong>Metadata:</strong> <code>{preparedData.token_uri}</code></div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Nhánh: Ghi nhận giao dịch chờ đối soát khi Mint xong nhưng Confirm bị lỗi */}
+                    {reconcilePending && (
+                      <div style={{
+                        background: "rgba(245, 158, 11, 0.12)",
+                        border: "1px solid rgba(245, 158, 11, 0.45)",
+                        borderRadius: "10px",
+                        padding: "12px 14px",
+                        marginBottom: "14px",
+                        fontSize: "12px"
+                      }}>
+                        <div style={{ fontWeight: 800, color: "var(--warning-text)", marginBottom: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
+                          <AlertTriangle size={15} /> Giao dịch đã ghi nhận trên mạng — Chờ đối soát
+                        </div>
+                        <p style={{ color: "var(--text-secondary)", marginBottom: "8px", lineHeight: 1.45 }}>
+                          Không bấm ký phát hành lại để tránh tạo trùng token. Hãy bấm đối soát để Backend xác minh lại giao dịch này.
+                        </p>
+                        <div style={{ fontSize: "11px", color: "var(--text-muted)", wordBreak: "break-all", marginBottom: "10px" }}>
+                          <div><strong>Tx Hash:</strong> <code>{reconcilePending.tx_hash}</code></div>
+                          <div><strong>Token ID:</strong> #{reconcilePending.token_id}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRetryReconcile}
+                          disabled={reconciling}
+                          className="btn btn-primary"
+                          style={{ padding: "7px 14px", fontSize: "12px" }}
+                        >
+                          {reconciling ? <RefreshCw size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                          {reconciling ? "Đang đối soát với Backend..." : "Đối Soát & Xác Minh Lại Ngay"}
+                        </button>
+                      </div>
+                    )}
 
                     {/* Khóa thi & Điểm */}
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "13px", marginBottom: "14px" }}>
@@ -543,45 +935,78 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   </div>
                 )}
 
-                {/* Nút hành động */}
-                <div style={{ display: "flex", gap: "10px" }}>
+                {/* Nút hành động 2 bước: Chuẩn bị phát hành (IPFS) -> Ký MetaMask */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                   <button
-                    type="submit"
-                    disabled={loading || !formData.student_name}
-                    className="btn btn-gold"
-                    style={{ flex: 1, padding: "13px", fontSize: "14px" }}
+                    type="button"
+                    disabled={preparing || loading || !formData.student_name || Boolean(reconcilePending)}
+                    onClick={handlePrepareMint}
+                    className="btn btn-outline"
+                    style={{
+                      width: "100%",
+                      padding: "11px 14px",
+                      fontSize: "13.5px",
+                      borderColor: preparedData ? "rgba(16, 185, 129, 0.45)" : "rgba(14, 165, 233, 0.45)",
+                      color: preparedData ? "var(--success-text)" : "var(--primary)"
+                    }}
                   >
-                    {loading ? (
+                    {preparing ? (
                       <>
-                        <RefreshCw size={16} className="animate-spin" />
-                        Đang xử lý phát hành chứng chỉ...
+                        <RefreshCw size={15} className="animate-spin" />
+                        Đang tạo PDF + SHA-256 &amp; Upload IPFS...
+                      </>
+                    ) : preparedData ? (
+                      <>
+                        <CheckCircle2 size={15} />
+                        Đã Chuẩn Bị IPFS (READY_TO_MINT) — Tạo Lại Nếu Cần
                       </>
                     ) : (
                       <>
-                        <Sparkles size={16} />
-                        Ký Xác Thực & Cấp Bằng
+                        <UploadCloud size={16} />
+                        Bước 1: Chuẩn Bị Phát Hành (PDF + SHA-256 + IPFS)
                       </>
                     )}
                   </button>
 
-                  {selectedDraftCode && (
+                  <div style={{ display: "flex", gap: "10px" }}>
                     <button
-                      type="button"
-                      disabled={loading}
-                      onClick={handleRejectDraft}
-                      className="btn btn-outline"
-                      style={{
-                        padding: "13px 16px",
-                        fontSize: "13px",
-                        color: "var(--danger-text)",
-                        borderColor: "rgba(239, 68, 68, 0.4)",
-                        whiteSpace: "nowrap"
-                      }}
-                      title="Từ chối bản nháp và chuyển trả cho Khảo thí chỉnh sửa"
+                      type="submit"
+                      disabled={loading || preparing || !formData.student_name || Boolean(reconcilePending)}
+                      className="btn btn-gold"
+                      style={{ flex: 1, padding: "13px", fontSize: "14px" }}
                     >
-                      Từ Chối Nháp
+                      {loading ? (
+                        <>
+                          <RefreshCw size={16} className="animate-spin" />
+                          {mintStageLabel || "Đang xử lý phát hành chứng chỉ..."}
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={16} />
+                          Bước 2: Ký MetaMask &amp; Mint SBT
+                        </>
+                      )}
                     </button>
-                  )}
+
+                    {selectedDraftCode && !reconcilePending && (
+                      <button
+                        type="button"
+                        disabled={loading || preparing}
+                        onClick={handleRejectDraft}
+                        className="btn btn-outline"
+                        style={{
+                          padding: "13px 16px",
+                          fontSize: "13px",
+                          color: "var(--danger-text)",
+                          borderColor: "rgba(239, 68, 68, 0.4)",
+                          whiteSpace: "nowrap"
+                        }}
+                        title="Từ chối bản nháp và ghi nhận lý do (REJECTED)"
+                      >
+                        Từ Chối Nháp
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Nút chuyển chế độ thủ công */}
@@ -908,6 +1333,22 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   {formData.wallet_address}
                 </code>
               </div>
+              {preparedData?.ipfs_hash && (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                  <span style={{ color: "var(--text-muted)" }}>PDF IPFS CID:</span>
+                  <code style={{ fontSize: "11px", color: "#10b981", background: "rgba(0,0,0,0.25)", padding: "2px 6px", borderRadius: "4px" }}>
+                    {preparedData.ipfs_hash.slice(0, 22)}...
+                  </code>
+                </div>
+              )}
+              {preparedData?.data_commitment_hash && (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                  <span style={{ color: "var(--text-muted)" }}>SHA-256 PDF:</span>
+                  <code style={{ fontSize: "11px", color: "#f59e0b", background: "rgba(0,0,0,0.25)", padding: "2px 6px", borderRadius: "4px" }}>
+                    {preparedData.data_commitment_hash.slice(0, 22)}...
+                  </code>
+                </div>
+              )}
             </div>
 
             <div style={{

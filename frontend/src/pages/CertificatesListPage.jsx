@@ -24,6 +24,15 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
   const [revokeTarget, setRevokeTarget] = useState(null);
   const [revokeReason, setRevokeReason] = useState("");
   const [revoking, setRevoking] = useState(false);
+  const [reconcilingCode, setReconcilingCode] = useState("");
+
+  const getPendingReconcileMap = () => {
+    try {
+      return JSON.parse(localStorage.getItem("koheni_pending_reconcile") || "{}");
+    } catch {
+      return {};
+    }
+  };
 
   const loadCerts = async () => {
     setLoading(true);
@@ -37,14 +46,26 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
         setCourses(crsRes.value.data);
       }
 
+      const pendingReconcileMap = getPendingReconcileMap();
+
       if (res.status === "fulfilled" && res.value?.success && Array.isArray(res.value.data)) {
-        const mapped = res.value.data.map(d => ({
-          ...d,
-          score: d.score_overall,
-          issue_date: d.issue_date ? d.issue_date.slice(0, 10) : "",
-          expiry_date: d.expiry_date ? d.expiry_date.slice(0, 10) : "",
-          pdf_url: `http://localhost:5000/api/public/pdf/${d.certificate_code}`
-        }));
+        const mapped = res.value.data.map(d => {
+          const rec = pendingReconcileMap[d.certificate_code];
+          let effectiveStatus = d.status;
+          if (d.status === "PENDING") {
+            if (rec) effectiveStatus = "PENDING_RECONCILE";
+            else if (d.ipfs_hash) effectiveStatus = "READY_TO_MINT";
+          }
+          return {
+            ...d,
+            status: effectiveStatus,
+            reconcile_info: rec || null,
+            score: d.score_overall,
+            issue_date: d.issue_date ? d.issue_date.slice(0, 10) : "",
+            expiry_date: d.expiry_date ? d.expiry_date.slice(0, 10) : "",
+            pdf_url: `http://localhost:5000/api/public/pdf/${d.certificate_code}`
+          };
+        });
         setCerts(mapped);
         return;
       }
@@ -53,6 +74,33 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
       setCerts(getAllCertificates());
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReconcileRow = async (cert) => {
+    const rec = cert.reconcile_info;
+    setReconcilingCode(cert.certificate_code);
+    try {
+      if (rec?.tx_hash && rec?.token_id) {
+        await certificateApi.confirmMint({
+          certificate_id: cert.id,
+          tx_hash: rec.tx_hash,
+          token_id: rec.token_id
+        });
+      } else {
+        await certificateApi.reconcile(cert.id);
+      }
+      try {
+        const map = getPendingReconcileMap();
+        delete map[cert.certificate_code];
+        localStorage.setItem("koheni_pending_reconcile", JSON.stringify(map));
+      } catch {}
+      toast.success(`Đã đối soát và xác minh thành công chứng chỉ [${cert.certificate_code}]!`);
+      await loadCerts();
+    } catch (err) {
+      toast.error("Đối soát chưa thành công: " + (err.message || err));
+    } finally {
+      setReconcilingCode("");
     }
   };
 
@@ -198,10 +246,12 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
             <Search size={16} color="var(--text-muted)" style={{ position: "absolute", left: "12px", top: "14px" }} />
           </div>
 
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="form-select" style={{ minWidth: "185px" }}>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="form-select" style={{ minWidth: "195px" }}>
             <option value="ALL">Tất cả trạng thái ({cleanCerts.length})</option>
             <option value="ISSUED_ON_CHAIN">Đã phát hành ({cleanCerts.filter(c => c.status === "ISSUED_ON_CHAIN").length})</option>
             <option value="PENDING">Chờ duyệt ({cleanCerts.filter(c => c.status === "PENDING").length})</option>
+            <option value="READY_TO_MINT">Sẵn sàng cấp ({cleanCerts.filter(c => c.status === "READY_TO_MINT").length})</option>
+            <option value="PENDING_RECONCILE">Chờ đối soát ({cleanCerts.filter(c => c.status === "PENDING_RECONCILE").length})</option>
             <option value="REJECTED">Bị từ chối ({cleanCerts.filter(c => c.status === "REJECTED").length})</option>
             <option value="REVOKED">Đã thu hồi ({cleanCerts.filter(c => c.status === "REVOKED").length})</option>
             <option value="EXPIRED">Đã hết hạn ({cleanCerts.filter(c => c.status === "EXPIRED").length})</option>
@@ -276,14 +326,39 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                       {c.status === "ISSUED_ON_CHAIN" && <span className="badge badge-success">Hợp Lệ</span>}
                       {c.status === "REVOKED" && <span className="badge badge-danger">Đã Thu Hồi</span>}
                       {c.status === "PENDING" && <span className="badge badge-warning">Chờ Duyệt</span>}
-                      {c.status === "REJECTED" && <span className="badge" style={{ background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.3)" }}>Bị Từ Chối</span>}
+                      {c.status === "READY_TO_MINT" && <span className="badge badge-info">Sẵn Sàng Cấp</span>}
+                      {c.status === "PENDING_RECONCILE" && <span className="badge badge-warning">Chờ Đối Soát</span>}
+                      {c.status === "REJECTED" && (
+                        <div>
+                          <span className="badge" style={{ background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", border: "1px solid rgba(239, 68, 68, 0.3)" }}>Bị Từ Chối</span>
+                          {(c.rejection_reason || c.reject_reason) && (
+                            <div style={{ fontSize: "11px", color: "var(--danger-text)", marginTop: "4px", maxWidth: "180px", lineHeight: 1.35 }}>
+                              Lý do: {c.rejection_reason || c.reject_reason}
+                            </div>
+                          )}
+                        </div>
+                      )}
                       {c.status === "EXPIRED" && <span className="badge" style={{ background: "rgba(148, 163, 184, 0.15)", color: "#94a3b8", border: "1px solid rgba(148, 163, 184, 0.3)" }}>Hết Hạn</span>}
                     </td>
 
                     <td style={{ fontSize: "11px" }}>
-                      <div>{c.token_id ? `Mã số: #${c.token_id}` : "Chưa cấp mã"}</div>
+                      <div>
+                        {c.token_id
+                          ? `Mã số: #${c.token_id}`
+                          : c.reconcile_info?.token_id
+                          ? `Token chờ đối soát: #${c.reconcile_info.token_id}`
+                          : c.ipfs_hash
+                          ? `CID: ${c.ipfs_hash.slice(0, 12)}...`
+                          : "Chưa cấp mã"}
+                      </div>
                       <div style={{ color: "var(--text-muted)" }}>
-                        {c.tx_hash ? `Mã: ${shortenAddress(c.tx_hash)}` : "Chưa phát hành"}
+                        {c.tx_hash
+                          ? `Tx: ${shortenAddress(c.tx_hash)}`
+                          : c.reconcile_info?.tx_hash
+                          ? `Tx chờ: ${shortenAddress(c.reconcile_info.tx_hash)}`
+                          : c.status === "READY_TO_MINT"
+                          ? "Đã upload IPFS"
+                          : "Chưa phát hành"}
                       </div>
                     </td>
 
@@ -312,16 +387,16 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                           </button>
                         )}
 
-                        {c.status === "PENDING" && (
+                        {(c.status === "PENDING" || c.status === "READY_TO_MINT") && (
                           user?.role === "ADMIN" ? (
                             <Link
                               to={`/admin/certificates/issue?code=${c.certificate_code}`}
                               className="btn btn-gold"
                               style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
-                              title="Đối soát và ký phát hành"
+                              title={c.status === "READY_TO_MINT" ? "Hồ sơ đã sẵn sàng IPFS — Ký MetaMask cấp bằng" : "Kiểm tra, chuẩn bị IPFS và ký phát hành"}
                             >
                               <Sparkles size={13} />
-                              Duyệt & Cấp
+                              {c.status === "READY_TO_MINT" ? "Ký Cấp Ngay" : "Duyệt & Cấp"}
                             </Link>
                           ) : (
                             <button
@@ -343,6 +418,20 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                               Bỏ Nháp
                             </button>
                           )
+                        )}
+
+                        {c.status === "PENDING_RECONCILE" && user?.role === "ADMIN" && (
+                          <button
+                            type="button"
+                            disabled={reconcilingCode === c.certificate_code}
+                            onClick={() => handleReconcileRow(c)}
+                            className="btn btn-primary"
+                            style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                            title="Gửi lại yêu cầu Backend xác minh giao dịch on-chain đã ký"
+                          >
+                            <RefreshCw size={13} className={reconcilingCode === c.certificate_code ? "animate-spin" : ""} />
+                            Đối Soát
+                          </button>
                         )}
 
                         {c.status === "ISSUED_ON_CHAIN" && user?.role === "ADMIN" && (
@@ -519,6 +608,20 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                 <X size={20} />
               </button>
             </div>
+
+            {selectedCert.status === "REJECTED" && (selectedCert.rejection_reason || selectedCert.reject_reason) && (
+              <div style={{
+                background: "var(--danger-bg)",
+                border: "1px solid rgba(239, 68, 68, 0.35)",
+                borderRadius: "var(--radius-md)",
+                padding: "12px 16px",
+                marginBottom: "18px",
+                fontSize: "13px",
+                color: "var(--danger-text)"
+              }}>
+                <strong>Lý do từ chối hồ sơ:</strong> {selectedCert.rejection_reason || selectedCert.reject_reason}
+              </div>
+            )}
 
             <div style={{ marginBottom: "24px" }}>
               <CertificateCard cert={selectedCert} />

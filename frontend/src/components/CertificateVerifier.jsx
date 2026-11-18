@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, ShieldCheck, AlertTriangle, XCircle, Download, QrCode, RefreshCw, Copy, Check, Upload, CheckCircle2, AlertCircle } from "lucide-react";
+import { Search, ShieldCheck, AlertTriangle, XCircle, Download, QrCode, RefreshCw, Copy, Check, Upload, CheckCircle2, AlertCircle, Clock, ShieldAlert } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { getCertificateByCode } from "../services/web3Service";
 import CertificateCard from "./CertificateCard";
@@ -353,24 +353,101 @@ const CertificateVerifier = forwardRef(function CertificateVerifier({ syncUrl = 
                 padding: "16px 20px",
                 marginBottom: "22px",
                 display: "flex",
-                alignItems: "center",
+                alignItems: "flex-start",
                 gap: "14px"
               }}>
-                <div style={{ background: "var(--success-color)", borderRadius: "50%", width: "38px", height: "38px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div style={{ background: "var(--success-color)", borderRadius: "50%", width: "38px", height: "38px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: "2px" }}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M5 13L10 18L19 7" stroke="#04121e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="draw-check-path" />
                   </svg>
                 </div>
-                <div>
+                <div style={{ flex: 1 }}>
                   <h4 style={{ color: "var(--success-text)", fontWeight: 800, fontSize: "16px" }}>
                     Chứng Chỉ Hợp Lệ
                   </h4>
                   <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "2px" }}>
                     {result.onchain_verified
-                      ? "Thông tin chứng chỉ trùng khớp hoàn toàn với hồ sơ lưu trữ gốc của Trung tâm Khảo thí."
+                      ? "Thông tin chứng chỉ trùng khớp hoàn toàn giữa hồ sơ Trung tâm, dữ liệu gốc và tài liệu PDF."
                       : "Chứng chỉ đã được Trung tâm Khảo thí cấp phát và hiện đang có hiệu lực."}
                   </p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "10px" }}>
+                    <span style={{ fontSize: "11.5px", fontWeight: 600, padding: "3px 10px", borderRadius: "9999px", background: "rgba(16, 185, 129, 0.14)", color: "var(--success-text)" }}>
+                      ✓ Hồ sơ Trung tâm
+                    </span>
+                    {result.onchain_verified && (
+                      <span style={{ fontSize: "11.5px", fontWeight: 600, padding: "3px 10px", borderRadius: "9999px", background: "rgba(16, 185, 129, 0.14)", color: "var(--success-text)" }}>
+                        ✓ Đối chiếu dữ liệu gốc
+                      </span>
+                    )}
+                    {result.document_hash_verified && (
+                      <span style={{ fontSize: "11.5px", fontWeight: 600, padding: "3px 10px", borderRadius: "9999px", background: "rgba(16, 185, 129, 0.14)", color: "var(--success-text)" }}>
+                        ✓ Bản PDF nguyên vẹn (SHA-256)
+                      </span>
+                    )}
+                  </div>
                 </div>
+              </div>
+            )}
+
+            {result.status === "EXPIRED" && (
+              <div className="result-phase-1" style={{
+                background: "rgba(148, 163, 184, 0.16)",
+                border: "1px solid rgba(148, 163, 184, 0.45)",
+                borderRadius: "var(--radius-md)",
+                padding: "16px 20px",
+                marginBottom: "22px",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "14px"
+              }}>
+                <div style={{ background: "#64748b", borderRadius: "50%", padding: "6px", display: "flex", marginTop: "2px", color: "#ffffff" }}>
+                  <Clock size={22} color="#ffffff" />
+                </div>
+                <div>
+                  <h4 style={{ color: "var(--text-primary)", fontWeight: 800, fontSize: "16px" }}>
+                    Chứng Chỉ Đã Hết Hạn Hiệu Lực
+                  </h4>
+                  <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "2px" }}>
+                    Chứng chỉ này là bản gốc hợp pháp do Trung tâm cấp, tuy nhiên đã quá thời hạn sử dụng{result.expiry_date ? ` (hết hạn ngày ${result.expiry_date})` : ""}.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {result.status === "UNVERIFIED" && (
+              <div className="result-phase-1" style={{
+                background: "var(--warning-bg)",
+                border: "1px solid rgba(245, 158, 11, 0.45)",
+                borderRadius: "var(--radius-md)",
+                padding: "16px 20px",
+                marginBottom: "22px",
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: "14px",
+                flexWrap: "wrap"
+              }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", flex: 1 }}>
+                  <div style={{ background: "#d97706", borderRadius: "50%", padding: "6px", display: "flex", marginTop: "2px", color: "#ffffff" }}>
+                    <ShieldAlert size={22} color="#ffffff" />
+                  </div>
+                  <div>
+                    <h4 style={{ color: "var(--warning-text)", fontWeight: 800, fontSize: "16px" }}>
+                      Chưa Thể Xác Minh Đầy Đủ
+                    </h4>
+                    <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "2px" }}>
+                      Hệ thống tạm thời chưa đối chiếu đủ dữ liệu gốc và tài liệu PDF nên chưa thể kết luận chứng chỉ này hợp lệ. Vui lòng thử lại sau ít phút.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleSearch(result.certificate_code)}
+                  className="btn btn-outline"
+                  style={{ fontSize: "12.5px", padding: "7px 14px", flexShrink: 0 }}
+                >
+                  <RefreshCw size={14} /> Thử Kiểm Tra Lại
+                </button>
               </div>
             )}
 

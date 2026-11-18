@@ -66,7 +66,9 @@ export default function DashboardPage({ user }) {
   const totalCount = stats ? stats.totalCertificates : certs.length;
   const issuedCount = stats ? Number(stats.issuedCount) : certs.filter(c => c.status === "ISSUED_ON_CHAIN").length;
   const revokedCount = stats ? Number(stats.revokedCount) : certs.filter(c => c.status === "REVOKED").length;
-  const pendingCount = stats ? Number(stats.pendingCount) : certs.filter(c => c.status === "PENDING").length;
+  const pendingCount = stats
+    ? Number(stats.pendingCount) + Number(stats.readyToMintCount || 0)
+    : certs.filter(c => c.status === "PENDING" || c.status === "READY_TO_MINT").length;
 
   return (
     <div>
@@ -190,7 +192,10 @@ export default function DashboardPage({ user }) {
                       {c.status === "ISSUED_ON_CHAIN" && <span className="badge badge-success">Hợp Lệ</span>}
                       {c.status === "REVOKED" && <span className="badge badge-danger">Đã Thu Hồi</span>}
                       {c.status === "PENDING" && <span className="badge badge-warning">Chờ Duyệt</span>}
+                      {c.status === "READY_TO_MINT" && <span className="badge badge-info">Sẵn Sàng Cấp</span>}
+                      {c.status === "PENDING_RECONCILE" && <span className="badge badge-warning">Chờ Đối Soát</span>}
                       {c.status === "REJECTED" && <span className="badge badge-danger">Bị Từ Chối</span>}
+                      {c.status === "EXPIRED" && <span className="badge" style={{ background: "rgba(148, 163, 184, 0.15)", color: "#94a3b8", border: "1px solid rgba(148, 163, 184, 0.3)" }}>Hết Hạn</span>}
                     </td>
                   </tr>
                 ))

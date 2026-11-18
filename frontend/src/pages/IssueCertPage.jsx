@@ -697,9 +697,9 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   };
 
   return (
-    <div>
+    <div className="admin-page admin-issue">
       {/* Page Title */}
-      <div style={{ marginBottom: "26px" }}>
+      <div className="admin-page-heading" style={{ marginBottom: "26px" }}>
         <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-primary)" }}>
           {user?.role === "ADMIN" ? (
             <>Duyệt &amp; <span className="text-gradient">Cấp Phát Chứng Chỉ Số</span></>
@@ -1230,10 +1230,10 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   </div>
                 </div>
 
-                {/* Ngày thi / hạn hiệu lực */}
+                {/* Ngày cấp chứng chỉ / hạn hiệu lực */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
                   <div>
-                    <label className="form-label" style={{ fontSize: "12px" }}>Ngày thi / cấp bằng</label>
+                    <label className="form-label" style={{ fontSize: "12px" }}>Ngày cấp chứng chỉ</label>
                     <input
                       type="date"
                       value={formData.issue_date}

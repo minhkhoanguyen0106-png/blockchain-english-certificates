@@ -5,6 +5,7 @@ import { ethers } from "ethers";
 import { INITIAL_STUDENTS, INITIAL_COURSES } from "../services/mockData";
 import { shortenAddress } from "../services/web3Service";
 import { studentApi, courseApi } from "../services/apiService";
+import { DEFAULT_MAX_SCORE_BY_TYPE } from "../services/scoreEngine";
 import { toast } from "../components/ToastContainer";
 
 const STORAGE_KEY_STUDENTS = "certchain_students";
@@ -175,14 +176,35 @@ export default function DataManagementPage({ user }) {
       toast.error("Chỉ Quản trị viên (ADMIN) mới có quyền thêm khóa học.");
       return;
     }
-    if (!newCourse.course_code || !newCourse.course_name) {
+    const cleanCode = (newCourse.course_code || "").trim().toUpperCase().replace(/\s+/g, "-");
+    const cleanName = (newCourse.course_name || "").trim();
+    const maxScoreNum = parseFloat(newCourse.max_score);
+
+    if (!cleanCode || !cleanName) {
       toast.warning("Vui lòng điền đủ mã và tên khóa học!");
       return;
     }
+    if (!/^[A-Z0-9_-]{2,20}$/.test(cleanCode)) {
+      toast.warning("Mã khóa học chỉ gồm chữ in hoa, số, dấu '-' hoặc '_' (tối đa 20 ký tự).");
+      return;
+    }
+    if (isNaN(maxScoreNum) || maxScoreNum <= 0) {
+      toast.warning("Điểm tối đa phải là một số dương hợp lệ!");
+      return;
+    }
+
+    const payload = {
+      course_code: cleanCode,
+      course_name: cleanName,
+      score_type: newCourse.score_type || "IELTS",
+      max_score: String(newCourse.max_score).trim(),
+      duration: (newCourse.duration || "3 tháng").trim(),
+      description: (newCourse.description || "").trim()
+    };
 
     try {
-      await courseApi.createCourse(newCourse);
-      toast.success("Đã lưu khóa học mới thành công!");
+      await courseApi.createCourse(payload);
+      toast.success(`Đã thêm khóa học ${cleanCode} (${payload.score_type} — tối đa ${payload.max_score}) thành công!`);
       await loadData();
     } catch (err) {
       toast.error(`Không thể lưu khóa học: ${err.message || err}`);
@@ -213,9 +235,9 @@ export default function DataManagementPage({ user }) {
   );
 
   return (
-    <div>
+    <div className="admin-page admin-data">
       {/* Page Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
+      <div className="admin-page-heading" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
         <div>
           <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-primary)" }}>
             {canManageCourses ? (
@@ -567,31 +589,97 @@ export default function DataManagementPage({ user }) {
           zIndex: 999,
           padding: "20px"
         }}>
-          <div className="glass-panel" style={{ maxWidth: "480px", width: "100%", padding: "32px", background: "var(--bg-surface-elevated)" }}>
-            <h3 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "20px", color: "var(--text-primary)" }}>Thêm Khóa Học / Kỳ Thi Mới</h3>
+          <div className="glass-panel" style={{ maxWidth: "520px", width: "100%", padding: "32px", background: "var(--bg-surface-elevated)" }}>
+            <h3 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "6px", color: "var(--text-primary)" }}>Thêm Khóa Học / Kỳ Thi Mới</h3>
+            <p style={{ fontSize: "12.5px", color: "var(--text-muted)", marginBottom: "20px" }}>
+              Cấu hình chuẩn thang điểm để hệ thống tự động tính điểm tổng và hạn hiệu lực khi cấp bằng.
+            </p>
             <form onSubmit={handleAddCourse}>
-              <div className="form-group">
-                <label className="form-label">Mã khóa học / Kỳ thi</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="VD: SAT-ENG hoặc DUOLINGO-120"
-                  value={newCourse.course_code}
-                  onChange={(e) => setNewCourse({ ...newCourse, course_code: e.target.value })}
-                  className="form-input"
-                />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="form-group">
+                  <label className="form-label">Mã khóa học / Kỳ thi</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={20}
+                    placeholder="VD: IELTS-GEN, VSTEP-B2"
+                    value={newCourse.course_code}
+                    onChange={(e) => setNewCourse({ ...newCourse, course_code: e.target.value.toUpperCase() })}
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Chuẩn thang điểm</label>
+                  <select
+                    value={newCourse.score_type}
+                    onChange={(e) => {
+                      const nextType = e.target.value;
+                      setNewCourse({
+                        ...newCourse,
+                        score_type: nextType,
+                        max_score: DEFAULT_MAX_SCORE_BY_TYPE[nextType] || "100"
+                      });
+                    }}
+                    className="form-select"
+                  >
+                    <option value="IELTS">IELTS (0.0 – 9.0)</option>
+                    <option value="TOEIC">TOEIC (10 – 990)</option>
+                    <option value="VSTEP">VSTEP (0 – 10.0 / B1-C1)</option>
+                    <option value="CAMBRIDGE">Cambridge Scale (80 – 230)</option>
+                    <option value="GENERAL">Tổng quát (Tự định thang điểm)</option>
+                  </select>
+                </div>
               </div>
+
               <div className="form-group">
                 <label className="form-label">Tên khóa học / Kỳ thi</label>
                 <input
                   type="text"
                   required
-                  placeholder="VD: SAT Digital English Master 1400+"
+                  placeholder="VD: IELTS General Training hoặc VSTEP B2 Chuẩn Đầu Ra"
                   value={newCourse.course_name}
                   onChange={(e) => setNewCourse({ ...newCourse, course_name: e.target.value })}
                   className="form-input"
                 />
               </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="form-group">
+                  <label className="form-label">Điểm tối đa</label>
+                  <input
+                    type="text"
+                    required
+                    readOnly={newCourse.score_type !== "GENERAL"}
+                    value={newCourse.max_score}
+                    onChange={(e) => setNewCourse({ ...newCourse, max_score: e.target.value })}
+                    className="form-input"
+                    style={newCourse.score_type !== "GENERAL" ? { opacity: 0.75, cursor: "not-allowed" } : {}}
+                    placeholder="VD: 100"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Thời lượng đào tạo</label>
+                  <input
+                    type="text"
+                    placeholder="VD: 3 tháng"
+                    value={newCourse.duration}
+                    onChange={(e) => setNewCourse({ ...newCourse, duration: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Mô tả ngắn (tùy chọn)</label>
+                <input
+                  type="text"
+                  placeholder="VD: Chương trình luyện thi chuẩn đầu ra tiếng Anh bậc 4"
+                  value={newCourse.description}
+                  onChange={(e) => setNewCourse({ ...newCourse, description: e.target.value })}
+                  className="form-input"
+                />
+              </div>
+
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" }}>
                 <button type="button" onClick={() => setShowAddCourseModal(false)} className="btn btn-outline">Hủy Bỏ</button>
                 <button type="submit" className="btn btn-gold">Lưu Khóa Học</button>

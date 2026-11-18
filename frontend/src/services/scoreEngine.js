@@ -1,6 +1,7 @@
 // ================================================================
-// ENGINE TÍNH ĐIỂM & QUY TẮC HIỆU LỰC CHỨNG CHỈ (v2.0)
-// Hỗ trợ: IELTS, TOEIC (L&R, S&W), VSTEP, CAMBRIDGE, TOEFL
+// ENGINE TÍNH ĐIỂM & QUY TẮC HIỆU LỰC CHỨNG CHỈ (v2.1)
+// Hỗ trợ: IELTS, TOEIC (L&R), VSTEP, CAMBRIDGE, TOEFL, GENERAL
+// Ưu tiên score_type & max_score thật từ CSDL khóa học
 // ================================================================
 
 export const CERTIFICATE_TYPES = {
@@ -8,31 +9,63 @@ export const CERTIFICATE_TYPES = {
   TOEIC: "TOEIC",
   VSTEP: "VSTEP",
   CAMBRIDGE: "CAMBRIDGE",
-  TOEFL: "TOEFL"
+  TOEFL: "TOEFL",
+  GENERAL: "GENERAL"
+};
+
+export const DEFAULT_MAX_SCORE_BY_TYPE = {
+  IELTS: "9.0",
+  TOEIC: "990",
+  VSTEP: "10.0",
+  CAMBRIDGE: "210",
+  TOEFL: "120",
+  GENERAL: "100"
 };
 
 /**
- * Nhận diện loại chứng chỉ dựa vào course_code
+ * Nhận diện chuẩn thang điểm: ưu tiên score_type từ CSDL, fallback theo course_code
  */
-export function detectCourseType(courseCode = "") {
+export function detectCourseType(courseCode = "", explicitScoreType = "") {
+  const explicit = (explicitScoreType || "").trim().toUpperCase();
+  if (explicit && CERTIFICATE_TYPES[explicit]) {
+    return CERTIFICATE_TYPES[explicit];
+  }
+
   const code = (courseCode || "").toUpperCase();
   if (code.includes("IELTS")) return CERTIFICATE_TYPES.IELTS;
   if (code.includes("TOEIC")) return CERTIFICATE_TYPES.TOEIC;
   if (code.includes("VSTEP")) return CERTIFICATE_TYPES.VSTEP;
   if (code.includes("CAMBRIDGE") || code.includes("CAE") || code.includes("FCE")) return CERTIFICATE_TYPES.CAMBRIDGE;
   if (code.includes("TOEFL")) return CERTIFICATE_TYPES.TOEFL;
-  return CERTIFICATE_TYPES.IELTS;
+  return CERTIFICATE_TYPES.GENERAL;
+}
+
+export function getScoreRangeHint(courseCode = "", options = {}) {
+  const type = detectCourseType(courseCode, options.scoreType);
+  const maxVal = parseFloat(options.maxScore) || 100;
+  switch (type) {
+    case CERTIFICATE_TYPES.IELTS:
+      return "IELTS: mỗi kỹ năng 0 – 9.0 (bước 0.5)";
+    case CERTIFICATE_TYPES.TOEIC:
+      return "TOEIC: Nghe & Đọc 5 – 495 (bước 5)";
+    case CERTIFICATE_TYPES.VSTEP:
+      return "VSTEP: mỗi kỹ năng 0 – 10.0 (bước 0.5, đạt từ 4.0)";
+    case CERTIFICATE_TYPES.CAMBRIDGE:
+      return "Cambridge Scale: mỗi kỹ năng 80 – 230 (số nguyên)";
+    case CERTIFICATE_TYPES.TOEFL:
+      return "TOEFL iBT: mỗi kỹ năng 0 – 30 (số nguyên)";
+    case CERTIFICATE_TYPES.GENERAL:
+    default:
+      return `Thang điểm tổng quát: mỗi kỹ năng 0 – ${maxVal}`;
+  }
 }
 
 /**
- * 1. Thuật toán làm tròn điểm IELTS chuẩn British Council / IDP / Cambridge
- * - < 0.25 -> làm tròn xuống .0
- * - >= 0.25 và < 0.75 -> làm tròn thành .5
- * - >= 0.75 -> làm tròn lên .0 tiếp theo
+ * 1. IELTS chuẩn British Council / IDP
  */
 export function calculateIeltsOverall(l, r, w, s) {
   const nums = [parseFloat(l), parseFloat(r), parseFloat(w), parseFloat(s)];
-  if (nums.some(isNaN)) return "0.0 Overall";
+  if (nums.some(isNaN)) return "";
   const avg = nums.reduce((a, b) => a + b, 0) / 4;
   const dec = avg - Math.floor(avg);
   let rounded;
@@ -43,24 +76,23 @@ export function calculateIeltsOverall(l, r, w, s) {
 }
 
 /**
- * 2. Thuật toán tính điểm TOEIC Listening & Reading (Tối đa 990)
+ * 2. TOEIC Listening & Reading (Tối đa 990)
  */
 export function calculateToeicOverall(l, r) {
-  const listening = Math.max(0, Math.min(495, parseInt(l) || 0));
-  const reading = Math.max(0, Math.min(495, parseInt(r) || 0));
+  const lNum = parseInt(l, 10);
+  const rNum = parseInt(r, 10);
+  if (isNaN(lNum) || isNaN(rNum)) return "";
+  const listening = Math.max(0, Math.min(495, lNum));
+  const reading = Math.max(0, Math.min(495, rNum));
   return `${listening + reading}/990`;
 }
 
 /**
- * 3. Thuật toán tính điểm VSTEP (Khung 6 bậc Việt Nam)
- * - Trung bình cộng 4 kỹ năng làm tròn đến 0.5
- * - Bậc 3 (B1): 4.0 - 5.5
- * - Bậc 4 (B2): 6.0 - 8.0
- * - Bậc 5 (C1): 8.5 - 10.0
+ * 3. VSTEP (Khung 6 bậc Việt Nam)
  */
 export function calculateVstepOverall(l, r, w, s) {
   const nums = [parseFloat(l), parseFloat(r), parseFloat(w), parseFloat(s)];
-  if (nums.some(isNaN)) return "Chưa đạt";
+  if (nums.some(isNaN)) return "";
   const avg = nums.reduce((a, b) => a + b, 0) / 4;
   const rounded = Math.round(avg * 2) / 2;
   let level = "Không đạt";
@@ -71,11 +103,11 @@ export function calculateVstepOverall(l, r, w, s) {
 }
 
 /**
- * 4. Thuật toán tính điểm Cambridge English Scale (160 - 210)
+ * 4. Cambridge English Scale (160 - 210)
  */
 export function calculateCambridgeOverall(l, r, w, s) {
   const nums = [parseFloat(l), parseFloat(r), parseFloat(w), parseFloat(s)];
-  if (nums.some(isNaN)) return "0 C1 Scale";
+  if (nums.some(isNaN)) return "";
   const avg = Math.round(nums.reduce((a, b) => a + b, 0) / 4);
   let grade = "Pass";
   if (avg >= 200) grade = "Grade A (C2 Level)";
@@ -86,20 +118,34 @@ export function calculateCambridgeOverall(l, r, w, s) {
 }
 
 /**
- * 5. Thuật toán tính điểm TOEFL iBT (0 - 120, mỗi kỹ năng 0 - 30)
+ * 5. TOEFL iBT (0 - 120, mỗi kỹ năng 0 - 30)
  */
 export function calculateToeflOverall(l, r, w, s) {
   const nums = [parseInt(l, 10), parseInt(r, 10), parseInt(w, 10), parseInt(s, 10)];
-  if (nums.some(isNaN)) return "0/120 iBT";
+  if (nums.some(isNaN)) return "";
   const total = nums.reduce((a, b) => a + Math.max(0, Math.min(30, b)), 0);
   return `${total}/120 iBT`;
 }
 
 /**
- * 6. Tính điểm tổng theo loại chứng chỉ
+ * 6. Thang điểm tổng quát (GENERAL) theo max_score của khóa học
  */
-export function computeOverallScore(courseCode, { listening, reading, writing, speaking }) {
-  const type = detectCourseType(courseCode);
+export function calculateGeneralOverall(l, r, w, s, maxScore = 100) {
+  const nums = [l, r, w, s]
+    .map((v) => parseFloat(v))
+    .filter((v) => !isNaN(v));
+  if (nums.length === 0) return "";
+  const maxVal = parseFloat(maxScore) > 0 ? parseFloat(maxScore) : 100;
+  const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+  const formatted = Number.isInteger(avg) ? String(avg) : avg.toFixed(1);
+  return `${formatted}/${maxVal}`;
+}
+
+/**
+ * 7. Tính điểm tổng theo loại chứng chỉ
+ */
+export function computeOverallScore(courseCode, { listening, reading, writing, speaking }, options = {}) {
+  const type = detectCourseType(courseCode, options.scoreType);
   switch (type) {
     case CERTIFICATE_TYPES.IELTS:
       return calculateIeltsOverall(listening, reading, writing, speaking);
@@ -111,34 +157,35 @@ export function computeOverallScore(courseCode, { listening, reading, writing, s
       return calculateCambridgeOverall(listening, reading, writing, speaking);
     case CERTIFICATE_TYPES.TOEFL:
       return calculateToeflOverall(listening, reading, writing, speaking);
+    case CERTIFICATE_TYPES.GENERAL:
     default:
-      return calculateIeltsOverall(listening, reading, writing, speaking);
+      return calculateGeneralOverall(listening, reading, writing, speaking, options.maxScore);
   }
 }
 
 /**
- * 7. Tính ngày hết hạn dựa theo quy định của từng loại chứng chỉ
- * - IELTS/TOEIC/VSTEP/TOEFL: Hiệu lực 2 năm (24 tháng)
- * - CAMBRIDGE: Vĩnh viễn (trả về chuỗi rỗng / vô thời hạn)
+ * 8. Tính ngày hết hạn dựa theo quy định của từng loại chứng chỉ
+ * - IELTS/TOEIC/VSTEP/TOEFL: Hiệu lực 2 năm
+ * - CAMBRIDGE/GENERAL: Vô thời hạn
  */
-export function getExpiryDateForCourse(courseCode, issueDateStr) {
+export function getExpiryDateForCourse(courseCode, issueDateStr, options = {}) {
   if (!issueDateStr) return "";
-  const type = detectCourseType(courseCode);
-  if (type === CERTIFICATE_TYPES.CAMBRIDGE) {
+  const type = detectCourseType(courseCode, options.scoreType);
+  if (type === CERTIFICATE_TYPES.CAMBRIDGE || type === CERTIFICATE_TYPES.GENERAL) {
     return ""; // Vô thời hạn
   }
 
   const d = new Date(issueDateStr);
   if (isNaN(d.getTime())) return "";
-  d.setFullYear(d.getFullYear() + 2); // 2 năm
+  d.setFullYear(d.getFullYear() + 2);
   return d.toISOString().slice(0, 10);
 }
 
 /**
- * 8. Kiểm tra tính hợp lệ của điểm số theo thang điểm & bước nhảy chuẩn (step)
+ * 9. Kiểm tra tính hợp lệ của điểm số theo chuẩn thang điểm & bước nhảy
  */
-export function validateSubScores(courseCode, { listening, reading, writing, speaking }) {
-  const type = detectCourseType(courseCode);
+export function validateSubScores(courseCode, { listening, reading, writing, speaking }, options = {}) {
+  const type = detectCourseType(courseCode, options.scoreType);
   const errors = [];
 
   const checkRange = (name, val, min, max, step = 0.5) => {
@@ -197,8 +244,22 @@ export function validateSubScores(courseCode, { listening, reading, writing, spe
       checkRange("TOEFL Writing", writing, 0, 30, 1);
       checkRange("TOEFL Speaking", speaking, 0, 30, 1);
       break;
-    default:
+    case CERTIFICATE_TYPES.GENERAL:
+    default: {
+      const maxVal = parseFloat(options.maxScore) > 0 ? parseFloat(options.maxScore) : 100;
+      const filled = [
+        { name: "Listening", val: listening },
+        { name: "Reading", val: reading },
+        { name: "Writing", val: writing },
+        { name: "Speaking", val: speaking }
+      ].filter((item) => item.val !== "" && item.val !== null && item.val !== undefined);
+      if (filled.length === 0) {
+        errors.push("Vui lòng nhập ít nhất 1 điểm kỹ năng.");
+      } else {
+        filled.forEach((item) => checkRange(item.name, item.val, 0, maxVal, 0));
+      }
       break;
+    }
   }
 
   return {

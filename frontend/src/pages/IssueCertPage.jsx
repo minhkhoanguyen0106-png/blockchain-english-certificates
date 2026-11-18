@@ -14,7 +14,7 @@ import {
   getAllCertificates
 } from "../services/web3Service";
 import { certificateApi, studentApi, courseApi } from "../services/apiService";
-import { computeOverallScore, getExpiryDateForCourse, validateSubScores, detectCourseType } from "../services/scoreEngine";
+import { computeOverallScore, getExpiryDateForCourse, validateSubScores, detectCourseType, getScoreRangeHint } from "../services/scoreEngine";
 import CertificateCard from "../components/CertificateCard";
 import { toast } from "../components/ToastContainer";
 
@@ -224,20 +224,29 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     loadOptions();
   }, [searchParams]);
 
+  const getCourseOptions = (courseCode, pool = coursesList) => {
+    const found = pool.find((c) => c.course_code === courseCode);
+    return {
+      scoreType: found?.score_type || "",
+      maxScore: found?.max_score || ""
+    };
+  };
+
   const handleSubScoreChange = (field, val) => {
     const updated = { ...formData, [field]: val };
+    const courseOpts = getCourseOptions(updated.course_code);
     const overall = computeOverallScore(updated.course_code, {
       listening: field === "listening" ? val : updated.listening,
       reading: field === "reading" ? val : updated.reading,
       writing: field === "writing" ? val : updated.writing,
       speaking: field === "speaking" ? val : updated.speaking
-    });
+    }, courseOpts);
     updated.score = overall;
     setFormData(updated);
   };
 
   const handleDateChange = (issueDate) => {
-    const expiry = getExpiryDateForCourse(formData.course_code, issueDate);
+    const expiry = getExpiryDateForCourse(formData.course_code, issueDate, getCourseOptions(formData.course_code));
     setFormData({
       ...formData,
       issue_date: issueDate,
@@ -349,14 +358,15 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     const courseCode = e.target.value;
     const found = coursesList.find(c => c.course_code === courseCode);
     if (found) {
+      const courseOpts = { scoreType: found.score_type || "", maxScore: found.max_score || "" };
       const overall = computeOverallScore(found.course_code, {
         listening: formData.listening,
         reading: formData.reading,
         writing: formData.writing,
         speaking: formData.speaking
-      });
-      const expiry = getExpiryDateForCourse(found.course_code, formData.issue_date);
-      const nextType = detectCourseType(found.course_code);
+      }, courseOpts);
+      const expiry = getExpiryDateForCourse(found.course_code, formData.issue_date, courseOpts);
+      const nextType = detectCourseType(found.course_code, found.score_type);
       setFormData(prev => ({
         ...prev,
         certificate_code: !selectedDraftCode
@@ -383,7 +393,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       return;
     }
 
-    const validation = validateSubScores(formData.course_code, formData);
+    const validation = validateSubScores(formData.course_code, formData, getCourseOptions(formData.course_code));
     if (!validation.isValid) {
       toast.error(`Dữ liệu điểm chưa hợp lệ:\n• ${validation.errors.join("\n• ")}`);
       return;
@@ -433,7 +443,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       toast.warning("Vui lòng chọn hồ sơ chứng chỉ trước khi chuẩn bị phát hành.");
       return;
     }
-    const validation = validateSubScores(formData.course_code, formData);
+    const validation = validateSubScores(formData.course_code, formData, getCourseOptions(formData.course_code));
     if (!validation.isValid) {
       toast.error(`Dữ liệu điểm chưa hợp lệ:\n• ${validation.errors.join("\n• ")}`);
       return;
@@ -1178,9 +1188,14 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
                 {/* Sub-scores 4 skills */}
                 <div style={{ marginBottom: "18px" }}>
-                  <label className="form-label" style={{ fontSize: "12px", marginBottom: "8px", display: "block" }}>
-                    Điểm số các kỹ năng thành phần
-                  </label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}>
+                    <label className="form-label" style={{ fontSize: "12px", marginBottom: 0 }}>
+                      Điểm số các kỹ năng thành phần
+                    </label>
+                    <span style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 500 }}>
+                      {getScoreRangeHint(formData.course_code, getCourseOptions(formData.course_code))}
+                    </span>
+                  </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
                     <div>

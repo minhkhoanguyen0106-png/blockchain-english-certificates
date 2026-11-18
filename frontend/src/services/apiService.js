@@ -138,6 +138,35 @@ export const certificateApi = {
     return await apiRequest(`/certificates/${id}`, {
       method: "DELETE"
     });
+  },
+  // Tải & mở file PDF an toàn (kiểm tra HTTP/Content-Type trước để không văng tab JSON lỗi)
+  openCertificatePdf: async (certificateCode) => {
+    if (!certificateCode) {
+      throw new Error("Thiếu mã chứng chỉ để tải PDF.");
+    }
+    const pdfEndpoint = `${API_BASE_URL}/public/pdf/${encodeURIComponent(certificateCode)}`;
+    const response = await fetch(pdfEndpoint);
+    const contentType = (response.headers.get("content-type") || "").toLowerCase();
+
+    if (!response.ok || !contentType.includes("application/pdf")) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(
+        errData.message || `Không thể tải file PDF chứng chỉ (HTTP ${response.status}).`
+      );
+    }
+
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const win = window.open(blobUrl, "_blank");
+    if (!win) {
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `${certificateCode}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
   }
 };
 

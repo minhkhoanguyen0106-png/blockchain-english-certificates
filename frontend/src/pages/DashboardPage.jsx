@@ -20,8 +20,9 @@ import {
   ShieldAlert
 } from "lucide-react";
 import { shortenAddress } from "../services/web3Service";
-import { API_BASE_URL, dashboardApi, certificateApi } from "../services/apiService";
+import { dashboardApi, certificateApi } from "../services/apiService";
 import { detectCourseType } from "../services/scoreEngine";
+import { toast } from "../components/ToastContainer";
 
 const formatTimeVN = (val) => {
   if (!val) return "";
@@ -992,7 +993,13 @@ export default function DashboardPage({ user }) {
                         <>
                           <button
                             type="button"
-                            onClick={() => window.open(`${API_BASE_URL}/public/pdf/${activeCert.certificate_code}`, "_blank")}
+                            onClick={async () => {
+                              try {
+                                await certificateApi.openCertificatePdf(activeCert.certificate_code);
+                              } catch (err) {
+                                toast.error(err.message || "Không thể tải file PDF chứng chỉ từ IPFS.");
+                              }
+                            }}
                             title="Tải PDF chứng chỉ"
                             style={{
                               width: "40px",

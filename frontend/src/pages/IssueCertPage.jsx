@@ -1736,7 +1736,13 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
               </button>
               <button
                 type="button"
-                onClick={() => window.open(`${API_BASE_URL}/public/pdf/${successCert.certificate_code}`, "_blank")}
+                onClick={async () => {
+                  try {
+                    await certificateApi.openCertificatePdf(successCert.certificate_code);
+                  } catch (err) {
+                    toast.error(err.message || "Không thể tải file PDF chứng chỉ từ IPFS.");
+                  }
+                }}
                 className="btn btn-gold"
                 style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
               >

@@ -3,7 +3,9 @@ import { useSearchParams } from "react-router-dom";
 import { Search, ShieldCheck, AlertTriangle, XCircle, Download, QrCode, RefreshCw, Copy, Check, Upload, CheckCircle2, AlertCircle, Clock, ShieldAlert } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { getCertificateByCode } from "../services/web3Service";
+import { certificateApi } from "../services/apiService";
 import CertificateCard from "./CertificateCard";
+import { toast } from "./ToastContainer";
 
 const CertificateVerifier = forwardRef(function CertificateVerifier({ syncUrl = false }, ref) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -514,11 +516,11 @@ const CertificateVerifier = forwardRef(function CertificateVerifier({ syncUrl = 
             <div className="result-phase-3" style={{ display: "flex", justifyContent: "center", gap: "12px", marginTop: "24px", flexWrap: "wrap" }}>
               <button
                 type="button"
-                onClick={() => {
-                  if (result.pdf_url && result.pdf_url !== "#") {
-                    window.open(result.pdf_url, "_blank");
-                  } else {
-                    window.open(`http://localhost:5000/api/public/pdf/${result.certificate_code}`, "_blank");
+                onClick={async () => {
+                  try {
+                    await certificateApi.openCertificatePdf(result.certificate_code);
+                  } catch (err) {
+                    toast.error(err.message || "Không thể tải file PDF chứng chỉ từ IPFS.");
                   }
                 }}
                 className="btn btn-primary"

@@ -338,6 +338,14 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
   const isPubliclyIssued = (status) =>
     status === "ISSUED_ON_CHAIN" || status === "REVOKED" || status === "EXPIRED";
 
+  const handleOpenPdf = async (certificateCode) => {
+    try {
+      await certificateApi.openCertificatePdf(certificateCode);
+    } catch (err) {
+      toast.error(err.message || "Không thể tải file PDF chứng chỉ từ IPFS.");
+    }
+  };
+
   return (
     <div className="admin-page admin-certificates">
       {/* Offline / API Error Banner */}
@@ -601,7 +609,7 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                         {isPubliclyIssued(c.status) && (
                           <button
                             type="button"
-                            onClick={() => window.open(`${API_BASE_URL}/public/pdf/${c.certificate_code}`, "_blank")}
+                            onClick={() => handleOpenPdf(c.certificate_code)}
                             className="btn btn-outline"
                             style={{ padding: "6px 10px", fontSize: "12px" }}
                             title="Tải bản in PDF có mã QR xác thực"
@@ -957,7 +965,7 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                 {isPubliclyIssued(selectedCert.status) && (
                   <button
                     type="button"
-                    onClick={() => window.open(`${API_BASE_URL}/public/pdf/${selectedCert.certificate_code}`, "_blank")}
+                    onClick={() => handleOpenPdf(selectedCert.certificate_code)}
                     className="btn btn-gold"
                     style={{ fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "6px" }}
                   >

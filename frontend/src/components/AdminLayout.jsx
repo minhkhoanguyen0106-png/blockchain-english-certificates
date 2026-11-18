@@ -104,13 +104,15 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
       <aside
         className={`admin-sidebar ${sidebarOpen ? "admin-sidebar-open" : ""}`}
       >
-        {/* Brand Header */}
+        {/* Brand Header (Khớp tuyệt đối chiều cao 64px với Top Header Bar) */}
         <div style={{
-          padding: "20px 24px",
+          height: "64px",
+          padding: "0 20px",
           borderBottom: "1px solid var(--border-subtle)",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between"
+          justifyContent: "space-between",
+          flexShrink: 0
         }}>
           <Link to="/admin/dashboard" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div style={{
@@ -159,6 +161,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
                   key={item.path}
                   to={item.path}
                   onClick={() => setSidebarOpen(false)}
+                  className={`admin-nav-link ${active ? "active" : ""}`}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -220,6 +223,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
         
         {/* Top Header Workspace Bar */}
         <header
+          className="admin-topbar"
           style={{
             height: "64px",
             background: "var(--bg-header)",
@@ -347,7 +351,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
         </header>
 
         {/* Content body */}
-        <main style={{ flex: 1, padding: "28px 32px 60px" }}>
+        <main className="admin-content" style={{ flex: 1 }}>
           {children}
         </main>
 

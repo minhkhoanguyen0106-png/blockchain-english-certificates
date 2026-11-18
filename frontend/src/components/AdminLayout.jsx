@@ -330,47 +330,14 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
             </div>
           </div>
 
-          {/* Action Tools: Theme, Wallet & User */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            
-            {/* User Profile Pill in Topbar */}
-            {user && (
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "4px 10px 4px 6px",
-                background: "var(--bg-surface)",
-                border: "1px solid var(--border-subtle)",
-                borderRadius: "var(--radius-full)",
-                fontSize: "12px"
-              }}>
-                <div style={{
-                  width: "24px",
-                  height: "24px",
-                  borderRadius: "50%",
-                  background: user?.role === "ADMIN" ? "rgba(16, 185, 129, 0.15)" : "rgba(245, 158, 11, 0.15)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: user?.role === "ADMIN" ? "var(--success-color)" : "var(--warning-color)",
-                  fontWeight: 700,
-                  fontSize: "11px"
-                }}>
-                  <User size={13} />
-                </div>
-                <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{displayName}</span>
-                <span className={`badge ${user?.role === "ADMIN" ? "badge-success" : "badge-warning"}`} style={{ fontSize: "10px", padding: "2px 6px" }}>
-                  {roleName}
-                </span>
-              </div>
-            )}
+          {/* Action Tools: Theme, Wallet (Admin only) & Unified User Capsule */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
 
             {/* Light / Dark Mode Toggle */}
             <ThemeToggle />
 
             {/* MetaMask Connector (Chỉ hiển thị cho ADMIN ký duyệt on-chain) */}
-            {user?.role === "ADMIN" ? (
+            {user?.role === "ADMIN" && (
               wallet ? (
                 <div style={{
                   display: "flex",
@@ -394,25 +361,66 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
                   style={{ fontSize: "12px", padding: "6px 14px", display: "inline-flex", alignItems: "center", gap: "6px" }}
                 >
                   <Wallet size={15} />
-                  {connecting ? "Đang kết nối..." : "Ví Quản Trị (Admin)"}
+                  {connecting ? "Đang kết nối..." : "Kết Nối Ví Ký"}
                 </button>
               )
-            ) : (
-              <span className="badge badge-warning" style={{ fontSize: "11px", padding: "5px 10px" }}>
-                💼 Khảo Thí (Staff)
-              </span>
             )}
 
-            {/* Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="btn btn-outline"
-              title="Đăng xuất khỏi hệ thống"
-              style={{ padding: "8px 12px", fontSize: "12px", gap: "6px" }}
-            >
-              <LogOut size={14} />
-              <span>Đăng Xuất</span>
-            </button>
+            <div style={{ width: "1px", height: "20px", background: "var(--border-subtle)" }} />
+
+            {/* Unified User Profile Capsule + Logout */}
+            {user && (
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "4px 6px 4px 8px",
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: "var(--radius-full)",
+                fontSize: "12px"
+              }}>
+                <div style={{
+                  width: "26px",
+                  height: "26px",
+                  borderRadius: "50%",
+                  background: user?.role === "ADMIN" ? "rgba(16, 185, 129, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: user?.role === "ADMIN" ? "var(--success-color)" : "var(--warning-color)",
+                  fontWeight: 700,
+                  fontSize: "11px"
+                }}>
+                  <User size={13} />
+                </div>
+                <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{displayName}</span>
+                <span className={`badge ${user?.role === "ADMIN" ? "badge-success" : "badge-warning"}`} style={{ fontSize: "10px", padding: "2px 7px" }}>
+                  {roleName}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  title="Đăng xuất khỏi hệ thống"
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    borderLeft: "1px solid var(--border-subtle)",
+                    padding: "4px 6px 4px 8px",
+                    marginLeft: "2px",
+                    cursor: "pointer",
+                    color: "var(--text-muted)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "color var(--transition-fast)"
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "var(--danger-text)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-muted)"; }}
+                >
+                  <LogOut size={14} />
+                </button>
+              </div>
+            )}
 
           </div>
         </header>

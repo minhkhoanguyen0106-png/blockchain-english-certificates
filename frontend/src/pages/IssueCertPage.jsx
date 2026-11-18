@@ -1777,44 +1777,132 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
               Chứng chỉ <strong>{successCert.certificate_code}</strong> đã được xác thực và lưu trữ thành công trên hệ thống.
             </p>
 
-            <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", padding: "14px", borderRadius: "var(--radius-md)", fontSize: "12px", textAlign: "left", marginBottom: "24px" }}>
-              <div><strong>Mã giao dịch xác thực:</strong> <span style={{ color: "var(--primary)" }}>{successCert.tx_hash}</span></div>
-              <div style={{ marginTop: "4px" }}><strong>Mã số bằng:</strong> <span style={{ color: "var(--accent-gold)" }}>#{successCert.token_id}</span></div>
-              <div style={{ marginTop: "4px" }}><strong>Mã lưu trữ số:</strong> <span style={{ color: "var(--accent-gold)" }}>{successCert.ipfs_hash}</span></div>
+            {/* Khung Bằng Chứng On-Chain Sang Trọng (Không bao giờ tràn) */}
+            <div style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-subtle)",
+              padding: "16px",
+              borderRadius: "12px",
+              fontSize: "12px",
+              textAlign: "left",
+              marginBottom: "22px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px"
+            }}>
+              {/* Token ID & Trạng thái */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "8px", borderBottom: "1px dashed var(--border-subtle)" }}>
+                <span style={{ color: "var(--text-muted)", fontWeight: 600 }}>Mã số Token (SBT):</span>
+                <span style={{
+                  fontWeight: 800,
+                  fontSize: "13px",
+                  color: "#d97706",
+                  background: "rgba(245, 158, 11, 0.12)",
+                  padding: "2px 10px",
+                  borderRadius: "9999px",
+                  border: "1px solid rgba(245, 158, 11, 0.3)"
+                }}>
+                  Token #{successCert.token_id}
+                </span>
+              </div>
+
+              {/* Mã giao dịch xác thực (TxHash) */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <span style={{ color: "var(--text-muted)", fontWeight: 600 }}>Mã giao dịch xác thực (Tx Hash):</span>
+                  <a
+                    href={`https://sepolia.etherscan.io/tx/${successCert.tx_hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: "11px", color: "var(--primary)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "3px" }}
+                    title="Xem trên Sepolia Etherscan"
+                  >
+                    Etherscan <ExternalLink size={11} />
+                  </a>
+                </div>
+                <div style={{
+                  background: "rgba(0, 0, 0, 0.04)",
+                  padding: "8px 10px",
+                  borderRadius: "6px",
+                  fontFamily: "monospace",
+                  fontSize: "11.5px",
+                  color: "var(--primary)",
+                  wordBreak: "break-all",
+                  lineHeight: 1.45,
+                  userSelect: "all"
+                }}>
+                  {successCert.tx_hash}
+                </div>
+              </div>
+
+              {/* Mã lưu trữ IPFS */}
+              {successCert.ipfs_hash && (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                    <span style={{ color: "var(--text-muted)", fontWeight: 600 }}>Mã lưu trữ số (IPFS CID):</span>
+                    <a
+                      href={`https://gateway.pinata.cloud/ipfs/${successCert.ipfs_hash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: "11px", color: "#d97706", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "3px" }}
+                      title="Mở trên IPFS Gateway"
+                    >
+                      Pinata <ExternalLink size={11} />
+                    </a>
+                  </div>
+                  <div style={{
+                    background: "rgba(0, 0, 0, 0.04)",
+                    padding: "8px 10px",
+                    borderRadius: "6px",
+                    fontFamily: "monospace",
+                    fontSize: "11.5px",
+                    color: "var(--text-secondary)",
+                    wordBreak: "break-all",
+                    lineHeight: 1.45,
+                    userSelect: "all"
+                  }}>
+                    {successCert.ipfs_hash}
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+            {/* Các nút hành động cân đối */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await certificateApi.openCertificatePdf(successCert.certificate_code);
+                    } catch (err) {
+                      toast.error(err.message || "Không thể tải file PDF chứng chỉ từ IPFS.");
+                    }
+                  }}
+                  className="btn btn-gold"
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "10px 14px", fontSize: "13px" }}
+                >
+                  <Download size={15} /> Tải PDF Thật
+                </button>
+                <a
+                  href={`/verify?code=${successCert.certificate_code}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-outline"
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "10px 14px", fontSize: "13px", textDecoration: "none" }}
+                >
+                  <ExternalLink size={14} /> Xem Trang Tra Cứu
+                </a>
+              </div>
+
               <button
                 type="button"
                 onClick={() => { setSuccessCert(null); navigate("/admin/certificates"); }}
                 className="btn btn-primary"
-                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                style={{ width: "100%", padding: "11px 16px", fontSize: "13.5px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
               >
-                <CheckCircle2 size={16} /> Về Danh Sách Chứng Chỉ
+                <CheckCircle2 size={16} /> Hoàn Tất &amp; Về Danh Sách Chứng Chỉ
               </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await certificateApi.openCertificatePdf(successCert.certificate_code);
-                  } catch (err) {
-                    toast.error(err.message || "Không thể tải file PDF chứng chỉ từ IPFS.");
-                  }
-                }}
-                className="btn btn-gold"
-                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
-              >
-                <Download size={15} /> Tải PDF Thật
-              </button>
-              <a
-                href={`/verify?code=${successCert.certificate_code}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-outline"
-                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
-              >
-                <ExternalLink size={14} /> Mở Trang Tra Cứu (Tab Mới)
-              </a>
             </div>
           </div>
         </div>

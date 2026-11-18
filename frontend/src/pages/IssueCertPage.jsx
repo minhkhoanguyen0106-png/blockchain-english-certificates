@@ -1276,12 +1276,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 </div>
 
                 <div className="form-group">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                    <label className="form-label" style={{ marginBottom: 0 }}>Chọn học viên từ danh sách</label>
-                    <Link to="/admin/data-management" style={{ fontSize: "11.5px", color: "var(--primary)", fontWeight: 600 }}>
-                      + Thêm học viên mới
-                    </Link>
-                  </div>
+                  <label className="form-label">Chọn học viên từ danh sách</label>
                   <select required value={selectedStudentId} onChange={handleStudentSelect} className="form-select">
                     <option value="">-- Chọn học viên đã đăng ký trong hệ thống --</option>
                     {studentsList.map(s => (

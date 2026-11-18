@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search, ShieldCheck, AlertTriangle, XCircle, Download, QrCode, RefreshCw, Copy, Check, Upload, CheckCircle2, AlertCircle } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { getCertificateByCode } from "../services/web3Service";
 import CertificateCard from "./CertificateCard";
 
-export default function CertificateVerifier({ syncUrl = false }) {
+const CertificateVerifier = forwardRef(function CertificateVerifier({ syncUrl = false }, ref) {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCode = searchParams.get("code") || "";
   const initialTab = searchParams.get("tab") || "code";
@@ -23,6 +23,20 @@ export default function CertificateVerifier({ syncUrl = false }) {
   const [qrError, setQrError] = useState("");
   const scannerRef = useRef(null);
   const resultRef = useRef(null);
+  const inputRef = useRef(null);
+  const containerRef = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    focusSearch: () => {
+      setActiveTab("code");
+      containerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => inputRef.current?.focus(), 380);
+    },
+    openQrScanner: () => {
+      setActiveTab("qr");
+      containerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }));
 
   // Unique DOM ids in case mounted on different routes
   const qrElementId = syncUrl ? "verify-qr-reader" : "home-qr-reader";
@@ -159,7 +173,7 @@ export default function CertificateVerifier({ syncUrl = false }) {
   };
 
   return (
-    <div style={{ maxWidth: "680px", margin: "0 auto", textAlign: "left" }}>
+    <div ref={containerRef} style={{ maxWidth: "680px", margin: "0 auto", textAlign: "left" }}>
       {/* Ultra-clean Pill Search Bar with Icon-only QR & Search actions */}
       <form
         onSubmit={(e) => {
@@ -169,6 +183,7 @@ export default function CertificateVerifier({ syncUrl = false }) {
         className="search-spotlight-bar"
       >
         <input
+          ref={inputRef}
           type="text"
           placeholder="Nhập mã chứng chỉ cần tra cứu..."
           value={inputCode}
@@ -186,6 +201,7 @@ export default function CertificateVerifier({ syncUrl = false }) {
             setActiveTab(nextTab);
             if (syncUrl) setSearchParams(nextTab === "qr" ? { tab: "qr" } : (inputCode ? { code: inputCode } : {}));
           }}
+          className={`spotlight-icon-btn ${activeTab === "qr" ? "qr-active-pulse" : ""}`}
           style={{
             width: "42px",
             height: "42px",
@@ -197,7 +213,6 @@ export default function CertificateVerifier({ syncUrl = false }) {
             justifyContent: "center",
             background: activeTab === "qr" ? "var(--primary-bg)" : "transparent",
             color: activeTab === "qr" ? "var(--primary)" : "var(--text-secondary)",
-            transition: "all var(--transition-fast)",
             flexShrink: 0
           }}
           title="Quét mã QR bằng camera hoặc tải ảnh"
@@ -209,7 +224,7 @@ export default function CertificateVerifier({ syncUrl = false }) {
         <button
           type="submit"
           disabled={loading}
-          className="btn btn-primary"
+          className="btn btn-primary spotlight-icon-btn"
           style={{
             width: "42px",
             height: "42px",
@@ -226,7 +241,7 @@ export default function CertificateVerifier({ syncUrl = false }) {
 
       {/* Slide-down Embedded QR Scanner Panel (Only visible when Quét QR is toggled on) */}
       {activeTab === "qr" && (
-        <div className="glass-panel" style={{ padding: "24px", marginTop: "16px", maxWidth: "520px", marginLeft: "auto", marginRight: "auto" }}>
+        <div className="glass-panel qr-panel-reveal" style={{ padding: "24px", marginTop: "16px", maxWidth: "520px", marginLeft: "auto", marginRight: "auto" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
             <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "8px" }}>
               <QrCode size={16} color="var(--primary)" /> Quét Mã QR Trên Bằng Cấp
@@ -310,17 +325,28 @@ export default function CertificateVerifier({ syncUrl = false }) {
       {/* Verification Result Area */}
       <div ref={resultRef}>
         {activeTab === "code" && loading && (
-          <div className="glass-panel" style={{ padding: "40px 20px", textAlign: "center", marginTop: "24px" }}>
-            <div style={{ width: "44px", height: "44px", border: "4px solid var(--border-subtle)", borderTopColor: "var(--primary)", borderRadius: "50%", margin: "0 auto 14px", animation: "spinSlow 1s linear infinite" }} />
+          <div className="glass-panel result-phase-1" style={{ padding: "36px 24px", textAlign: "center", marginTop: "24px" }}>
+            <svg width="110" height="84" viewBox="0 0 110 84" fill="none" style={{ display: "block", margin: "0 auto 14px" }} aria-hidden="true">
+              <rect x="10" y="8" width="90" height="68" rx="12" fill="var(--bg-surface-elevated)" stroke="var(--primary)" strokeWidth="2" strokeOpacity="0.4" />
+              <rect x="20" y="20" width="24" height="24" rx="5" fill="var(--primary-bg)" stroke="var(--primary)" strokeWidth="1.5" />
+              <rect x="25" y="25" width="6" height="6" rx="1.5" fill="var(--primary)" />
+              <rect x="34" y="25" width="5" height="5" rx="1" fill="var(--primary)" opacity="0.65" />
+              <rect x="25" y="34" width="5" height="5" rx="1" fill="var(--primary)" opacity="0.65" />
+              <rect x="33" y="33" width="6" height="6" rx="1.5" fill="var(--primary)" />
+              <rect x="52" y="22" width="38" height="6" rx="3" fill="var(--primary)" opacity="0.7" className="live-bar-pulse-1" />
+              <rect x="52" y="34" width="28" height="5" rx="2.5" fill="var(--primary)" opacity="0.45" className="live-bar-pulse-2" />
+              <rect x="20" y="54" width="66" height="5" rx="2.5" fill="var(--primary)" opacity="0.3" className="live-bar-pulse-3" />
+              <line x1="16" y1="16" x2="94" y2="16" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" className="live-scan-beam" />
+            </svg>
             <h3 style={{ fontSize: "17px", fontWeight: 700, color: "var(--text-primary)" }}>Đang đối soát chứng chỉ điện tử...</h3>
             <p style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "4px" }}>Xác thực chữ ký số và dữ liệu chứng chỉ trên hệ thống</p>
           </div>
         )}
 
         {activeTab === "code" && !loading && hasSearched && result && (
-          <div style={{ marginTop: "28px" }}>
+          <div key={result.certificate_code || "verified"} style={{ marginTop: "28px" }}>
             {result.status === "ISSUED_ON_CHAIN" && (
-              <div style={{
+              <div className="result-phase-1" style={{
                 background: "var(--success-bg)",
                 border: "1px solid rgba(16, 185, 129, 0.4)",
                 borderRadius: "var(--radius-md)",
@@ -330,8 +356,10 @@ export default function CertificateVerifier({ syncUrl = false }) {
                 alignItems: "center",
                 gap: "14px"
               }}>
-                <div style={{ background: "var(--success-color)", borderRadius: "50%", padding: "6px", display: "flex", color: "#04121e" }}>
-                  <ShieldCheck size={24} color="#04121e" />
+                <div style={{ background: "var(--success-color)", borderRadius: "50%", width: "38px", height: "38px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M5 13L10 18L19 7" stroke="#04121e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="draw-check-path" />
+                  </svg>
                 </div>
                 <div>
                   <h4 style={{ color: "var(--success-text)", fontWeight: 800, fontSize: "16px" }}>
@@ -347,7 +375,7 @@ export default function CertificateVerifier({ syncUrl = false }) {
             )}
 
             {result.status === "REVOKED" && (
-              <div style={{
+              <div className="result-phase-1" style={{
                 background: "var(--danger-bg)",
                 border: "1px solid rgba(239, 68, 68, 0.4)",
                 borderRadius: "var(--radius-md)",
@@ -375,7 +403,7 @@ export default function CertificateVerifier({ syncUrl = false }) {
             )}
 
             {result.status === "TAMPERED" && (
-              <div style={{
+              <div className="result-phase-1" style={{
                 background: "rgba(245, 158, 11, 0.15)",
                 border: "1px solid rgba(245, 158, 11, 0.5)",
                 borderRadius: "var(--radius-md)",
@@ -402,9 +430,11 @@ export default function CertificateVerifier({ syncUrl = false }) {
               </div>
             )}
 
-            <CertificateCard cert={result} />
+            <div className="result-phase-2">
+              <CertificateCard cert={result} />
+            </div>
 
-            <div style={{ display: "flex", justifyContent: "center", gap: "12px", marginTop: "24px", flexWrap: "wrap" }}>
+            <div className="result-phase-3" style={{ display: "flex", justifyContent: "center", gap: "12px", marginTop: "24px", flexWrap: "wrap" }}>
               <button
                 type="button"
                 onClick={() => {
@@ -433,7 +463,7 @@ export default function CertificateVerifier({ syncUrl = false }) {
         )}
 
         {activeTab === "code" && !loading && hasSearched && !result && (
-          <div className="glass-panel" style={{ padding: "36px", textAlign: "center", marginTop: "24px" }}>
+          <div className="glass-panel result-phase-1" style={{ padding: "36px", textAlign: "center", marginTop: "24px" }}>
             <div style={{ width: "52px", height: "52px", borderRadius: "50%", background: "var(--warning-bg)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
               <AlertTriangle size={26} color="var(--warning-text)" />
             </div>
@@ -446,4 +476,6 @@ export default function CertificateVerifier({ syncUrl = false }) {
       </div>
     </div>
   );
-}
+});
+
+export default CertificateVerifier;

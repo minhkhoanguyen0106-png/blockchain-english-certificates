@@ -9,12 +9,13 @@ import {
   Clock,
   UploadCloud,
   RefreshCw,
-  Eye
+  Eye,
+  ShieldCheck
 } from "lucide-react";
 import QRCode from "qrcode";
 import { shortenAddress } from "../services/web3Service";
 import { detectCourseType } from "../services/scoreEngine";
-import koheniLogoWhite from "../assets/koheni-logo-white.png";
+import koheniLogo from "../assets/koheni-logo.png";
 
 const formatDate = (d) => {
   if (!d) return "—";
@@ -24,6 +25,30 @@ const formatDate = (d) => {
 };
 
 const hasValue = (v) => v !== null && v !== undefined && v !== "";
+
+function CornerOrnament({ position }) {
+  const styles = {
+    tl: { top: "14px", left: "14px", transform: "none" },
+    tr: { top: "14px", right: "14px", transform: "scaleX(-1)" },
+    bl: { bottom: "14px", left: "14px", transform: "scaleY(-1)" },
+    br: { bottom: "14px", right: "14px", transform: "scale(-1, -1)" }
+  }[position];
+
+  return (
+    <svg
+      width="26"
+      height="26"
+      viewBox="0 0 26 26"
+      fill="none"
+      aria-hidden="true"
+      style={{ position: "absolute", pointerEvents: "none", ...styles }}
+    >
+      <path d="M2 24V5C2 3.343 3.343 2 5 2H24" stroke="#c59334" strokeWidth="1.6" />
+      <path d="M6 18V8C6 6.895 6.895 6 8 6H18" stroke="#c59334" strokeWidth="0.9" opacity="0.65" />
+      <circle cx="6" cy="6" r="1.8" fill="#c59334" />
+    </svg>
+  );
+}
 
 export default function CertificateCard({ cert, isPreview = false }) {
   const [qrDataUrl, setQrDataUrl] = useState("");
@@ -39,7 +64,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
     QRCode.toDataURL(verifyUrl, {
       width: 160,
       margin: 1,
-      color: { dark: "#0f172a", light: "#ffffff" }
+      color: { dark: "#0e2a47", light: "#ffffff" }
     })
       .then((url) => { if (active) setQrDataUrl(url); })
       .catch(() => { if (active) setQrDataUrl(""); });
@@ -98,82 +123,93 @@ export default function CertificateCard({ cert, isPreview = false }) {
 
   const hasToken = hasValue(cert.token_id);
 
+  const badgeBase = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "5px 12px",
+    borderRadius: "9999px",
+    fontSize: "11px",
+    fontWeight: 700,
+    letterSpacing: "0.3px"
+  };
+
   const renderStatusBadge = () => {
     if (isTampered) {
       return (
-        <div className="badge badge-danger" style={{ fontSize: "12px", padding: "6px 14px", background: "rgba(245, 158, 11, 0.2)", color: "#fbbf24", border: "1px solid rgba(245, 158, 11, 0.5)" }}>
-          <AlertTriangle size={14} />
+        <div style={{ ...badgeBase, background: "#fef3c7", color: "#92400e", border: "1px solid #f59e0b" }}>
+          <AlertTriangle size={13} />
           SAI LỆCH DỮ LIỆU (TAMPERED)
         </div>
       );
     }
     if (isRejected) {
       return (
-        <div className="badge badge-danger" style={{ fontSize: "12px", padding: "6px 14px" }}>
-          <XCircle size={14} />
+        <div style={{ ...badgeBase, background: "#fee2e2", color: "#b91c1c", border: "1px solid #fca5a5" }}>
+          <XCircle size={13} />
           HỒ SƠ BỊ TỪ CHỐI PHÊ DUYỆT
         </div>
       );
     }
     if (isDraftOrPreview) {
       return (
-        <div className="badge badge-warning" style={{ fontSize: "12px", padding: "6px 14px", background: "rgba(245, 158, 11, 0.18)", color: "#fbbf24", border: "1px dashed rgba(245, 158, 11, 0.45)" }}>
-          <Eye size={14} />
+        <div style={{ ...badgeBase, background: "#fef9e7", color: "#9a6700", border: "1px dashed #d4a017" }}>
+          <Eye size={13} />
           BẢN XEM TRƯỚC – CHƯA PHÁT HÀNH
         </div>
       );
     }
     if (isPendingReconcile) {
       return (
-        <div className="badge badge-warning" style={{ fontSize: "12px", padding: "6px 14px", background: "rgba(249, 115, 22, 0.2)", color: "#fdba74", border: "1px solid rgba(249, 115, 22, 0.45)" }}>
-          <RefreshCw size={14} />
+        <div style={{ ...badgeBase, background: "#ffedd5", color: "#c2410c", border: "1px solid #fdba74" }}>
+          <RefreshCw size={13} />
           CHỜ ĐỐI SOÁT GIAO DỊCH
         </div>
       );
     }
     if (isReadyToMint) {
       return (
-        <div className="badge badge-info" style={{ fontSize: "12px", padding: "6px 14px", background: "rgba(56, 189, 248, 0.18)", color: "#7dd3fc", border: "1px solid rgba(56, 189, 248, 0.45)" }}>
-          <UploadCloud size={14} />
+        <div style={{ ...badgeBase, background: "#e0f2fe", color: "#0369a1", border: "1px solid #7dd3fc" }}>
+          <UploadCloud size={13} />
           SẴN SÀNG KÝ CẤP (IPFS READY)
         </div>
       );
     }
     if (isPending) {
       return (
-        <div className="badge badge-warning" style={{ fontSize: "12px", padding: "6px 14px" }}>
-          <Clock size={14} />
+        <div style={{ ...badgeBase, background: "#fef3c7", color: "#92400e", border: "1px solid #fcd34d" }}>
+          <Clock size={13} />
           ĐANG CHỜ PHÊ DUYỆT
         </div>
       );
     }
     if (isRevoked) {
       return (
-        <div className="badge badge-danger" style={{ fontSize: "12px", padding: "6px 14px" }}>
-          <XCircle size={14} />
+        <div style={{ ...badgeBase, background: "#fee2e2", color: "#b91c1c", border: "1px solid #fca5a5" }}>
+          <XCircle size={13} />
           ĐÃ BỊ THU HỒI (REVOKED)
         </div>
       );
     }
     if (isUnverified) {
       return (
-        <div className="badge badge-warning" style={{ fontSize: "12px", padding: "6px 14px" }}>
-          <AlertTriangle size={14} />
+        <div style={{ ...badgeBase, background: "#fef3c7", color: "#92400e", border: "1px solid #fcd34d" }}>
+          <AlertTriangle size={13} />
           CHƯA THỂ XÁC MINH TRÊN BLOCKCHAIN
         </div>
       );
     }
     if (isValidActive) {
       return (
-        <div className="badge badge-success" style={{ fontSize: "12px", padding: "6px 14px" }}>
-          <CheckCircle2 size={14} />
+        <div style={{ ...badgeBase, background: "#dcfce7", color: "#15803d", border: "1px solid #86efac" }}>
+          <CheckCircle2 size={13} />
           HỢP LỆ &amp; CÒN HIỆU LỰC
         </div>
       );
     }
     return (
-      <div className="badge badge-warning" style={{ fontSize: "12px", padding: "6px 14px" }}>
-        <Calendar size={14} />
+      <div style={{ ...badgeBase, background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1" }}>
+        <Calendar size={13} />
         HẾT HẠN HIỆU LỰC (EXPIRED)
       </div>
     );
@@ -182,133 +218,156 @@ export default function CertificateCard({ cert, isPreview = false }) {
   return (
     <div style={{
       position: "relative",
-      background:
-        "radial-gradient(circle at 92% 8%, rgba(56, 189, 248, 0.14) 0%, transparent 45%), linear-gradient(145deg, #0c1829 0%, #091322 100%)",
-      border: "2px solid #b45309",
-      borderRadius: "16px",
-      padding: "32px 36px",
-      boxShadow: "0 20px 50px rgba(0, 0, 0, 0.38), inset 0 0 40px rgba(180, 83, 9, 0.08)",
-      color: "#f8fafc",
+      background: "linear-gradient(155deg, #fffdf8 0%, #ffffff 48%, #fbf6ea 100%)",
+      border: "3px solid #0e2a47",
+      borderRadius: "14px",
+      padding: "32px 36px 26px",
+      boxShadow: "0 22px 54px -18px rgba(14, 42, 71, 0.28), 0 4px 16px rgba(14, 42, 71, 0.08)",
+      color: "#0e2a47",
       overflow: "hidden",
-      maxWidth: "750px",
+      maxWidth: "760px",
       margin: "0 auto"
     }}>
-      {/* Classical Decorative Inner Border */}
+      {/* Inner Ceremonial Gold Double Frame */}
       <div style={{
         position: "absolute",
         top: "8px",
         left: "8px",
         right: "8px",
         bottom: "8px",
-        border: "1px dashed rgba(245, 158, 11, 0.35)",
-        borderRadius: "12px",
+        border: "1.5px solid #c59334",
+        borderRadius: "8px",
         pointerEvents: "none"
       }} />
 
-      {/* Watermark in background */}
+      {/* 4 Classical Gold Corner Flourishes */}
+      <CornerOrnament position="tl" />
+      <CornerOrnament position="tr" />
+      <CornerOrnament position="bl" />
+      <CornerOrnament position="br" />
+
+      {/* Faint Ceremonial Watermark */}
       <div style={{
         position: "absolute",
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
-        opacity: 0.035,
+        opacity: 0.045,
         pointerEvents: "none"
       }}>
-        <Award size={400} color="#f59e0b" />
+        <Award size={390} color="#b88628" />
       </div>
 
-      {/* Header of Certificate */}
-      <div style={{ textAlign: "center", marginBottom: "22px", position: "relative" }}>
+      {/* Header of Diploma */}
+      <div style={{ textAlign: "center", marginBottom: "18px", position: "relative" }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: "10px" }}>
           <img
-            src={koheniLogoWhite}
-            alt="Koheni English Testing Center"
-            style={{ height: "34px", width: "auto", display: "block", opacity: 0.96 }}
+            src={koheniLogo}
+            alt="Koheni — English Certificate & Management"
+            style={{ height: "38px", width: "auto", display: "block" }}
           />
         </div>
+
+        {/* Classic Gold Hairline Divider */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "10px" }}>
+          <span style={{ width: "64px", height: "1px", background: "linear-gradient(90deg, transparent, #c59334)" }} />
+          <span style={{ width: "6px", height: "6px", background: "#c59334", transform: "rotate(45deg)", display: "inline-block" }} />
+          <span style={{ width: "64px", height: "1px", background: "linear-gradient(90deg, #c59334, transparent)" }} />
+        </div>
+
         <h2 style={{
           fontFamily: "var(--font-serif)",
-          fontSize: "26px",
+          fontSize: "27px",
           fontWeight: 700,
-          color: "#fef3c7",
-          letterSpacing: "1px",
+          color: "#0e2a47",
+          letterSpacing: "1.4px",
           marginBottom: "4px"
         }}>
           CERTIFICATE OF PROFICIENCY
         </h2>
-        <p style={{ color: "#94a3b8", fontSize: "12.5px" }}>
-          Chứng Chỉ Khảo Thí Tiếng Anh Điện Tử Định Danh Bất Biến
+        <p style={{ color: "#64748b", fontSize: "11.5px", fontWeight: 600, letterSpacing: "1.2px", textTransform: "uppercase" }}>
+          Chứng Chỉ Khảo Thí Tiếng Anh Quốc Tế • Xác Thực Blockchain
         </p>
       </div>
 
-      {/* Recipient info */}
-      <div style={{ textAlign: "center", margin: "20px 0", position: "relative" }}>
-        <p style={{ color: "#94a3b8", fontSize: "11.5px", textTransform: "uppercase", letterSpacing: "1.5px" }}>
-          Chứng nhận học viên (This is to certify that)
+      {/* Recipient Block */}
+      <div style={{ textAlign: "center", margin: "18px 0 16px", position: "relative" }}>
+        <p style={{ color: "#64748b", fontSize: "12px", fontStyle: "italic", fontFamily: "var(--font-serif)" }}>
+          This is to certify that / Chứng nhận học viên
         </p>
         <h3 style={{
           fontFamily: "var(--font-serif)",
-          fontSize: "29px",
+          fontSize: "30px",
           fontWeight: 700,
-          color: cert.student_name ? "#38bdf8" : "#64748b",
+          color: cert.student_name ? "#0b2239" : "#94a3b8",
           fontStyle: cert.student_name ? "normal" : "italic",
-          margin: "8px 0"
+          margin: "6px 0 4px",
+          letterSpacing: "0.2px"
         }}>
           {cert.student_name || "[Chưa chọn học viên]"}
         </h3>
-        <p style={{ color: "#94a3b8", fontSize: "13px" }}>
-          Mã học viên: <strong style={{ color: cert.student_code ? "#f8fafc" : "#64748b", fontFamily: "monospace" }}>{cert.student_code || "[Chưa có mã]"}</strong>
+        <div style={{ width: "136px", height: "1.5px", background: "linear-gradient(90deg, transparent, #c59334, transparent)", margin: "6px auto 8px" }} />
+        <p style={{ color: "#475569", fontSize: "12.5px" }}>
+          Mã học viên: <strong style={{ color: cert.student_code ? "#0e2a47" : "#94a3b8", fontFamily: "monospace" }}>{cert.student_code || "[Chưa có mã]"}</strong>
         </p>
       </div>
 
-      {/* Course & Score highlight (Responsive Overall Banner + Clean 2-col TOEIC / 4-col Skill Grid) */}
+      {/* Examination & Official Score Sheet Panel */}
       <div style={{
-        background: "rgba(15, 23, 42, 0.72)",
-        border: "1px solid rgba(245, 158, 11, 0.26)",
-        borderRadius: "12px",
+        background: "#faf6ec",
+        border: "1px solid rgba(197, 147, 52, 0.38)",
+        borderRadius: "10px",
         padding: "16px 20px",
-        margin: "20px 0",
+        margin: "16px 0 20px",
         textAlign: "center",
         position: "relative"
       }}>
-        <div style={{ fontSize: "12.5px", color: "#94a3b8", marginBottom: "4px" }}>
-          Đã hoàn thành xuất sắc kỳ thi:
+        <div style={{ fontSize: "12px", color: "#64748b", fontStyle: "italic", marginBottom: "3px" }}>
+          has successfully completed and demonstrated proficiency in
         </div>
-        <div style={{ fontSize: "18px", fontWeight: 700, color: cert.course_name ? "#fde68a" : "#64748b", marginBottom: "14px" }}>
+        <div style={{ fontSize: "18px", fontWeight: 800, color: cert.course_name ? "#0e2a47" : "#94a3b8", marginBottom: "14px", letterSpacing: "0.2px" }}>
           {cert.course_name || "[Chưa chọn khóa học / kỳ thi]"}
         </div>
 
-        {/* Featured Overall Result Strip */}
+        {/* Prestigious Navy & Gold Overall Score Banner */}
         <div style={{
-          background: "rgba(2, 132, 199, 0.14)",
-          border: "1px solid rgba(56, 189, 248, 0.35)",
-          borderRadius: "10px",
-          padding: "10px 14px",
+          background: "linear-gradient(135deg, #0e2a47 0%, #174066 100%)",
+          border: "1px solid #c59334",
+          borderRadius: "8px",
+          padding: "10px 16px",
           marginBottom: "10px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: "10px",
-          flexWrap: "wrap"
+          gap: "12px",
+          flexWrap: "wrap",
+          boxShadow: "0 6px 16px -8px rgba(14, 42, 71, 0.45)"
         }}>
-          <span style={{ fontSize: "11px", color: "#7dd3fc", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" }}>
+          <span style={{ fontSize: "10.5px", color: "#f6d88b", fontWeight: 700, letterSpacing: "1.4px", textTransform: "uppercase" }}>
             OVERALL SCORE
           </span>
-          <span style={{ fontSize: "20px", fontWeight: 800, color: overallScore ? "#38bdf8" : "#64748b" }}>
+          <span style={{ fontSize: "20px", fontWeight: 800, color: overallScore ? "#ffffff" : "#94a3b8" }}>
             {overallScore || "—"}
           </span>
         </div>
 
-        {/* Component Skills Table (2 cols for TOEIC, 4 cols for IELTS/VSTEP/Cambridge/TOEFL) */}
+        {/* Crisp White Component Skill Cells (2 cols for TOEIC, 4 cols for 4-skill exams) */}
         <div style={{
           display: "grid",
           gridTemplateColumns: `repeat(${skillItems.length}, minmax(0, 1fr))`,
           gap: "8px"
         }}>
           {skillItems.map((sk) => (
-            <div key={sk.label} style={{ background: "rgba(0, 0, 0, 0.24)", padding: "8px 6px", borderRadius: "8px" }}>
-              <div style={{ fontSize: "11px", color: "#94a3b8" }}>{sk.label}</div>
-              <div style={{ fontSize: "15px", fontWeight: 700, color: hasValue(sk.value) ? "#f8fafc" : "#64748b", marginTop: "2px" }}>
+            <div key={sk.label} style={{
+              background: "#ffffff",
+              border: "1px solid #e7decb",
+              padding: "8px 6px",
+              borderRadius: "7px"
+            }}>
+              <div style={{ fontSize: "10.5px", color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                {sk.label}
+              </div>
+              <div style={{ fontSize: "15.5px", fontWeight: 800, color: hasValue(sk.value) ? "#0e2a47" : "#94a3b8", marginTop: "2px" }}>
                 {hasValue(sk.value) ? sk.value : "—"}
               </div>
             </div>
@@ -316,84 +375,110 @@ export default function CertificateCard({ cert, isPreview = false }) {
         </div>
       </div>
 
-      {/* Footer of Certificate: Status, Dates & Real Scannable QR Code */}
+      {/* Ceremonial Footer: Status/Dates | Digital Director Seal | Real QR Code */}
       <div style={{
-        display: "flex",
+        display: "grid",
+        gridTemplateColumns: "1.2fr 0.9fr auto",
         alignItems: "center",
-        justifyContent: "space-between",
-        flexWrap: "wrap",
         gap: "16px",
-        marginTop: "22px",
-        paddingTop: "18px",
-        borderTop: "1px solid rgba(255, 255, 255, 0.09)",
+        paddingTop: "16px",
+        borderTop: "1px solid rgba(197, 147, 52, 0.3)",
         position: "relative"
       }}>
-        {/* Verification Status Badge & Dates */}
+        {/* Left: Status Badge & Certificate Dates */}
         <div>
-          <div style={{ fontSize: "10.5px", color: "#94a3b8", marginBottom: "6px", letterSpacing: "0.6px" }}>
+          <div style={{ fontSize: "10px", color: "#64748b", fontWeight: 700, marginBottom: "6px", letterSpacing: "0.8px" }}>
             TRẠNG THÁI HIỆU LỰC
           </div>
           {renderStatusBadge()}
 
-          <div style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "10px", lineHeight: 1.6 }}>
+          <div style={{ fontSize: "11.5px", color: "#475569", marginTop: "9px", lineHeight: 1.65 }}>
             <div>
-              Mã bằng: <span style={{ color: "#f8fafc", fontWeight: 600, fontFamily: "monospace" }}>{cert.certificate_code || "—"}</span>
+              Mã bằng: <strong style={{ color: "#0e2a47", fontFamily: "monospace" }}>{cert.certificate_code || "—"}</strong>
             </div>
             <div>
-              Ngày cấp: <span style={{ color: "#f8fafc" }}>{formatDate(cert.issue_date)}</span>
-              <span style={{ margin: "0 8px", opacity: 0.45 }}>•</span>
+              Ngày cấp: <strong style={{ color: "#0e2a47" }}>{formatDate(cert.issue_date)}</strong>
+            </div>
+            <div>
               Hạn hiệu lực:{" "}
-              <span style={{ color: isExpired ? "#fca5a5" : "#f8fafc", fontWeight: isExpired ? 700 : 500 }}>
+              <strong style={{ color: isExpired ? "#b91c1c" : "#0e2a47" }}>
                 {cert.expiry_date ? formatDate(cert.expiry_date) : "Vô thời hạn"}
-              </span>
+              </strong>
             </div>
           </div>
         </div>
 
-        {/* Real Scannable QR Code */}
+        {/* Center: Official Director Digital Seal (Echoes A4 PDF) */}
+        <div style={{ textAlign: "center" }}>
+          <div style={{
+            width: "46px",
+            height: "46px",
+            borderRadius: "50%",
+            margin: "0 auto 6px",
+            background: "radial-gradient(circle at 35% 35%, #f8e2a2 0%, #d4a23d 60%, #a8761c 100%)",
+            border: "2px solid #fffdf8",
+            boxShadow: "0 0 0 1.5px #c59334, 0 6px 14px -4px rgba(168, 118, 28, 0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#ffffff"
+          }}>
+            <ShieldCheck size={22} />
+          </div>
+          <div style={{ fontSize: "10.5px", fontWeight: 800, color: "#0e2a47", letterSpacing: "0.8px" }}>
+            CENTER DIRECTOR
+          </div>
+          <div style={{ fontSize: "9.5px", fontWeight: 700, color: isValidActive ? "#15803d" : "#8a6d3b", marginTop: "2px", letterSpacing: "0.5px" }}>
+            {isIssued ? "[DIGITALLY VERIFIED]" : "[KOHENI SEAL]"}
+          </div>
+        </div>
+
+        {/* Right: Framed Scannable QR Code */}
         <div style={{ textAlign: "center" }}>
           <div style={{
             background: "#ffffff",
-            padding: "6px",
-            borderRadius: "10px",
+            padding: "5px",
+            borderRadius: "8px",
+            border: "1.5px solid #d9c598",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 6px 18px rgba(0, 0, 0, 0.45)"
+            boxShadow: "0 4px 12px rgba(14, 42, 71, 0.08)"
           }}>
             {qrDataUrl ? (
               <img
                 src={qrDataUrl}
                 alt={`Mã QR xác thực ${cert.certificate_code}`}
-                style={{ width: "76px", height: "76px", display: "block", borderRadius: "4px" }}
+                style={{ width: "74px", height: "74px", display: "block", borderRadius: "3px" }}
               />
             ) : (
-              <QrCode size={68} color="#000000" />
+              <QrCode size={66} color="#0e2a47" />
             )}
           </div>
-          <div style={{ fontSize: "10px", color: "#fbbf24", marginTop: "5px", fontWeight: 600 }}>
-            {isIssued ? "QUÉT ĐỐI SOÁT XÁC THỰC" : "MÃ QR XEM TRƯỚC"}
+          <div style={{ fontSize: "9.5px", color: "#8a6118", marginTop: "4px", fontWeight: 700, letterSpacing: "0.4px" }}>
+            {isIssued ? "QUÉT XÁC THỰC" : "QR XEM TRƯỚC"}
           </div>
         </div>
       </div>
 
-      {/* Verification details banner (Responsive wrap + accurate status labels) */}
+      {/* Bottom On-Chain Proof Strip */}
       <div style={{
         marginTop: "16px",
-        padding: "10px 14px",
-        background: "rgba(0, 0, 0, 0.36)",
+        padding: "9px 14px",
+        background: "#f3eee1",
+        border: "1px solid rgba(197, 147, 52, 0.25)",
         borderRadius: "8px",
         fontSize: "11px",
         display: "flex",
         justifyContent: "space-between",
         flexWrap: "wrap",
         gap: "8px 16px",
-        color: "#94a3b8",
+        color: "#475569",
         position: "relative"
       }}>
         <span>
           Mã số bằng:{" "}
-          <strong style={{ color: isIssued && hasToken ? "#38bdf8" : "#94a3b8" }}>
+          <strong style={{ color: isIssued && hasToken ? "#0369a1" : "#64748b" }}>
             {isIssued && hasToken
               ? `#${cert.token_id}`
               : isRejected
@@ -405,7 +490,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
         </span>
         <span>
           Mã xác thực:{" "}
-          <span style={{ color: isIssued && cert.tx_hash ? "#cbd5e1" : "#94a3b8", fontFamily: cert.tx_hash ? "monospace" : "inherit" }}>
+          <span style={{ color: isIssued && cert.tx_hash ? "#0e2a47" : "#64748b", fontFamily: cert.tx_hash ? "monospace" : "inherit", fontWeight: 600 }}>
             {isIssued && cert.tx_hash
               ? shortenAddress(cert.tx_hash)
               : isRejected
@@ -415,7 +500,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
         </span>
         <span>
           Mã lưu trữ:{" "}
-          <span style={{ color: cert.ipfs_hash && !isRejected ? "#fbbf24" : "#94a3b8", fontFamily: cert.ipfs_hash ? "monospace" : "inherit" }}>
+          <span style={{ color: cert.ipfs_hash && !isRejected ? "#9a6700" : "#64748b", fontFamily: cert.ipfs_hash ? "monospace" : "inherit", fontWeight: 600 }}>
             {cert.ipfs_hash && !isRejected
               ? `${cert.ipfs_hash.slice(0, 10)}...`
               : isRejected

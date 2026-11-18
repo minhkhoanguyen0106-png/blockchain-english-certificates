@@ -66,7 +66,7 @@ export default function LoginPage({ setUser }) {
       <div style={{ position: "absolute", top: "14%", right: "22%", width: "64px", height: "64px", borderRadius: "50%", background: "rgba(255, 255, 255, 0.05)", pointerEvents: "none" }} />
 
       {/* Main Rounded Split-Wave Card */}
-      <div className="login-split-card">
+      <div className="login-split-card login-card-enter">
 
         {/* LEFT PANEL: Seamless Organic White S-Wave over Deep Slate Card */}
         <div
@@ -102,7 +102,7 @@ export default function LoginPage({ setUser }) {
           </svg>
 
           {/* Top-Left Brand Crest */}
-          <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: "11px", textDecoration: "none", position: "relative", zIndex: 2, width: "fit-content" }}>
+          <Link to="/" className="nav-drop-item" style={{ display: "inline-flex", alignItems: "center", gap: "11px", textDecoration: "none", position: "relative", zIndex: 2, width: "fit-content", "--drop-delay": "0.12s" }}>
             <div style={{
               width: "40px",
               height: "40px",
@@ -125,22 +125,23 @@ export default function LoginPage({ setUser }) {
             </div>
           </Link>
 
-          {/* Center Bespoke Certificate + English + Blockchain Illustration */}
+          {/* Center Bespoke Certificate + English + Blockchain Illustration (Spring Focal Pop + Gentle Float) */}
           <div style={{ position: "relative", paddingRight: "48px", margin: "4px 0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <img
-              src={loginIllustration}
-              alt="Minh họa hệ thống chứng chỉ tiếng Anh xác thực Blockchain"
-              className="login-float-slow"
-              draggable={false}
-              style={{
-                width: "100%",
-                maxWidth: "380px",
-                height: "auto",
-                display: "block",
-                mixBlendMode: "multiply",
-                userSelect: "none"
-              }}
-            />
+            <div className="spring-focal-pop" style={{ width: "100%", maxWidth: "380px", "--pop-delay": "0.22s" }}>
+              <img
+                src={loginIllustration}
+                alt="Minh họa hệ thống chứng chỉ tiếng Anh xác thực Blockchain"
+                className="login-float-slow"
+                draggable={false}
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  display: "block",
+                  mixBlendMode: "multiply",
+                  userSelect: "none"
+                }}
+              />
+            </div>
           </div>
 
           {/* Bottom-Left Subtle Institutional Attribution */}
@@ -182,6 +183,7 @@ export default function LoginPage({ setUser }) {
 
             <Link
               to="/"
+              className="nav-drop-item"
               style={{
                 marginLeft: "auto",
                 display: "inline-flex",
@@ -191,7 +193,8 @@ export default function LoginPage({ setUser }) {
                 fontSize: "12.5px",
                 fontWeight: 500,
                 textDecoration: "none",
-                transition: "color var(--transition-fast)"
+                transition: "color var(--transition-fast)",
+                "--drop-delay": "0.18s"
               }}
               onMouseEnter={(e) => { e.currentTarget.style.color = "#ffffff"; }}
               onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(186, 214, 230, 0.72)"; }}
@@ -202,15 +205,17 @@ export default function LoginPage({ setUser }) {
 
           {/* Centered Form Block */}
           <div style={{ width: "100%", maxWidth: "320px", margin: "auto", padding: "24px 0" }}>
-            <h2 style={{ fontSize: "30px", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.5px", marginBottom: "6px" }}>
-              Đăng Nhập
-            </h2>
-            <p style={{ fontSize: "13px", color: "rgba(186, 214, 230, 0.72)", marginBottom: "26px" }}>
+            <div style={{ overflow: "hidden" }}>
+              <h2 className="mask-slide-left" style={{ fontSize: "30px", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.5px", marginBottom: "6px", "--slide-delay": "0.26s" }}>
+                Đăng Nhập
+              </h2>
+            </div>
+            <p className="login-field-enter" style={{ fontSize: "13px", color: "rgba(186, 214, 230, 0.72)", marginBottom: "26px", "--field-delay": "0.38s" }}>
               Cổng nội bộ Quản trị viên &amp; Cán bộ Khảo thí
             </p>
 
             <form onSubmit={handleSubmit}>
-              <div style={{ marginBottom: "16px" }}>
+              <div className="login-field-enter" style={{ marginBottom: "16px", "--field-delay": "0.46s" }}>
                 <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#e2f1f8", marginBottom: "7px", paddingLeft: "4px" }}>
                   Tên đăng nhập
                 </label>
@@ -228,7 +233,7 @@ export default function LoginPage({ setUser }) {
                 </div>
               </div>
 
-              <div style={{ marginBottom: "20px" }}>
+              <div className="login-field-enter" style={{ marginBottom: "20px", "--field-delay": "0.54s" }}>
                 <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#e2f1f8", marginBottom: "7px", paddingLeft: "4px" }}>
                   Mật khẩu
                 </label>
@@ -287,37 +292,39 @@ export default function LoginPage({ setUser }) {
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  width: "100%",
-                  height: "44px",
-                  borderRadius: "9999px",
-                  border: "none",
-                  background: "linear-gradient(135deg, #5cc4d8 0%, #38a8c7 100%)",
-                  color: "#ffffff",
-                  fontSize: "14.5px",
-                  fontWeight: 700,
-                  letterSpacing: "0.2px",
-                  cursor: loading ? "not-allowed" : "pointer",
-                  opacity: loading ? 0.65 : 1,
-                  boxShadow: "0 10px 24px -6px rgba(56, 168, 199, 0.55)",
-                  transition: "transform var(--transition-fast), box-shadow var(--transition-fast)"
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.transform = "translateY(-1px)";
-                    e.currentTarget.style.boxShadow = "0 14px 28px -6px rgba(56, 168, 199, 0.7)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "0 10px 24px -6px rgba(56, 168, 199, 0.55)";
-                }}
-              >
-                {loading ? "Đang xác thực..." : "Đăng Nhập Hệ Thống"}
-              </button>
+              <div className="login-field-enter" style={{ "--field-delay": "0.62s" }}>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    width: "100%",
+                    height: "44px",
+                    borderRadius: "9999px",
+                    border: "none",
+                    background: "linear-gradient(135deg, #5cc4d8 0%, #38a8c7 100%)",
+                    color: "#ffffff",
+                    fontSize: "14.5px",
+                    fontWeight: 700,
+                    letterSpacing: "0.2px",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading ? 0.65 : 1,
+                    boxShadow: "0 10px 24px -6px rgba(56, 168, 199, 0.55)",
+                    transition: "transform var(--transition-fast), box-shadow var(--transition-fast)"
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading) {
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                      e.currentTarget.style.boxShadow = "0 14px 28px -6px rgba(56, 168, 199, 0.7)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 10px 24px -6px rgba(56, 168, 199, 0.55)";
+                  }}
+                >
+                  {loading ? "Đang xác thực..." : "Đăng Nhập Hệ Thống"}
+                </button>
+              </div>
 
               <div style={{ marginTop: "22px", textAlign: "center", fontSize: "12.5px", color: "rgba(226, 241, 248, 0.75)" }}>
                 <div>Học viên hoặc Nhà tuyển dụng?</div>

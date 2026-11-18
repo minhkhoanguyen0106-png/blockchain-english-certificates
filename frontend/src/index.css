@@ -1017,6 +1017,135 @@ html {
   }
 }
 
+/* ==========================================================================
+   Stickerz-Inspired Multi-Vector Directional Entrance Choreography
+   ========================================================================== */
+@keyframes navDropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nav-drop-item {
+  opacity: 0;
+  animation: navDropIn 0.48s cubic-bezier(0.22, 1, 0.36, 1) var(--drop-delay, 0.05s) forwards;
+}
+
+@keyframes maskSlideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-64px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.mask-slide-left {
+  opacity: 0;
+  animation: maskSlideLeft 0.68s cubic-bezier(0.22, 1, 0.36, 1) var(--slide-delay, 0.16s) forwards;
+}
+
+@keyframes springFocalPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.56) rotate(-7deg);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.045) rotate(1.4deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.spring-focal-pop {
+  opacity: 0;
+  transform-origin: center;
+  animation: springFocalPop 0.72s cubic-bezier(0.34, 1.56, 0.64, 1) var(--pop-delay, 0.18s) forwards;
+}
+
+@keyframes loginCardStageIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.login-card-enter {
+  animation: loginCardStageIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes loginFieldRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-field-enter {
+  opacity: 0;
+  animation: loginFieldRise 0.48s cubic-bezier(0.22, 1, 0.36, 1) var(--field-delay, 0.35s) forwards;
+}
+
+/* Opposing Split-Door Horizontal Scroll Reveal (Stickerz Signature) */
+.reveal-split-left {
+  opacity: 0;
+  transform: translateX(-64px);
+  transition: opacity 0.72s cubic-bezier(0.22, 1, 0.36, 1), transform 0.72s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal-split-right {
+  opacity: 0;
+  transform: translateX(68px) rotate(4deg) scale(0.92);
+  transition: opacity 0.76s cubic-bezier(0.34, 1.4, 0.64, 1) 0.1s, transform 0.76s cubic-bezier(0.34, 1.4, 0.64, 1) 0.1s;
+}
+
+.is-visible .reveal-split-left {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.is-visible .reveal-split-right {
+  opacity: 1;
+  transform: translateX(0) rotate(0deg) scale(1);
+}
+
+/* Outer Floating Badges Flying In from Opposite Edges after Split Settles */
+.reveal-fly-right {
+  opacity: 0;
+  transform: translateX(52px) translateY(-10px) scale(0.75);
+  transition: opacity 0.55s ease 0.42s, transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) 0.42s;
+}
+
+.reveal-fly-left {
+  opacity: 0;
+  transform: translateX(-52px) translateY(10px) scale(0.75);
+  transition: opacity 0.55s ease 0.55s, transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) 0.55s;
+}
+
+.is-visible .reveal-fly-right,
+.is-visible .reveal-fly-left {
+  opacity: 1;
+  transform: translateX(0) translateY(0) scale(1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

@@ -37,7 +37,7 @@ export default function Navbar({ user, setUser }) {
       <div className="container" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: "68px" }}>
         
         {/* Zone 1: Brand Logo */}
-        <Link to="/" style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+        <Link to="/" className="nav-drop-item" style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0, "--drop-delay": "0.04s" }}>
           <div style={{
             width: "38px",
             height: "38px",
@@ -61,7 +61,7 @@ export default function Navbar({ user, setUser }) {
         </Link>
 
         {/* Zone 2: Unified Action Bar (Theme, Admin Entry, User Profile) */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
+        <div className="nav-drop-item" style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0, "--drop-delay": "0.14s" }}>
           
           {/* Admin / Staff Workspace Button */}
           {user && (user.role === "ADMIN" || user.role === "STAFF") && (

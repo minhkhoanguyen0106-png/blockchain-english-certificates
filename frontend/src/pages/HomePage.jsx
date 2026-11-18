@@ -156,23 +156,27 @@ function LivingQrVerificationIllustration() {
         />
       </g>
 
-      {/* Offset-Phase Floating Verification Pill A (Top-Right) */}
-      <g className="live-badge-float-a">
-        <rect x="302" y="34" width="122" height="36" rx="18" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1.2" />
-        <circle cx="322" cy="52" r="9" fill="#dcfce7" />
-        <path d="M318.5 52 L321 54.5 L326 49.5" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        <text x="338" y="55.5" fill="#0f172a" fontSize="11" fontWeight="700" fontFamily="Plus Jakarta Sans, sans-serif">
-          Hợp lệ 100%
-        </text>
+      {/* Offset-Phase Floating Verification Pill A (Top-Right — Flies in from right edge!) */}
+      <g className="reveal-fly-right">
+        <g className="live-badge-float-a">
+          <rect x="302" y="34" width="122" height="36" rx="18" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1.2" />
+          <circle cx="322" cy="52" r="9" fill="#dcfce7" />
+          <path d="M318.5 52 L321 54.5 L326 49.5" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          <text x="338" y="55.5" fill="#0f172a" fontSize="11" fontWeight="700" fontFamily="Plus Jakarta Sans, sans-serif">
+            Hợp lệ 100%
+          </text>
+        </g>
       </g>
 
-      {/* Offset-Phase Floating Pill B (Bottom-Left) */}
-      <g className="live-badge-float-b">
-        <rect x="36" y="252" width="126" height="38" rx="19" fill="#0f2c42" />
-        <circle cx="56" cy="271" r="6" fill="#38bdf8" />
-        <text x="70" y="274.5" fill="#ffffff" fontSize="11" fontWeight="700" fontFamily="Plus Jakarta Sans, sans-serif">
-          Tra cứu &lt; 2 giây
-        </text>
+      {/* Offset-Phase Floating Pill B (Bottom-Left — Flies in from left edge!) */}
+      <g className="reveal-fly-left">
+        <g className="live-badge-float-b">
+          <rect x="36" y="252" width="126" height="38" rx="19" fill="#0f2c42" />
+          <circle cx="56" cy="271" r="6" fill="#38bdf8" />
+          <text x="70" y="274.5" fill="#ffffff" fontSize="11" fontWeight="700" fontFamily="Plus Jakarta Sans, sans-serif">
+            Tra cứu &lt; 2 giây
+          </text>
+        </g>
       </g>
     </svg>
   );
@@ -234,7 +238,7 @@ export default function HomePage() {
       <section className="hero-spotlight-section" style={{ textAlign: "center" }}>
         <div className="container" style={{ maxWidth: "900px", position: "relative", zIndex: 1 }}>
 
-          <div className="hero-anim hero-anim-1" style={{
+          <div className="nav-drop-item" style={{
             display: "inline-flex",
             alignItems: "center",
             gap: "8px",
@@ -246,64 +250,68 @@ export default function HomePage() {
             color: "var(--primary)",
             marginBottom: "22px",
             fontWeight: 600,
-            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.04)"
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.04)",
+            "--drop-delay": "0.1s"
           }}>
             <Sparkles size={14} />
             <span>Cổng Tra Cứu Chứng Chỉ Tiếng Anh Công Khai</span>
           </div>
 
-          <h1 className="hero-anim hero-anim-2" style={{
-            fontSize: "clamp(32px, 4.6vw, 48px)",
-            fontWeight: 800,
-            lineHeight: 1.22,
-            letterSpacing: "-1.2px",
-            marginBottom: "20px",
-            color: "var(--text-primary)",
-            textWrap: "balance"
-          }}>
-            Tra Cứu Chứng Chỉ Tiếng Anh <br />
-            <span style={{ position: "relative", display: "inline-block" }}>
-              <span className="text-gradient">Nhanh Chóng &amp; Chính Xác</span>
-              {/* Hand-drawn Smooth Swoosh Underline (Campty Signature) */}
-              <svg
-                viewBox="0 0 320 18"
-                fill="none"
-                aria-hidden="true"
-                style={{
-                  position: "absolute",
-                  left: "2%",
-                  bottom: "-10px",
-                  width: "96%",
-                  height: "14px",
-                  pointerEvents: "none",
-                  overflow: "visible"
-                }}
-              >
-                <path
-                  d="M4 12 C88 3 224 2 316 11"
-                  stroke="#0ea5e9"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  className="hero-swoosh-path"
-                  opacity="0.72"
-                />
-              </svg>
-              {/* Delicate 3-Ray Sparkle Flourish */}
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
-                className="hero-sparkle"
-                style={{ position: "absolute", right: "-24px", top: "-8px", pointerEvents: "none" }}
-              >
-                <path d="M4 12 L10 6" stroke="#38bdf8" strokeWidth="2.4" strokeLinecap="round" />
-                <path d="M12 10 L20 4" stroke="#6366f1" strokeWidth="2.4" strokeLinecap="round" />
-                <path d="M13 17 L21 15" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" />
-              </svg>
-            </span>
-          </h1>
+          <div style={{ overflow: "hidden", paddingBottom: "14px", marginBottom: "6px" }}>
+            <h1 className="mask-slide-left" style={{
+              fontSize: "clamp(32px, 4.6vw, 48px)",
+              fontWeight: 800,
+              lineHeight: 1.22,
+              letterSpacing: "-1.2px",
+              marginBottom: 0,
+              color: "var(--text-primary)",
+              textWrap: "balance",
+              "--slide-delay": "0.18s"
+            }}>
+              Tra Cứu Chứng Chỉ Tiếng Anh <br />
+              <span style={{ position: "relative", display: "inline-block" }}>
+                <span className="text-gradient">Nhanh Chóng &amp; Chính Xác</span>
+                {/* Hand-drawn Smooth Swoosh Underline (Campty Signature) */}
+                <svg
+                  viewBox="0 0 320 18"
+                  fill="none"
+                  aria-hidden="true"
+                  style={{
+                    position: "absolute",
+                    left: "2%",
+                    bottom: "-10px",
+                    width: "96%",
+                    height: "14px",
+                    pointerEvents: "none",
+                    overflow: "visible"
+                  }}
+                >
+                  <path
+                    d="M4 12 C88 3 224 2 316 11"
+                    stroke="#0ea5e9"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    className="hero-swoosh-path"
+                    opacity="0.72"
+                  />
+                </svg>
+                {/* Delicate 3-Ray Sparkle Flourish */}
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                  className="hero-sparkle"
+                  style={{ position: "absolute", right: "-24px", top: "-8px", pointerEvents: "none" }}
+                >
+                  <path d="M4 12 L10 6" stroke="#38bdf8" strokeWidth="2.4" strokeLinecap="round" />
+                  <path d="M12 10 L20 4" stroke="#6366f1" strokeWidth="2.4" strokeLinecap="round" />
+                  <path d="M13 17 L21 15" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" />
+                </svg>
+              </span>
+            </h1>
+          </div>
 
           <p className="hero-anim hero-anim-3" style={{
             fontSize: "16px",
@@ -353,11 +361,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Living Interactive Verification Showcase (Deliverest Section 5 Inspired) */}
-      <RevealSection style={{ padding: "36px 0 64px" }}>
+      {/* Living Interactive Verification Showcase (Opposing Split-Door Entrance — Stickerz Signature) */}
+      <RevealSection style={{ padding: "36px 0 64px", overflowX: "clip" }}>
         <div className="container" style={{ maxWidth: "1060px" }}>
           <div className="living-verify-grid">
-            <div className="reveal-header">
+            <div className="reveal-split-left">
               <div className="section-eyebrow">TRA CỨU DỄ DÀNG</div>
               <h2 style={{ fontSize: "clamp(26px, 3.2vw, 34px)", fontWeight: 800, lineHeight: 1.24, letterSpacing: "-0.6px", color: "var(--text-primary)", marginBottom: "14px" }}>
                 Kiểm Tra Thông Tin Bằng Cấp Chỉ Trong Vài Giây
@@ -402,7 +410,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="reveal-card" style={{ "--stagger": 1 }}>
+            <div className="reveal-split-right">
               <LivingQrVerificationIllustration />
             </div>
           </div>

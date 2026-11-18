@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Award, FilePlus, ListFilter, Users, CheckCircle2, XCircle, Clock, ShieldAlert, ArrowUpRight, Wallet, Sparkles, Layers } from "lucide-react";
-import { getAllCertificates, shortenAddress, connectMetaMask } from "../services/web3Service";
+import { Link, useNavigate } from "react-router-dom";
+import { Award, FilePlus, CheckCircle2, XCircle, Clock, ArrowUpRight, History } from "lucide-react";
+import { getAllCertificates } from "../services/web3Service";
 import { dashboardApi, certificateApi } from "../services/apiService";
 
-export default function DashboardPage({ wallet, setWallet, user }) {
-  const [certs, setCerts] = useState(() => getAllCertificates());
+export default function DashboardPage({ user }) {
+  const navigate = useNavigate();
+  const [certs, setCerts] = useState([]);
   const [stats, setStats] = useState(null);
+  const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -14,9 +16,10 @@ export default function DashboardPage({ wallet, setWallet, user }) {
 
     async function loadDashboardData() {
       try {
-        const [statsRes, certsRes] = await Promise.allSettled([
+        const [statsRes, certsRes, logsRes] = await Promise.allSettled([
           dashboardApi.getDashboardStats(),
-          certificateApi.getCertificates({ limit: 6 })
+          certificateApi.getCertificates({ limit: 6 }),
+          dashboardApi.getAuditLogs(6)
         ]);
 
         if (!isMounted) return;
@@ -38,9 +41,16 @@ export default function DashboardPage({ wallet, setWallet, user }) {
             status: d.status
           }));
           setCerts(mapped);
+        } else {
+          setCerts(getAllCertificates());
+        }
+
+        if (logsRes.status === "fulfilled" && logsRes.value?.success && Array.isArray(logsRes.value.data)) {
+          setAuditLogs(logsRes.value.data);
         }
       } catch (err) {
         console.warn("Backend dashboard offline fallback:", err.message);
+        if (isMounted) setCerts(getAllCertificates());
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -146,29 +156,93 @@ export default function DashboardPage({ wallet, setWallet, user }) {
               </tr>
             </thead>
             <tbody>
-              {certs.slice(0, 5).map(c => (
-                <tr key={c.id}>
-                  <td style={{ fontWeight: 700, color: "var(--primary)" }}>{c.certificate_code}</td>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{c.student_name}</div>
-                    <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{c.student_code}</div>
-                  </td>
-                  <td>
-                    <div>{c.course_name}</div>
-                    <div style={{ fontSize: "12px", color: "var(--accent-gold)", fontWeight: 700 }}>{c.score}</div>
-                  </td>
-                  <td style={{ color: "var(--text-secondary)" }}>{c.issue_date}</td>
-                  <td>
-                    {c.status === "ISSUED_ON_CHAIN" && <span className="badge badge-success">Hợp Lệ</span>}
-                    {c.status === "REVOKED" && <span className="badge badge-danger">Đã Thu Hồi</span>}
-                    {c.status === "PENDING" && <span className="badge badge-warning">Chờ Duyệt</span>}
+              {loading ? (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: "center", padding: "32px 16px", color: "var(--text-muted)" }}>
+                    Đang tải dữ liệu chứng chỉ...
                   </td>
                 </tr>
-              ))}
+              ) : certs.length === 0 ? (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: "center", padding: "32px 16px", color: "var(--text-muted)" }}>
+                    Chưa có hồ sơ chứng chỉ nào trên hệ thống.
+                  </td>
+                </tr>
+              ) : (
+                certs.slice(0, 5).map(c => (
+                  <tr
+                    key={c.id}
+                    onClick={() => navigate("/admin/certificates")}
+                    style={{ cursor: "pointer" }}
+                    title="Bấm để xem chi tiết tại Danh Sách Chứng Chỉ"
+                  >
+                    <td style={{ fontWeight: 700, color: "var(--primary)" }}>{c.certificate_code}</td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{c.student_name}</div>
+                      <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>{c.student_code}</div>
+                    </td>
+                    <td>
+                      <div>{c.course_name}</div>
+                      <div style={{ fontSize: "12px", color: "var(--accent-gold)", fontWeight: 700 }}>{c.score}</div>
+                    </td>
+                    <td style={{ color: "var(--text-secondary)" }}>{c.issue_date}</td>
+                    <td>
+                      {c.status === "ISSUED_ON_CHAIN" && <span className="badge badge-success">Hợp Lệ</span>}
+                      {c.status === "REVOKED" && <span className="badge badge-danger">Đã Thu Hồi</span>}
+                      {c.status === "PENDING" && <span className="badge badge-warning">Chờ Duyệt</span>}
+                      {c.status === "REJECTED" && <span className="badge badge-danger">Bị Từ Chối</span>}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Audit Logs Timeline (Truy vết & Kiểm toán lịch sử thao tác) */}
+      {auditLogs.length > 0 && (
+        <div className="glass-panel" style={{ padding: "24px", marginTop: "24px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+            <History size={18} color="var(--primary)" />
+            <h3 style={{ fontSize: "17px", fontWeight: 700, color: "var(--text-primary)" }}>
+              Nhật Ký Kiểm Toán Gần Đây
+            </h3>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {auditLogs.map((log) => (
+              <div
+                key={log.id}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: "12px",
+                  padding: "10px 14px",
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "var(--radius-sm)",
+                  fontSize: "13px",
+                  flexWrap: "wrap"
+                }}
+              >
+                <div>
+                  <span style={{ fontWeight: 700, color: "var(--text-primary)" }}>{log.action_detail || log.action}</span>
+                  {log.note && (
+                    <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                      {log.note}
+                    </div>
+                  )}
+                </div>
+                <div style={{ textAlign: "right", fontSize: "11px", color: "var(--text-muted)", flexShrink: 0 }}>
+                  <div>{log.actor_name || log.username || "Hệ thống"}</div>
+                  <div>{log.created_at ? new Date(log.created_at).toLocaleString("vi-VN") : ""}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
     </div>
   );

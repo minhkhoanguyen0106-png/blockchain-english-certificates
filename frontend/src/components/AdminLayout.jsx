@@ -16,6 +16,7 @@ import {
 import ThemeToggle from "./ThemeToggle";
 import { shortenAddress, connectMetaMask } from "../services/web3Service";
 import { authApi } from "../services/apiService";
+import { toast } from "./ToastContainer";
 
 export default function AdminLayout({ children, wallet, setWallet, user, setUser }) {
   const location = useLocation();
@@ -40,7 +41,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
       const account = await connectMetaMask();
       setWallet(account);
     } catch (err) {
-      alert("Lỗi kết nối ví: " + (err.message || err));
+      toast.error("Lỗi kết nối ví: " + (err.message || err));
     } finally {
       setConnecting(false);
     }
@@ -101,19 +102,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
 
       {/* Sidebar Navigation */}
       <aside
-        style={{
-          width: "280px",
-          background: "var(--bg-sidebar)",
-          borderRight: "1px solid var(--border-subtle)",
-          display: "flex",
-          flexDirection: "column",
-          position: "sticky",
-          top: 0,
-          height: "100vh",
-          zIndex: 95,
-          transition: "transform var(--transition-normal)",
-          flexShrink: 0
-        }}
+        className={`admin-sidebar ${sidebarOpen ? "admin-sidebar-open" : ""}`}
       >
         {/* Brand Header */}
         <div style={{
@@ -148,13 +137,8 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
 
           <button
             onClick={() => setSidebarOpen(false)}
-            style={{
-              display: "none",
-              background: "transparent",
-              border: "none",
-              color: "var(--text-secondary)",
-              cursor: "pointer"
-            }}
+            className="admin-sidebar-close-btn"
+            aria-label="Đóng thanh bên"
           >
             <X size={20} />
           </button>
@@ -258,9 +242,8 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <button
               onClick={() => setSidebarOpen(true)}
-              className="btn btn-outline"
-              style={{ display: "none", padding: "6px 10px" }}
-              aria-label="Open sidebar"
+              className="btn btn-outline admin-mobile-menu-btn"
+              aria-label="Mở thanh điều hướng"
             >
               <Menu size={18} />
             </button>

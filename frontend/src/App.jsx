@@ -13,6 +13,7 @@ import CertificatesListPage from "./pages/CertificatesListPage";
 import DataManagementPage from "./pages/DataManagementPage";
 import { initStorage } from "./services/web3Service";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ToastContainer from "./components/ToastContainer";
 import { authApi } from "./services/apiService";
 
 export default function App() {
@@ -145,6 +146,9 @@ export default function App() {
 
         {/* Global Footer (Automatically hides inside /admin) */}
         <Footer />
+
+        {/* Global Toast Notifications */}
+        <ToastContainer />
 
       </div>
     </BrowserRouter>

@@ -1,5 +1,6 @@
-import React from "react";
-import { ShieldCheck, Award, QrCode, ExternalLink, Calendar, Hash, CheckCircle2, XCircle } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Award, QrCode, Calendar, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import QRCode from "qrcode";
 import { shortenAddress } from "../services/web3Service";
 
 const formatDate = (d) => {
@@ -10,11 +11,33 @@ const formatDate = (d) => {
 };
 
 export default function CertificateCard({ cert, isPreview = false }) {
+  const [qrDataUrl, setQrDataUrl] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    if (!cert?.certificate_code) {
+      setQrDataUrl("");
+      return;
+    }
+    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:5173";
+    const verifyUrl = `${origin}/verify?code=${encodeURIComponent(cert.certificate_code)}`;
+    QRCode.toDataURL(verifyUrl, {
+      width: 160,
+      margin: 1,
+      color: { dark: "#0f172a", light: "#ffffff" }
+    })
+      .then((url) => { if (active) setQrDataUrl(url); })
+      .catch(() => { if (active) setQrDataUrl(""); });
+    return () => { active = false; };
+  }, [cert?.certificate_code]);
+
   if (!cert) return null;
 
+  const isTampered = cert.status === "TAMPERED";
+  const isRejected = cert.status === "REJECTED";
   const isRevoked = cert.status === "REVOKED";
-  const isExpired = cert.expiry_date && new Date(cert.expiry_date) < new Date();
-  const isIssued = (cert.status === "ISSUED_ON_CHAIN" || cert.status === "REVOKED") && !isPreview;
+  const isExpired = cert.status === "EXPIRED" || (cert.expiry_date && new Date(cert.expiry_date) < new Date());
+  const isIssued = (cert.status === "ISSUED_ON_CHAIN" || cert.status === "REVOKED" || cert.status === "TAMPERED" || cert.status === "EXPIRED") && !isPreview;
   const isPending = cert.status === "PENDING";
   const isDraftOrPreview = isPreview || cert.status === "DRAFT" || !cert.status;
   const isValidActive = cert.status === "ISSUED_ON_CHAIN" && !isExpired && !isRevoked && !isPreview;
@@ -155,18 +178,28 @@ export default function CertificateCard({ cert, isPreview = false }) {
         {/* Verification Status Badge */}
         <div>
           <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "6px" }}>TRẠNG THÁI HIỆU LỰC</div>
-          {isDraftOrPreview ? (
+          {isTampered ? (
+            <div className="badge badge-danger" style={{ fontSize: "12px", padding: "6px 14px", background: "rgba(245, 158, 11, 0.2)", color: "#fbbf24", border: "1px solid rgba(245, 158, 11, 0.5)" }}>
+              <AlertTriangle size={15} />
+              SAI LỆCH DỮ LIỆU (TAMPERED)
+            </div>
+          ) : isRejected ? (
+            <div className="badge badge-danger" style={{ fontSize: "12px", padding: "6px 14px" }}>
+              <XCircle size={15} />
+              HỒ SƠ BỊ TỪ CHỐI PHÊ DUYỆT
+            </div>
+          ) : isDraftOrPreview ? (
             <div className="badge badge-warning" style={{ fontSize: "12px", padding: "6px 14px", background: "rgba(245, 158, 11, 0.2)", color: "#f59e0b", border: "1px dashed rgba(245, 158, 11, 0.4)" }}>
               ⚠️ BẢN XEM TRƯỚC – CHƯA PHÁT HÀNH
             </div>
           ) : isPending ? (
-            <div className="badge badge-info" style={{ fontSize: "12px", padding: "6px 14px" }}>
-              ⏳ ĐANG CHỜ DUYỆT (PENDING DRAFT)
+            <div className="badge badge-warning" style={{ fontSize: "12px", padding: "6px 14px" }}>
+              ⏳ ĐANG CHỜ PHÊ DUYỆT
             </div>
           ) : isValidActive ? (
             <div className="badge badge-success" style={{ fontSize: "12px", padding: "6px 14px" }}>
               <CheckCircle2 size={15} />
-              HỢP LỆ & CÒN HIỆU LỰC (ACTIVE)
+              HỢP LỆ &amp; CÒN HIỆU LỰC
             </div>
           ) : isRevoked ? (
             <div className="badge badge-danger" style={{ fontSize: "12px", padding: "6px 14px" }}>
@@ -176,7 +209,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
           ) : (
             <div className="badge badge-warning" style={{ fontSize: "12px", padding: "6px 14px" }}>
               <Calendar size={15} />
-              HẾT HẠN HIỆU LỰC 2 NĂM (EXPIRED)
+              HẾT HẠN HIỆU LỰC (EXPIRED)
             </div>
           )}
 
@@ -188,19 +221,29 @@ export default function CertificateCard({ cert, isPreview = false }) {
           </div>
         </div>
 
-        {/* QR Code representation */}
+        {/* Real Scannable QR Code */}
         <div style={{ textAlign: "center" }}>
           <div style={{
             background: "#ffffff",
-            padding: "8px",
+            padding: "6px",
             borderRadius: "10px",
-            display: "inline-block",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
             boxShadow: "0 0 15px rgba(0,0,0,0.5)"
           }}>
-            <QrCode size={68} color="#000000" />
+            {qrDataUrl ? (
+              <img
+                src={qrDataUrl}
+                alt={`Mã QR xác thực ${cert.certificate_code}`}
+                style={{ width: "76px", height: "76px", display: "block", borderRadius: "4px" }}
+              />
+            ) : (
+              <QrCode size={68} color="#000000" />
+            )}
           </div>
           <div style={{ fontSize: "10px", color: "#fbbf24", marginTop: "4px", fontWeight: 600 }}>
-            {isIssued ? "QUÉT ĐỐI SOÁT XÁC THỰC" : "MÃ QR MÔ PHỎNG"}
+            {isIssued ? "QUÉT ĐỐI SOÁT XÁC THỰC" : "MÃ QR XEM TRƯỚC"}
           </div>
         </div>
 

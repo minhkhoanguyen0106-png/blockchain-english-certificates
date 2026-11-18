@@ -2,14 +2,16 @@ import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2, Sparkles, X, Award, ExternalLink } from "lucide-react";
 import { getAllCertificates, revokeCertificateOnChain, shortenAddress, connectMetaMask, isMetaMaskInstalled } from "../services/web3Service";
-import { certificateApi } from "../services/apiService";
+import { certificateApi, courseApi } from "../services/apiService";
 import CertificateCard from "../components/CertificateCard";
+import { toast } from "../components/ToastContainer";
 
 export default function CertificatesListPage({ wallet, setWallet, user }) {
   const [searchParams] = useSearchParams();
   const initialStatus = searchParams.get("status") || "ALL";
 
-  const [certs, setCerts] = useState(() => getAllCertificates());
+  const [certs, setCerts] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [courseFilter, setCourseFilter] = useState("ALL");
@@ -26,13 +28,17 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
   const loadCerts = async () => {
     setLoading(true);
     try {
-      const res = await certificateApi.getCertificates({
-        limit: 100,
-        status: statusFilter,
-        search: searchTerm
-      });
-      if (res.success && Array.isArray(res.data)) {
-        const mapped = res.data.map(d => ({
+      const [res, crsRes] = await Promise.allSettled([
+        certificateApi.getCertificates({ limit: 100, status: "ALL" }),
+        courseApi.getCourses()
+      ]);
+
+      if (crsRes.status === "fulfilled" && crsRes.value?.success && Array.isArray(crsRes.value.data)) {
+        setCourses(crsRes.value.data);
+      }
+
+      if (res.status === "fulfilled" && res.value?.success && Array.isArray(res.value.data)) {
+        const mapped = res.value.data.map(d => ({
           ...d,
           score: d.score_overall,
           issue_date: d.issue_date ? d.issue_date.slice(0, 10) : "",
@@ -42,17 +48,17 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
         setCerts(mapped);
         return;
       }
+      setCerts(getAllCertificates());
     } catch {
-      // offline fallback sang LocalStorage
+      setCerts(getAllCertificates());
     } finally {
       setLoading(false);
     }
-    setCerts(getAllCertificates());
   };
 
   useEffect(() => {
     loadCerts();
-  }, [statusFilter]);
+  }, []);
 
   // Tự động bỏ bản nháp (Draft / PENDING) cũ khi học viên đã có chứng chỉ HỢP LỆ (ISSUED_ON_CHAIN)
   const validCertKeys = new Set(
@@ -98,20 +104,20 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
           localStorage.setItem("certchain_certificates", JSON.stringify(list));
         }
       } catch (e) {}
-      alert(`Đã xóa bỏ bản nháp [${cert.certificate_code}] thành công!`);
+      toast.success(`Đã xóa bỏ bản nháp [${cert.certificate_code}] thành công!`);
     } catch (err) {
-      alert("Lỗi khi xóa bản nháp: " + (err.message || err));
+      toast.error("Lỗi khi xóa bản nháp: " + (err.message || err));
     }
   };
 
   const handleConfirmRevoke = async () => {
     if (!revokeTarget) return;
     if (user?.role !== "ADMIN") {
-      alert("LỖI PHÂN QUYỀN (403): Chỉ Quản trị viên (ADMIN) mới có thẩm quyền thu hồi chứng chỉ trên hệ thống!");
+      toast.error("Chỉ Quản trị viên (ADMIN) mới có thẩm quyền thu hồi chứng chỉ!");
       return;
     }
     if (!revokeReason.trim()) {
-      alert("Vui lòng nhập lý do thu hồi chứng chỉ!");
+      toast.warning("Vui lòng nhập lý do thu hồi chứng chỉ!");
       return;
     }
 
@@ -139,11 +145,12 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
         activeWallet
       );
       await loadCerts();
+      const revokedCode = revokeTarget.certificate_code;
       setRevokeTarget(null);
       setRevokeReason("");
-      alert(`Đã ghi nhận thu hồi on-chain thành công chứng chỉ [${revokeTarget.certificate_code}]!`);
+      toast.success(`Đã ghi nhận thu hồi on-chain thành công chứng chỉ [${revokedCode}]!`);
     } catch (err) {
-      alert("Lỗi khi thu hồi: " + (err.message || err));
+      toast.error("Lỗi khi thu hồi: " + (err.message || err));
     } finally {
       setRevoking(false);
     }
@@ -191,21 +198,26 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
             <Search size={16} color="var(--text-muted)" style={{ position: "absolute", left: "12px", top: "14px" }} />
           </div>
 
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="form-select" style={{ minWidth: "180px" }}>
-            <option value="ALL">Tất cả trạng thái ({certs.length})</option>
-            <option value="ISSUED_ON_CHAIN">Đã phát hành ({certs.filter(c => c.status === "ISSUED_ON_CHAIN").length})</option>
-            <option value="PENDING">Chờ duyệt ({certs.filter(c => c.status === "PENDING").length})</option>
-            <option value="REJECTED">Bị từ chối ({certs.filter(c => c.status === "REJECTED").length})</option>
-            <option value="REVOKED">Đã thu hồi ({certs.filter(c => c.status === "REVOKED").length})</option>
-            <option value="EXPIRED">Đã hết hạn ({certs.filter(c => c.status === "EXPIRED").length})</option>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="form-select" style={{ minWidth: "185px" }}>
+            <option value="ALL">Tất cả trạng thái ({cleanCerts.length})</option>
+            <option value="ISSUED_ON_CHAIN">Đã phát hành ({cleanCerts.filter(c => c.status === "ISSUED_ON_CHAIN").length})</option>
+            <option value="PENDING">Chờ duyệt ({cleanCerts.filter(c => c.status === "PENDING").length})</option>
+            <option value="REJECTED">Bị từ chối ({cleanCerts.filter(c => c.status === "REJECTED").length})</option>
+            <option value="REVOKED">Đã thu hồi ({cleanCerts.filter(c => c.status === "REVOKED").length})</option>
+            <option value="EXPIRED">Đã hết hạn ({cleanCerts.filter(c => c.status === "EXPIRED").length})</option>
           </select>
 
-          <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className="form-select" style={{ minWidth: "170px" }}>
+          <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className="form-select" style={{ minWidth: "180px" }}>
             <option value="ALL">Tất cả khóa học</option>
-            <option value="IELTS-ACAD">IELTS Academic</option>
-            <option value="TOEIC-INT">TOEIC 4 Kỹ Năng</option>
-            <option value="VSTEP-C1">VSTEP B2-C1</option>
-            <option value="CAMBRIDGE-CAE">Cambridge CAE</option>
+            {courses.length > 0 ? (
+              courses.map((cr) => (
+                <option key={cr.course_code} value={cr.course_code}>{cr.course_name}</option>
+              ))
+            ) : (
+              Array.from(new Map(cleanCerts.filter(c => c.course_code).map(c => [c.course_code, c.course_name || c.course_code])).entries()).map(([code, name]) => (
+                <option key={code} value={code}>{name}</option>
+              ))
+            )}
           </select>
 
           <button type="button" onClick={loadCerts} className="btn btn-outline" title="Làm mới dữ liệu">

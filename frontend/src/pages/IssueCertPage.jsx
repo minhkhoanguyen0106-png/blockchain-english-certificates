@@ -6,6 +6,7 @@ import { issueCertificateOnChain, INITIAL_STUDENTS, INITIAL_COURSES, connectMeta
 import { certificateApi, studentApi, courseApi } from "../services/apiService";
 import { computeOverallScore, getExpiryDateForCourse, validateSubScores, detectCourseType, CERTIFICATE_TYPES } from "../services/scoreEngine";
 import CertificateCard from "../components/CertificateCard";
+import { toast } from "../components/ToastContainer";
 
 export default function IssueCertPage({ wallet, setWallet, user }) {
   const navigate = useNavigate();
@@ -15,6 +16,8 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   const [pendingDrafts, setPendingDrafts] = useState([]);
   const [selectedDraftCode, setSelectedDraftCode] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
+
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   const [formData, setFormData] = useState({
     certificate_code: `CERT-IELTS-2026-${Math.floor(100 + Math.random() * 900)}`,
@@ -29,14 +32,16 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     reading: "",
     writing: "",
     speaking: "",
-    issue_date: new Date().toISOString().slice(0, 10),
-    expiry_date: "2028-10-29",
+    issue_date: todayStr,
+    expiry_date: getExpiryDateForCourse("IELTS-ACAD", todayStr),
     status: "DRAFT"
   });
 
   const [loading, setLoading] = useState(false);
   const [successCert, setSuccessCert] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
   const [isManualMode, setIsManualMode] = useState(false);
 
   const formatDateDisplay = (val) => {
@@ -80,23 +85,60 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
           courseApi.getCourses(),
           certificateApi.getCertificates({ status: "PENDING", limit: 50 })
         ]);
+        let loadedStudents = INITIAL_STUDENTS;
+        let loadedCourses = INITIAL_COURSES;
+
         if (stuRes.status === "fulfilled" && stuRes.value?.success && Array.isArray(stuRes.value.data) && stuRes.value.data.length > 0) {
-          setStudentsList(stuRes.value.data);
+          loadedStudents = stuRes.value.data;
+          setStudentsList(loadedStudents);
         }
         if (crsRes.status === "fulfilled" && crsRes.value?.success && Array.isArray(crsRes.value.data) && crsRes.value.data.length > 0) {
-          setCoursesList(crsRes.value.data);
+          loadedCourses = crsRes.value.data;
+          setCoursesList(loadedCourses);
         }
+
+        const codeParam = searchParams.get("code");
+        const studentParam = searchParams.get("student");
+        const courseParam = searchParams.get("course");
+
         if (draftRes.status === "fulfilled" && draftRes.value?.success && Array.isArray(draftRes.value.data)) {
           setPendingDrafts(draftRes.value.data);
-
-          // Kiểm tra nếu có query param ?code=... từ URL
-          const codeParam = searchParams.get("code");
           if (codeParam) {
             const draft = draftRes.value.data.find(d => d.certificate_code === codeParam);
             if (draft) {
               loadDraftIntoForm(draft);
+              return;
             }
           }
+        }
+
+        // Hỗ trợ tự điền sẵn Học viên / Khóa học khi chuyển từ trang Quản lý Học viên & Khóa học
+        if (studentParam || courseParam) {
+          if (user?.role === "ADMIN") setIsManualMode(true);
+          const matchedStu = studentParam
+            ? loadedStudents.find(s => s.student_code === studentParam)
+            : null;
+          const matchedCrs = courseParam
+            ? loadedCourses.find(c => c.course_code === courseParam)
+            : null;
+
+          if (matchedStu) setSelectedStudentId(matchedStu.id);
+
+          setFormData(prev => {
+            const nextCourseCode = matchedCrs ? matchedCrs.course_code : prev.course_code;
+            const nextType = detectCourseType(nextCourseCode);
+            return {
+              ...prev,
+              certificate_code: `CERT-${nextType}-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+              student_name: matchedStu ? matchedStu.full_name : prev.student_name,
+              student_code: matchedStu ? matchedStu.student_code : prev.student_code,
+              email: matchedStu ? (matchedStu.email || "") : prev.email,
+              wallet_address: matchedStu ? (matchedStu.wallet_address || "") : prev.wallet_address,
+              course_code: nextCourseCode,
+              course_name: matchedCrs ? matchedCrs.course_name : prev.course_name,
+              expiry_date: getExpiryDateForCourse(nextCourseCode, prev.issue_date)
+            };
+          });
         }
       } catch {
         // fallback to initial
@@ -145,7 +187,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         writing: "",
         speaking: "",
         issue_date: new Date().toISOString().slice(0, 10),
-        expiry_date: "2028-10-29",
+        expiry_date: getExpiryDateForCourse("IELTS-ACAD", new Date().toISOString().slice(0, 10)),
         status: "DRAFT"
       });
       return;
@@ -181,13 +223,20 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     }
   };
 
-  const handleRejectDraft = async () => {
+  const handleRejectDraft = () => {
     if (!selectedDraftCode) {
-      alert("Vui lòng chọn hồ sơ nháp cần từ chối.");
+      toast.warning("Vui lòng chọn hồ sơ nháp cần từ chối.");
       return;
     }
-    const reason = prompt("Nhập lý do từ chối hồ sơ nháp (chuyển lại cho Cán bộ khảo thí điều chỉnh):", "Điểm số các kỹ năng chưa chính xác với biên bản chấm thi.");
-    if (!reason) return;
+    setRejectReason("Điểm số các kỹ năng chưa chính xác với biên bản chấm thi.");
+    setShowRejectModal(true);
+  };
+
+  const executeRejectDraft = async () => {
+    if (!rejectReason.trim()) {
+      toast.warning("Vui lòng nhập lý do từ chối cụ thể.");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -195,7 +244,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       if (!cert?.id) throw new Error("Không tìm thấy ID của bản nháp.");
       let res;
       try {
-        res = await certificateApi.rejectDraft(cert.id, reason);
+        res = await certificateApi.rejectDraft(cert.id, rejectReason.trim());
       } catch (rejectErr) {
         if (rejectErr?.status === 404) {
           res = await certificateApi.deleteCertificate(cert.id);
@@ -204,13 +253,14 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         }
       }
       if (res?.success) {
-        alert(`Đã từ chối bản nháp ${selectedDraftCode} thành công.`);
+        setShowRejectModal(false);
+        toast.success(`Đã từ chối bản nháp ${selectedDraftCode} thành công.`);
         navigate("/admin/certificates");
       } else {
-        alert("Lỗi khi từ chối: " + (res?.message || "Không xác định"));
+        toast.error("Lỗi khi từ chối: " + (res?.message || "Không xác định"));
       }
     } catch (err) {
-      alert("Lỗi khi từ chối bản nháp: " + (err.message || err));
+      toast.error("Lỗi khi từ chối bản nháp: " + (err.message || err));
     } finally {
       setLoading(false);
     }
@@ -227,8 +277,12 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         speaking: formData.speaking
       });
       const expiry = getExpiryDateForCourse(found.course_code, formData.issue_date);
+      const nextType = detectCourseType(found.course_code);
       setFormData(prev => ({
         ...prev,
+        certificate_code: !selectedDraftCode
+          ? `CERT-${nextType}-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`
+          : prev.certificate_code,
         course_code: found.course_code,
         course_name: found.course_name,
         score: overall,
@@ -241,18 +295,18 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     e.preventDefault();
 
     if (!formData.student_name || !formData.student_code) {
-      alert("Vui lòng chọn học viên từ danh sách hoặc nhập đầy đủ họ tên và mã học viên.");
+      toast.warning("Vui lòng chọn học viên từ danh sách hoặc nhập đầy đủ họ tên và mã học viên.");
       return;
     }
 
     if (!formData.wallet_address) {
-      alert("Vui lòng nhập hoặc liên kết địa chỉ ví điện tử của học viên trước khi tiếp tục.");
+      toast.warning("Vui lòng nhập hoặc liên kết địa chỉ ví điện tử của học viên trước khi tiếp tục.");
       return;
     }
 
     const validation = validateSubScores(formData.course_code, formData);
     if (!validation.isValid) {
-      alert(`Dữ liệu điểm chưa hợp lệ:\n- ${validation.errors.join("\n- ")}`);
+      toast.error(`Dữ liệu điểm chưa hợp lệ:\n• ${validation.errors.join("\n• ")}`);
       return;
     }
 
@@ -274,10 +328,10 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         if (!result?.success || !result.data?.id) {
           throw new Error(result?.message || "Máy chủ chưa xác nhận lưu bản nháp.");
         }
-        alert(`Đã lưu bản nháp ${formData.certificate_code}. Chứng chỉ đang chờ Quản trị viên kiểm duyệt.`);
+        toast.success(`Đã lưu bản nháp ${formData.certificate_code}. Hồ sơ đang chờ Quản trị viên kiểm duyệt.`);
         navigate("/admin/certificates");
       } catch (err) {
-        alert("Lỗi khi lưu bản nháp: " + (err.message || err));
+        toast.error("Lỗi khi lưu bản nháp: " + (err.message || err));
       } finally {
         setLoading(false);
       }
@@ -285,7 +339,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     }
 
     if (user?.role !== "ADMIN") {
-      alert("Tài khoản hiện tại không có quyền phát hành chứng chỉ.");
+      toast.error("Tài khoản hiện tại không có quyền phát hành chứng chỉ.");
       return;
     }
 
@@ -315,6 +369,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
       const newCert = await issueCertificateOnChain(formData, activeWallet);
       setSuccessCert(newCert);
+      toast.success(`Phát hành thành công chứng chỉ ${newCert.certificate_code}!`);
 
       confetti({
         particleCount: 100,
@@ -322,7 +377,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         origin: { y: 0.6 }
       });
     } catch (err) {
-      alert("Lỗi khi xử lý: " + (err.message || err));
+      toast.error("Lỗi khi xử lý: " + (err.message || err));
     } finally {
       setLoading(false);
     }
@@ -347,7 +402,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       </div>
 
       {/* 2-Column Split Layout */}
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(360px, 460px) 1fr", gap: "28px", alignItems: "start" }}>
+      <div className="issue-split-grid">
         
         {/* Left Column: Input Form */}
         <div className="glass-panel" style={{ padding: "26px" }}>
@@ -883,6 +938,46 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 style={{ padding: "10px 22px", fontSize: "13px", fontWeight: 700 }}
               >
                 Xác Nhận & Ký Phát Hành
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Draft Modal (Thay thế prompt() thô của trình duyệt) */}
+      {showRejectModal && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "var(--bg-modal-backdrop)",
+          backdropFilter: "blur(8px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 999,
+          padding: "20px"
+        }}>
+          <div className="glass-panel" style={{ maxWidth: "480px", width: "100%", padding: "28px", background: "var(--bg-surface-elevated)", borderColor: "rgba(239, 68, 68, 0.35)" }}>
+            <h3 style={{ fontSize: "19px", fontWeight: 800, color: "var(--danger-text)", marginBottom: "8px" }}>
+              Từ Chối Hồ Sơ Nháp
+            </h3>
+            <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "16px" }}>
+              Hồ sơ <strong>{selectedDraftCode}</strong> sẽ bị hủy duyệt và trả về cho Cán bộ khảo thí rà soát lại.
+            </p>
+            <div className="form-group">
+              <label className="form-label">Lý do từ chối</label>
+              <textarea
+                rows="3"
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                className="form-textarea"
+                placeholder="Nhập lý do cụ thể..."
+              />
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
+              <button type="button" onClick={() => setShowRejectModal(false)} className="btn btn-outline">Hủy</button>
+              <button type="button" onClick={executeRejectDraft} disabled={loading} className="btn btn-danger">
+                {loading ? "Đang xử lý..." : "Xác Nhận Từ Chối"}
               </button>
             </div>
           </div>

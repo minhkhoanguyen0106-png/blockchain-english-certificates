@@ -152,6 +152,12 @@ export const studentApi = {
       method: "POST",
       body: JSON.stringify(studentData)
     });
+  },
+  updateStudent: async (id, studentData) => {
+    return await apiRequest(`/students/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(studentData)
+    });
   }
 };
 

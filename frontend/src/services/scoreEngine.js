@@ -86,7 +86,17 @@ export function calculateCambridgeOverall(l, r, w, s) {
 }
 
 /**
- * 5. Tính điểm tổng theo loại chứng chỉ
+ * 5. Thuật toán tính điểm TOEFL iBT (0 - 120, mỗi kỹ năng 0 - 30)
+ */
+export function calculateToeflOverall(l, r, w, s) {
+  const nums = [parseInt(l, 10), parseInt(r, 10), parseInt(w, 10), parseInt(s, 10)];
+  if (nums.some(isNaN)) return "0/120 iBT";
+  const total = nums.reduce((a, b) => a + Math.max(0, Math.min(30, b)), 0);
+  return `${total}/120 iBT`;
+}
+
+/**
+ * 6. Tính điểm tổng theo loại chứng chỉ
  */
 export function computeOverallScore(courseCode, { listening, reading, writing, speaking }) {
   const type = detectCourseType(courseCode);
@@ -99,14 +109,16 @@ export function computeOverallScore(courseCode, { listening, reading, writing, s
       return calculateVstepOverall(listening, reading, writing, speaking);
     case CERTIFICATE_TYPES.CAMBRIDGE:
       return calculateCambridgeOverall(listening, reading, writing, speaking);
+    case CERTIFICATE_TYPES.TOEFL:
+      return calculateToeflOverall(listening, reading, writing, speaking);
     default:
       return calculateIeltsOverall(listening, reading, writing, speaking);
   }
 }
 
 /**
- * 6. Tính ngày hết hạn dựa theo quy định của từng loại chứng chỉ
- * - IELTS/TOEIC/VSTEP: Thường có hiệu lực 2 năm (24 tháng) theo khuyến nghị tiếp nhận
+ * 7. Tính ngày hết hạn dựa theo quy định của từng loại chứng chỉ
+ * - IELTS/TOEIC/VSTEP/TOEFL: Hiệu lực 2 năm (24 tháng)
  * - CAMBRIDGE: Vĩnh viễn (trả về chuỗi rỗng / vô thời hạn)
  */
 export function getExpiryDateForCourse(courseCode, issueDateStr) {
@@ -123,7 +135,7 @@ export function getExpiryDateForCourse(courseCode, issueDateStr) {
 }
 
 /**
- * 7. Kiểm tra tính hợp lệ của điểm số theo thang điểm
+ * 8. Kiểm tra tính hợp lệ của điểm số theo thang điểm & bước nhảy chuẩn (step)
  */
 export function validateSubScores(courseCode, { listening, reading, writing, speaking }) {
   const type = detectCourseType(courseCode);
@@ -131,35 +143,59 @@ export function validateSubScores(courseCode, { listening, reading, writing, spe
 
   const checkRange = (name, val, min, max, step = 0.5) => {
     const num = parseFloat(val);
-    if (isNaN(num)) {
+    if (val === "" || val === null || val === undefined || isNaN(num)) {
       errors.push(`${name} chưa được nhập điểm.`);
-    } else if (num < min || num > max) {
+      return;
+    }
+    if (num < min || num > max) {
       errors.push(`${name} phải nằm trong khoảng từ ${min} đến ${max}.`);
+      return;
+    }
+    if (step > 0) {
+      const scaled = Math.round((num - min) / step);
+      const expected = min + scaled * step;
+      if (Math.abs(num - expected) > 1e-6) {
+        errors.push(`${name} (${num}) không đúng bước nhảy chuẩn (phải là bội số của ${step}).`);
+      }
     }
   };
 
   switch (type) {
     case CERTIFICATE_TYPES.IELTS:
-      checkRange("Điểm Nghe (Listening)", listening, 0, 9);
-      checkRange("Điểm Đọc (Reading)", reading, 0, 9);
-      checkRange("Điểm Viết (Writing)", writing, 0, 9);
-      checkRange("Điểm Nói (Speaking)", speaking, 0, 9);
+      checkRange("Điểm Nghe (Listening)", listening, 0, 9, 0.5);
+      checkRange("Điểm Đọc (Reading)", reading, 0, 9, 0.5);
+      checkRange("Điểm Viết (Writing)", writing, 0, 9, 0.5);
+      checkRange("Điểm Nói (Speaking)", speaking, 0, 9, 0.5);
       break;
     case CERTIFICATE_TYPES.TOEIC:
-      checkRange("Điểm Nghe (Listening)", listening, 5, 495);
-      checkRange("Điểm Đọc (Reading)", reading, 5, 495);
+      checkRange("Điểm Nghe (Listening)", listening, 5, 495, 5);
+      checkRange("Điểm Đọc (Reading)", reading, 5, 495, 5);
       break;
-    case CERTIFICATE_TYPES.VSTEP:
-      checkRange("Điểm Nghe (Listening)", listening, 0, 10);
-      checkRange("Điểm Đọc (Reading)", reading, 0, 10);
-      checkRange("Điểm Viết (Writing)", writing, 0, 10);
-      checkRange("Điểm Nói (Speaking)", speaking, 0, 10);
+    case CERTIFICATE_TYPES.VSTEP: {
+      checkRange("Điểm Nghe (Listening)", listening, 0, 10, 0.5);
+      checkRange("Điểm Đọc (Reading)", reading, 0, 10, 0.5);
+      checkRange("Điểm Viết (Writing)", writing, 0, 10, 0.5);
+      checkRange("Điểm Nói (Speaking)", speaking, 0, 10, 0.5);
+      if (errors.length === 0) {
+        const avg = (parseFloat(listening) + parseFloat(reading) + parseFloat(writing) + parseFloat(speaking)) / 4;
+        const rounded = Math.round(avg * 2) / 2;
+        if (rounded < 4.0) {
+          errors.push(`Điểm trung bình VSTEP (${rounded.toFixed(1)}/10) chưa đạt ngưỡng tối thiểu Bậc 3 (4.0) để cấp chứng chỉ.`);
+        }
+      }
       break;
+    }
     case CERTIFICATE_TYPES.CAMBRIDGE:
-      checkRange("Kỹ năng Nghe", listening, 80, 230);
-      checkRange("Kỹ năng Đọc", reading, 80, 230);
-      checkRange("Kỹ năng Viết", writing, 80, 230);
-      checkRange("Kỹ năng Nói", speaking, 80, 230);
+      checkRange("Kỹ năng Nghe", listening, 80, 230, 1);
+      checkRange("Kỹ năng Đọc", reading, 80, 230, 1);
+      checkRange("Kỹ năng Viết", writing, 80, 230, 1);
+      checkRange("Kỹ năng Nói", speaking, 80, 230, 1);
+      break;
+    case CERTIFICATE_TYPES.TOEFL:
+      checkRange("TOEFL Listening", listening, 0, 30, 1);
+      checkRange("TOEFL Reading", reading, 0, 30, 1);
+      checkRange("TOEFL Writing", writing, 0, 30, 1);
+      checkRange("TOEFL Speaking", speaking, 0, 30, 1);
       break;
     default:
       break;

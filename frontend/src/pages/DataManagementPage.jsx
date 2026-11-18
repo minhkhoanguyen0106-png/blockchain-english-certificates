@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Users, BookOpen, Search, UserPlus, BookPlus, RefreshCw } from "lucide-react";
+import { Users, BookOpen, Search, UserPlus, BookPlus, RefreshCw, Pencil } from "lucide-react";
+import { ethers } from "ethers";
 import { INITIAL_STUDENTS, INITIAL_COURSES } from "../services/mockData";
 import { shortenAddress } from "../services/web3Service";
 import { studentApi, courseApi } from "../services/apiService";
+import { toast } from "../components/ToastContainer";
 
 const STORAGE_KEY_STUDENTS = "certchain_students";
 const STORAGE_KEY_COURSES = "certchain_courses";
@@ -12,23 +14,16 @@ export default function DataManagementPage({ user }) {
   const [activeTab, setActiveTab] = useState("STUDENTS"); // STUDENTS | COURSES
   const canManageCourses = user?.role === "ADMIN";
   
-  // State for students
-  const [students, setStudents] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_STUDENTS);
-    return saved ? JSON.parse(saved) : INITIAL_STUDENTS;
-  });
-
-  // State for courses
-  const [courses, setCourses] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_COURSES);
-    return saved ? JSON.parse(saved) : INITIAL_COURSES;
-  });
+  // Khởi tạo mảng rỗng tránh nhấp nháy mock data (chỉ fallback khi offline)
+  const [students, setStudents] = useState([]);
+  const [courses, setCourses] = useState([]);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Modal states
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(null);
   const [newStudent, setNewStudent] = useState({
     student_code: `HV2026-0${Math.floor(200 + Math.random() * 800)}`,
     citizen_id: `0792040${Math.floor(10000 + Math.random() * 90000)}`,
@@ -61,14 +56,23 @@ export default function DataManagementPage({ user }) {
       if (stuRes.status === "fulfilled" && stuRes.value?.success && Array.isArray(stuRes.value.data)) {
         setStudents(stuRes.value.data);
         localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(stuRes.value.data));
+      } else {
+        const saved = localStorage.getItem(STORAGE_KEY_STUDENTS);
+        setStudents(saved ? JSON.parse(saved) : INITIAL_STUDENTS);
       }
 
       if (crsRes.status === "fulfilled" && crsRes.value?.success && Array.isArray(crsRes.value.data)) {
         setCourses(crsRes.value.data);
         localStorage.setItem(STORAGE_KEY_COURSES, JSON.stringify(crsRes.value.data));
+      } else {
+        const saved = localStorage.getItem(STORAGE_KEY_COURSES);
+        setCourses(saved ? JSON.parse(saved) : INITIAL_COURSES);
       }
     } catch {
-      // offline fallback
+      const savedS = localStorage.getItem(STORAGE_KEY_STUDENTS);
+      const savedC = localStorage.getItem(STORAGE_KEY_COURSES);
+      setStudents(savedS ? JSON.parse(savedS) : INITIAL_STUDENTS);
+      setCourses(savedC ? JSON.parse(savedC) : INITIAL_COURSES);
     } finally {
       setLoading(false);
     }
@@ -78,20 +82,46 @@ export default function DataManagementPage({ user }) {
     loadData();
   }, []);
 
+  const validateStudentPayload = (payload) => {
+    if (!payload.full_name?.trim() || !payload.email?.trim()) {
+      return "Vui lòng điền đầy đủ họ tên và địa chỉ email!";
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email.trim())) {
+      return "Định dạng địa chỉ Email không hợp lệ!";
+    }
+    if (payload.citizen_id && !/^\d{9,12}$/.test(String(payload.citizen_id).trim())) {
+      return "Số CCCD/CMND phải gồm từ 9 đến 12 chữ số!";
+    }
+    if (payload.wallet_address && payload.wallet_address.trim() !== "") {
+      if (!ethers.isAddress(payload.wallet_address.trim().toLowerCase())) {
+        return "Địa chỉ ví điện tử không hợp lệ (cần địa chỉ Ethereum 42 ký tự bắt đầu bằng 0x).";
+      }
+    }
+    return null;
+  };
+
   // Handle Add Student
   const handleAddStudent = async (e) => {
     e.preventDefault();
-    if (!newStudent.full_name || !newStudent.email) {
-      alert("Vui lòng điền đủ họ tên và email!");
+    const validationErr = validateStudentPayload(newStudent);
+    if (validationErr) {
+      toast.warning(validationErr);
       return;
     }
 
+    const payload = {
+      ...newStudent,
+      wallet_address: newStudent.wallet_address?.trim()
+        ? ethers.getAddress(newStudent.wallet_address.trim().toLowerCase())
+        : ""
+    };
+
     try {
-      await studentApi.createStudent(newStudent);
-      alert("Đã lưu hồ sơ học viên thành công!");
+      await studentApi.createStudent(payload);
+      toast.success("Đã lưu hồ sơ học viên thành công!");
       await loadData();
     } catch (err) {
-      alert(`Không thể lưu học viên vào hệ thống: ${err.message || err}`);
+      toast.error(`Không thể lưu học viên vào hệ thống: ${err.message || err}`);
       return;
     }
 
@@ -107,24 +137,55 @@ export default function DataManagementPage({ user }) {
     });
   };
 
+  // Handle Update Student (Cập nhật thông tin & gắn ví Ethereum)
+  const handleUpdateStudent = async (e) => {
+    e.preventDefault();
+    if (!editingStudent?.id) return;
+    const validationErr = validateStudentPayload(editingStudent);
+    if (validationErr) {
+      toast.warning(validationErr);
+      return;
+    }
+
+    const payload = {
+      full_name: editingStudent.full_name.trim(),
+      email: editingStudent.email.trim(),
+      citizen_id: String(editingStudent.citizen_id || "").trim(),
+      phone: editingStudent.phone || "",
+      date_of_birth: editingStudent.date_of_birth ? String(editingStudent.date_of_birth).slice(0, 10) : "2003-05-15",
+      wallet_address: editingStudent.wallet_address?.trim()
+        ? ethers.getAddress(editingStudent.wallet_address.trim().toLowerCase())
+        : null
+    };
+
+    try {
+      await studentApi.updateStudent(editingStudent.id, payload);
+      toast.success(`Đã cập nhật hồ sơ học viên ${payload.full_name}!`);
+      setEditingStudent(null);
+      await loadData();
+    } catch (err) {
+      toast.error(`Không thể cập nhật học viên: ${err.message || err}`);
+    }
+  };
+
   // Handle Add Course
   const handleAddCourse = async (e) => {
     e.preventDefault();
     if (!canManageCourses) {
-      alert("Chỉ Quản trị viên (ADMIN) được thêm khóa học.");
+      toast.error("Chỉ Quản trị viên (ADMIN) mới có quyền thêm khóa học.");
       return;
     }
     if (!newCourse.course_code || !newCourse.course_name) {
-      alert("Vui lòng điền đủ mã và tên khóa học!");
+      toast.warning("Vui lòng điền đủ mã và tên khóa học!");
       return;
     }
 
     try {
       await courseApi.createCourse(newCourse);
-      alert("Đã lưu khóa học thành công!");
+      toast.success("Đã lưu khóa học mới thành công!");
       await loadData();
     } catch (err) {
-      alert(`Không thể lưu khóa học: ${err.message || err}`);
+      toast.error(`Không thể lưu khóa học: ${err.message || err}`);
       return;
     }
 
@@ -259,13 +320,25 @@ export default function DataManagementPage({ user }) {
                         {s.wallet_address ? shortenAddress(s.wallet_address) : <span style={{ color: "var(--text-muted)" }}>Chưa liên kết</span>}
                       </td>
                       <td style={{ textAlign: "right" }}>
-                        <Link
-                          to="/admin/certificates/issue"
-                          className="btn btn-outline"
-                          style={{ padding: "6px 12px", fontSize: "12px" }}
-                        >
-                          {canManageCourses ? "Cấp Bằng" : "Soạn Nháp"}
-                        </Link>
+                        <div style={{ display: "inline-flex", gap: "8px" }}>
+                          <button
+                            type="button"
+                            onClick={() => setEditingStudent({ ...s, wallet_address: s.wallet_address || "" })}
+                            className="btn btn-outline"
+                            style={{ padding: "6px 10px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                            title="Sửa thông tin hoặc gắn địa chỉ ví học viên"
+                          >
+                            <Pencil size={13} />
+                            Sửa
+                          </button>
+                          <Link
+                            to={`/admin/certificates/issue?student=${encodeURIComponent(s.student_code)}`}
+                            className="btn btn-outline"
+                            style={{ padding: "6px 12px", fontSize: "12px" }}
+                          >
+                            {canManageCourses ? "Cấp Bằng" : "Soạn Nháp"}
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -308,7 +381,7 @@ export default function DataManagementPage({ user }) {
                       <td style={{ color: "var(--text-secondary)" }}>{c.duration || "3 tháng"}</td>
                       <td style={{ textAlign: "right" }}>
                         <Link
-                          to="/admin/certificates/issue"
+                          to={`/admin/certificates/issue?course=${encodeURIComponent(c.course_code)}`}
                           className="btn btn-outline"
                           style={{ padding: "6px 12px", fontSize: "12px" }}
                         >
@@ -402,6 +475,79 @@ export default function DataManagementPage({ user }) {
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" }}>
                 <button type="button" onClick={() => setShowAddStudentModal(false)} className="btn btn-outline">Hủy Bỏ</button>
                 <button type="submit" className="btn btn-primary">Lưu Hồ Sơ Học Viên</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Edit Student */}
+      {editingStudent && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "var(--bg-modal-backdrop)",
+          backdropFilter: "blur(8px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 999,
+          padding: "20px"
+        }}>
+          <div className="glass-panel" style={{ maxWidth: "500px", width: "100%", padding: "32px", background: "var(--bg-surface-elevated)" }}>
+            <h3 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "6px", color: "var(--text-primary)" }}>
+              Cập Nhật Hồ Sơ Học Viên
+            </h3>
+            <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "20px" }}>
+              Mã học viên: <strong style={{ color: "var(--primary)" }}>{editingStudent.student_code}</strong>
+            </p>
+            <form onSubmit={handleUpdateStudent}>
+              <div className="form-group">
+                <label className="form-label">Họ và tên học viên</label>
+                <input
+                  type="text"
+                  required
+                  value={editingStudent.full_name || ""}
+                  onChange={(e) => setEditingStudent({ ...editingStudent, full_name: e.target.value })}
+                  className="form-input"
+                />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="form-group">
+                  <label className="form-label">Số CCCD</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingStudent.citizen_id || ""}
+                    onChange={(e) => setEditingStudent({ ...editingStudent, citizen_id: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={editingStudent.email || ""}
+                    onChange={(e) => setEditingStudent({ ...editingStudent, email: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Địa chỉ ví điện tử định danh học viên (0x...)</label>
+                <input
+                  type="text"
+                  placeholder="0x..."
+                  value={editingStudent.wallet_address || ""}
+                  onChange={(e) => setEditingStudent({ ...editingStudent, wallet_address: e.target.value })}
+                  className="form-input"
+                  style={{ fontSize: "12px", fontFamily: "monospace" }}
+                />
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" }}>
+                <button type="button" onClick={() => setEditingStudent(null)} className="btn btn-outline">Hủy Bỏ</button>
+                <button type="submit" className="btn btn-primary">Lưu Thay Đổi</button>
               </div>
             </form>
           </div>

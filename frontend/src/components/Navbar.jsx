@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ShieldCheck, Search, LayoutDashboard, LogOut, Lock } from "lucide-react";
+import { ShieldCheck, LayoutDashboard, LogOut, Lock } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { authApi } from "../services/apiService";
 
@@ -60,66 +60,7 @@ export default function Navbar({ user, setUser }) {
           </div>
         </Link>
 
-        {/* Zone 2: Navigation Links (Clean typography, no bloated bubble cards) */}
-        <nav style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-          
-          <Link
-            to="/"
-            style={{
-              fontSize: "14px",
-              fontWeight: isActive("/") ? 700 : 500,
-              color: isActive("/") ? "var(--primary)" : "var(--text-secondary)",
-              transition: "color var(--transition-fast)",
-              position: "relative",
-              padding: "6px 0"
-            }}
-          >
-            Trang Chủ
-            {isActive("/") && (
-              <span style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: "2px",
-                background: "var(--primary)",
-                borderRadius: "2px"
-              }} />
-            )}
-          </Link>
-
-          <Link
-            to="/verify"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "14px",
-              fontWeight: isActive("/verify") ? 700 : 500,
-              color: isActive("/verify") ? "var(--primary)" : "var(--text-secondary)",
-              transition: "color var(--transition-fast)",
-              position: "relative",
-              padding: "6px 0"
-            }}
-          >
-            <Search size={15} />
-            Tra Cứu &amp; Xác Thực
-            {isActive("/verify") && (
-              <span style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: "2px",
-                background: "var(--primary)",
-                borderRadius: "2px"
-              }} />
-            )}
-          </Link>
-
-        </nav>
-
-        {/* Zone 3: Unified Action Bar (Theme, Admin Entry, User Profile) */}
+        {/* Zone 2: Unified Action Bar (Theme, Admin Entry, User Profile) */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
           
           {/* Admin / Staff Workspace Button */}

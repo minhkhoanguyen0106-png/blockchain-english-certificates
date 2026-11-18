@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Search, ShieldCheck, AlertTriangle, XCircle, Download, QrCode, ArrowLeft, RefreshCw, Wallet, Award, Copy, Check, Upload, CheckCircle2, AlertCircle } from "lucide-react";
+import { Search, ShieldCheck, AlertTriangle, XCircle, Download, QrCode, ArrowLeft, RefreshCw, Copy, Check, Upload, CheckCircle2, AlertCircle } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
-import { getCertificateByCode, getCertificatesByStudentWallet, connectMetaMask, isMetaMaskInstalled, shortenAddress } from "../services/web3Service";
+import { getCertificateByCode } from "../services/web3Service";
 import CertificateCard from "../components/CertificateCard";
 
 export default function VerifyPage() {
@@ -10,9 +10,7 @@ export default function VerifyPage() {
   const initialCode = searchParams.get("code") || "";
   const initialTab = searchParams.get("tab") || "code";
 
-  const [activeTab, setActiveTab] = useState(
-    ["code", "qr", "wallet"].includes(initialTab) ? initialTab : "code"
-  );
+  const [activeTab, setActiveTab] = useState(initialTab === "qr" ? "qr" : "code");
   const [inputCode, setInputCode] = useState(initialCode);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -24,13 +22,6 @@ export default function VerifyPage() {
   const [scanResult, setScanResult] = useState("");
   const [qrError, setQrError] = useState("");
   const scannerRef = useRef(null);
-
-  // Student Web3 Wallet Lookup state (Tab "wallet")
-  const [walletInput, setWalletInput] = useState("");
-  const [walletCerts, setWalletCerts] = useState([]);
-  const [walletSearched, setWalletSearched] = useState(false);
-  const [walletLoading, setWalletLoading] = useState(false);
-  const [walletError, setWalletError] = useState("");
 
   const handleSearch = async (codeToSearch) => {
     const code = (codeToSearch || inputCode).trim();
@@ -130,46 +121,10 @@ export default function VerifyPage() {
 
   useEffect(() => {
     const t = searchParams.get("tab");
-    if (t && ["code", "qr", "wallet"].includes(t)) {
+    if (t === "qr" || t === "code") {
       setActiveTab(t);
     }
   }, [searchParams]);
-
-  const handleWalletLookup = async (addressToSearch) => {
-    const addr = (addressToSearch || walletInput).trim();
-    if (!addr) return;
-    setWalletLoading(true);
-    setWalletSearched(true);
-    setWalletError("");
-    try {
-      const list = await getCertificatesByStudentWallet(addr);
-      setWalletCerts(list);
-    } catch (err) {
-      setWalletCerts([]);
-      setWalletError(err.message || "Không thể tra cứu ví học viên.");
-    } finally {
-      setWalletLoading(false);
-    }
-  };
-
-  const handleConnectStudentWallet = async () => {
-    if (!isMetaMaskInstalled()) {
-      setWalletError("Trình duyệt chưa cài đặt MetaMask. Bạn có thể dán trực tiếp địa chỉ ví 0x... vào ô bên cạnh để xem danh sách bằng.");
-      return;
-    }
-    try {
-      setWalletLoading(true);
-      setWalletError("");
-      const acc = await connectMetaMask();
-      if (acc?.address) {
-        setWalletInput(acc.address);
-        await handleWalletLookup(acc.address);
-      }
-    } catch (err) {
-      setWalletError(err.message || "Không thể kết nối ví MetaMask.");
-      setWalletLoading(false);
-    }
-  };
 
   const handleCopyShareLink = () => {
     if (!result?.certificate_code) return;
@@ -207,13 +162,13 @@ export default function VerifyPage() {
           </p>
         </div>
 
-        {/* Mode Switch Tabs: 3 phương thức xác thực rõ ràng, không trùng lặp */}
+        {/* Mode Switch Tabs: Nhập Mã Bằng & Quét Mã QR */}
         <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginBottom: "22px", flexWrap: "wrap" }}>
           <button
             type="button"
             onClick={() => { setActiveTab("code"); setSearchParams(inputCode ? { code: inputCode } : {}); }}
             className={`btn ${activeTab === "code" ? "btn-primary" : "btn-outline"}`}
-            style={{ padding: "10px 20px", fontSize: "13px" }}
+            style={{ padding: "10px 22px", fontSize: "13px" }}
           >
             <Search size={15} />
             Nhập Mã Bằng
@@ -222,19 +177,10 @@ export default function VerifyPage() {
             type="button"
             onClick={() => { setActiveTab("qr"); setSearchParams({ tab: "qr" }); }}
             className={`btn ${activeTab === "qr" ? "btn-primary" : "btn-outline"}`}
-            style={{ padding: "10px 20px", fontSize: "13px" }}
+            style={{ padding: "10px 22px", fontSize: "13px" }}
           >
             <QrCode size={15} />
             Quét Mã QR
-          </button>
-          <button
-            type="button"
-            onClick={() => { setActiveTab("wallet"); setSearchParams({ tab: "wallet" }); }}
-            className={`btn ${activeTab === "wallet" ? "btn-primary" : "btn-outline"}`}
-            style={{ padding: "10px 20px", fontSize: "13px" }}
-          >
-            <Wallet size={15} />
-            Ví Học Viên
           </button>
         </div>
 
@@ -305,150 +251,7 @@ export default function VerifyPage() {
           </div>
         )}
 
-        {/* TAB 2: STUDENT WALLET LOOKUP (Web3-native, no password needed) */}
-        {activeTab === "wallet" && (
-          <div>
-            <div className="glass-panel" style={{ padding: "22px 24px", marginBottom: "28px" }}>
-              <div style={{ marginBottom: "14px" }}>
-                <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-primary)" }}>
-                  Xem toàn bộ chứng chỉ thuộc quyền sở hữu ví của bạn
-                </div>
-                <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "3px" }}>
-                  Kết nối ví điện tử cá nhân hoặc dán địa chỉ ví (0x...) đã đăng ký với Trung tâm để xem tất cả chứng chỉ số định danh của bạn.
-                </div>
-              </div>
-
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleWalletLookup();
-                }}
-                style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}
-              >
-                <div style={{ position: "relative", flex: 1, minWidth: "240px" }}>
-                  <input
-                    type="text"
-                    placeholder="Nhập địa chỉ ví học viên (bắt đầu bằng 0x)"
-                    value={walletInput}
-                    onChange={(e) => setWalletInput(e.target.value)}
-                    className="form-input"
-                    style={{ paddingLeft: "40px", height: "46px", fontSize: "14px" }}
-                  />
-                  <Wallet size={16} color="var(--text-muted)" style={{ position: "absolute", left: "13px", top: "15px" }} />
-                </div>
-
-                <button type="submit" disabled={walletLoading} className="btn btn-primary" style={{ height: "46px", padding: "0 20px" }}>
-                  {walletLoading ? <RefreshCw size={16} className="animate-spin" /> : <Search size={16} />}
-                  Tra Cứu Ví
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleConnectStudentWallet}
-                  disabled={walletLoading}
-                  className="btn btn-gold"
-                  style={{ height: "46px", padding: "0 18px" }}
-                  title="Kết nối ví MetaMask cá nhân"
-                >
-                  <Wallet size={16} />
-                  Kết Nối Ví
-                </button>
-              </form>
-
-              {walletError && (
-                <div style={{ marginTop: "14px", padding: "10px 14px", borderRadius: "var(--radius-sm)", background: "var(--danger-bg)", color: "var(--danger-text)", fontSize: "13px" }}>
-                  {walletError}
-                </div>
-              )}
-            </div>
-
-            {walletLoading && (
-              <div className="glass-panel" style={{ padding: "40px", textAlign: "center" }}>
-                <div style={{ width: "42px", height: "42px", border: "4px solid var(--border-subtle)", borderTopColor: "var(--primary)", borderRadius: "50%", margin: "0 auto 14px", animation: "spinSlow 1s linear infinite" }} />
-                <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>Đang tải danh sách chứng chỉ trong ví...</div>
-              </div>
-            )}
-
-            {!walletLoading && walletSearched && walletCerts.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-secondary)" }}>
-                  Tìm thấy <span style={{ color: "var(--primary)" }}>{walletCerts.length}</span> chứng chỉ gắn với ví {shortenAddress(walletInput)}:
-                </div>
-                {walletCerts.map((c) => (
-                  <div
-                    key={c.certificate_code}
-                    className="glass-panel"
-                    style={{
-                      padding: "18px 22px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: "16px",
-                      flexWrap: "wrap"
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                        <Award size={18} color="var(--primary)" />
-                        <strong style={{ fontSize: "16px", color: "var(--primary)" }}>{c.certificate_code}</strong>
-                        {c.status === "ISSUED_ON_CHAIN" && <span className="badge badge-success">Hợp Lệ</span>}
-                        {c.status === "REVOKED" && <span className="badge badge-danger">Đã Thu Hồi</span>}
-                        {c.onchain_verified && (
-                          <span className="badge" style={{ background: "var(--primary-bg)", color: "var(--primary)", fontSize: "11px" }}>
-                            Đã đối soát sổ cái
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-primary)", marginTop: "6px" }}>
-                        {c.student_name} — {c.course_name} (<span style={{ color: "var(--accent-gold)" }}>{c.score}</span>)
-                      </div>
-                      <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "3px" }}>
-                        Ngày cấp: {c.issue_date || "—"} {c.token_id ? `• Mã số bằng #${c.token_id}` : ""}
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setInputCode(c.certificate_code);
-                          handleSearch(c.certificate_code);
-                        }}
-                        className="btn btn-primary"
-                        style={{ padding: "8px 14px", fontSize: "12px" }}
-                      >
-                        <ShieldCheck size={14} /> Xem &amp; Xác Thực
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => window.open(`http://localhost:5000/api/public/pdf/${c.certificate_code}`, "_blank")}
-                        className="btn btn-outline"
-                        style={{ padding: "8px 12px", fontSize: "12px" }}
-                        title="Tải PDF"
-                      >
-                        <Download size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {!walletLoading && walletSearched && !walletError && walletCerts.length === 0 && (
-              <div className="glass-panel" style={{ padding: "36px", textAlign: "center" }}>
-                <Wallet size={32} color="var(--text-muted)" style={{ marginBottom: "10px" }} />
-                <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-primary)" }}>
-                  Chưa có chứng chỉ nào được phát hành cho địa chỉ ví này
-                </div>
-                <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "6px" }}>
-                  Hãy kiểm tra lại địa chỉ ví đã đăng ký với Trung tâm hoặc dùng tab Tra Cứu Theo Mã.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 1: SEARCH BY CERTIFICATE CODE / QR */}
+        {/* TAB 1: SEARCH BY CERTIFICATE CODE */}
         {activeTab === "code" && (
         <>
         {/* Search Input Box */}

@@ -124,7 +124,7 @@ export default function LoginPage({ setUser }) {
           <div style={{ marginTop: "18px", paddingTop: "16px", borderTop: "1px solid var(--border-subtle)", textAlign: "center", fontSize: "12px", color: "var(--text-secondary)" }}>
             Bạn là <strong>Học viên</strong> hoặc <strong>Nhà tuyển dụng</strong>? Không cần đăng nhập.{" "}
             <Link to="/verify" style={{ color: "var(--primary)", fontWeight: 600 }}>
-              Tra cứu &amp; Xem ví bằng cấp ngay →
+              Tra cứu bằng cấp ngay →
             </Link>
           </div>
         </form>

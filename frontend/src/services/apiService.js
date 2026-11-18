@@ -75,6 +75,10 @@ export const certificateApi = {
   verifyPublic: async (code) => {
     return await apiRequest(`/public/verify/${encodeURIComponent(code)}`);
   },
+  // Tra cứu toàn bộ chứng chỉ theo địa chỉ ví học viên (Web3 Student Wallet - Phương án 1)
+  getPublicByWallet: async (address) => {
+    return await apiRequest(`/public/wallet/${encodeURIComponent(address)}`);
+  },
   // Lấy danh sách chứng chỉ nội bộ
   getCertificates: async ({ page = 1, limit = 50, status = "ALL", search = "", course_id } = {}) => {
     const params = new URLSearchParams();
@@ -109,11 +113,11 @@ export const certificateApi = {
       body: JSON.stringify({ certificate_id, tx_hash, token_id })
     });
   },
-  // Thu hồi chứng chỉ
-  revokeCertificate: async (id, reason) => {
+  // Thu hồi chứng chỉ (gửi kèm revoke_tx_hash để Backend xác minh on-chain)
+  revokeCertificate: async (id, reason, revoke_tx_hash = null) => {
     return await apiRequest(`/certificates/${id}/revoke`, {
       method: "POST",
-      body: JSON.stringify({ reason })
+      body: JSON.stringify({ reason, revoke_tx_hash })
     });
   },
   // Từ chối bản nháp (ADMIN)

@@ -1,6 +1,6 @@
 import { pool } from '../config/db.js';
 import { generateCertificatePdf } from '../services/pdfService.js';
-import { verifyMintTransaction, verifyRevokeTransaction, queryOnChainCertificate } from '../services/blockchainService.js';
+import { verifyMintTransaction, verifyRevokeTransaction, queryOnChainCertificate, getCertificatesByWalletOnChain } from '../services/blockchainService.js';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -8,24 +8,34 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Helper che mờ CCCD cho API công khai (Bảo vệ quyền riêng tư PII)
+function maskCitizenId(cid) {
+  if (!cid) return null;
+  const s = String(cid).trim();
+  if (s.length <= 6) return '***';
+  return `${s.slice(0, 3)}${'*'.repeat(Math.max(3, s.length - 6))}${s.slice(-3)}`;
+}
+
 // ================================================================
 // 1. PUBLIC APIS (PAGE-002 & PAGE-003: KHÔNG CẦN TOKEN ĐĂNG NHẬP)
 // ================================================================
 
-// F02-01 & F02-02 & F02-03 & F02-04: Tra cứu và xác thực chứng chỉ
+// F02-01 & F02-02 & F02-03 & F02-04: Tra cứu và xác thực chứng chỉ (Có đối soát chéo Blockchain chống TAMPERED)
 export async function publicVerifyCertificate(req, res) {
   try {
     const { code } = req.params;
 
     if (!code) {
-      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp mã chứng chỉ hoặc CCCD cần tra cứu.' });
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp mã chứng chỉ cần tra cứu.' });
     }
+
+    const cleanCode = code.trim();
 
     const [rows] = await pool.query(`
       SELECT 
         c.id, c.certificate_code, c.score_overall, c.score_listening, c.score_reading, 
         c.score_writing, c.score_speaking, c.issue_date, c.expiry_date,
-        c.token_id, c.tx_hash, c.ipfs_hash, c.ipfs_metadata_url, c.pdf_url,
+        c.token_id, c.tx_hash, c.revoke_tx_hash, c.ipfs_hash, c.ipfs_metadata_url, c.pdf_url,
         c.status, c.revoke_reason, c.revoked_at,
         s.student_code, s.full_name AS student_name, s.citizen_id, s.wallet_address AS student_wallet,
         co.course_code, co.course_name, co.score_type, co.max_score
@@ -34,22 +44,176 @@ export async function publicVerifyCertificate(req, res) {
       JOIN courses co ON c.course_id = co.id
       WHERE c.certificate_code = ? OR c.token_id = ? OR s.citizen_id = ?
       ORDER BY c.issue_date DESC
-    `, [code, code, code]);
+    `, [cleanCode, cleanCode, cleanCode]);
 
     if (rows.length === 0) {
+      // Fallback: Đối soát trực tiếp từ Smart Contract nếu MySQL không có bản ghi
+      const onChainDirect = await queryOnChainCertificate(cleanCode.toUpperCase());
+      if (onChainDirect && onChainDirect.exists) {
+        return res.json({
+          success: true,
+          data: {
+            id: Number(onChainDirect.tokenId),
+            certificate_code: onChainDirect.certificateCode,
+            student_name: onChainDirect.studentName,
+            student_code: onChainDirect.studentCode,
+            citizen_id: null,
+            student_wallet: onChainDirect.recipient,
+            course_code: onChainDirect.courseCode,
+            course_name: onChainDirect.courseName,
+            score_overall: onChainDirect.score,
+            issue_date: new Date(onChainDirect.issueDate * 1000).toISOString().slice(0, 10),
+            expiry_date: onChainDirect.expiryDate > 0 ? new Date(onChainDirect.expiryDate * 1000).toISOString().slice(0, 10) : null,
+            token_id: onChainDirect.tokenId,
+            tx_hash: onChainDirect.certHash,
+            ipfs_hash: onChainDirect.ipfsHash,
+            status: onChainDirect.isRevoked ? 'REVOKED' : 'ISSUED_ON_CHAIN',
+            revoke_reason: onChainDirect.revokeReason || null,
+            onchain_verified: true,
+            blockchain_proof: onChainDirect
+          },
+          totalFound: 1
+        });
+      }
+
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy chứng chỉ tương ứng trên hệ thống hoặc mã không hợp lệ.'
       });
     }
 
+    const row = { ...rows[0] };
+    // Che mờ số CCCD để bảo vệ quyền riêng tư học viên
+    row.citizen_id = maskCitizenId(row.citizen_id);
+
+    // Đối soát chéo MySQL <-> Smart Contract để phát hiện chỉnh sửa dữ liệu (TAMPERED)
+    row.onchain_verified = false;
+    row.tamper_details = null;
+
+    if (row.status === 'ISSUED_ON_CHAIN' || row.status === 'REVOKED') {
+      const onChain = await queryOnChainCertificate(row.certificate_code);
+      if (onChain && onChain.exists) {
+        row.onchain_verified = true;
+        row.blockchain_proof = {
+          tokenId: onChain.tokenId,
+          issuerName: onChain.issuerName,
+          issuerAddress: onChain.issuerAddress,
+          certHash: onChain.certHash,
+          isRevoked: onChain.isRevoked
+        };
+
+        const mismatches = [];
+        if (String(onChain.studentName || '').trim() !== String(row.student_name || '').trim()) {
+          mismatches.push(`Tên học viên (CSDL: "${row.student_name}" ≠ Blockchain: "${onChain.studentName}")`);
+        }
+        if (String(onChain.score || '').trim() !== String(row.score_overall || '').trim()) {
+          mismatches.push(`Điểm số (CSDL: "${row.score_overall}" ≠ Blockchain: "${onChain.score}")`);
+        }
+        if (String(onChain.studentCode || '').trim() !== String(row.student_code || '').trim()) {
+          mismatches.push(`Mã học viên (CSDL: "${row.student_code}" ≠ Blockchain: "${onChain.studentCode}")`);
+        }
+        if (String(onChain.courseCode || '').trim() !== String(row.course_code || '').trim()) {
+          mismatches.push(`Mã khóa học (CSDL: "${row.course_code}" ≠ Blockchain: "${onChain.courseCode}")`);
+        }
+
+        if (mismatches.length > 0) {
+          row.status = 'TAMPERED';
+          row.tamper_details = mismatches.join('; ');
+        } else if (onChain.isRevoked && row.status !== 'REVOKED') {
+          // Blockchain là nguồn sự thật: nếu on-chain đã thu hồi thì hiển thị ĐÃ THU HỒI
+          row.status = 'REVOKED';
+          row.revoke_reason = onChain.revokeReason || row.revoke_reason || 'Đã bị thu hồi trên Blockchain';
+        }
+      }
+    }
+
     return res.json({
       success: true,
-      data: rows[0],
+      data: row,
       totalFound: rows.length
     });
   } catch (error) {
     console.error('Lỗi publicVerifyCertificate:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
+// Phương án 1 (Web3 Student Wallet Lookup): Lấy danh sách tất cả chứng chỉ thuộc địa chỉ ví học viên (không cần đăng nhập)
+export async function publicGetCertificatesByWallet(req, res) {
+  try {
+    const { address } = req.params;
+    if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address.trim())) {
+      return res.status(400).json({ success: false, message: 'Địa chỉ ví Ethereum không hợp lệ (cần 42 ký tự bắt đầu bằng 0x).' });
+    }
+    const cleanAddr = address.trim().toLowerCase();
+
+    // 1. Lấy các chứng chỉ đã phát hành/thu hồi từ MySQL theo ví học viên
+    const [dbRows] = await pool.query(`
+      SELECT 
+        c.id, c.certificate_code, c.score_overall, c.score_listening, c.score_reading,
+        c.score_writing, c.score_speaking, c.issue_date, c.expiry_date,
+        c.token_id, c.tx_hash, c.revoke_tx_hash, c.ipfs_hash, c.pdf_url,
+        c.status, c.revoke_reason, c.revoked_at,
+        s.student_code, s.full_name AS student_name, s.citizen_id, s.wallet_address AS student_wallet,
+        co.course_code, co.course_name
+      FROM certificates c
+      JOIN students s ON c.student_id = s.id
+      JOIN courses co ON c.course_id = co.id
+      WHERE LOWER(s.wallet_address) = ? AND c.status IN ('ISSUED_ON_CHAIN', 'REVOKED', 'EXPIRED')
+      ORDER BY c.issue_date DESC
+    `, [cleanAddr]);
+
+    // 2. Đọc song song trực tiếp từ Smart Contract (Soulbound NFTs)
+    const onChainCerts = await getCertificatesByWalletOnChain(cleanAddr);
+    const byCode = new Map();
+
+    for (const r of dbRows) {
+      byCode.set(r.certificate_code, {
+        ...r,
+        citizen_id: maskCitizenId(r.citizen_id),
+        onchain_verified: false
+      });
+    }
+
+    for (const oc of onChainCerts) {
+      const existing = byCode.get(oc.certificateCode);
+      if (existing) {
+        existing.onchain_verified = true;
+        if (oc.isRevoked) {
+          existing.status = 'REVOKED';
+          existing.revoke_reason = oc.revokeReason || existing.revoke_reason;
+        }
+      } else {
+        byCode.set(oc.certificateCode, {
+          id: Number(oc.tokenId),
+          certificate_code: oc.certificateCode,
+          student_name: oc.studentName,
+          student_code: oc.studentCode,
+          citizen_id: null,
+          student_wallet: oc.recipient,
+          course_code: oc.courseCode,
+          course_name: oc.courseName,
+          score_overall: oc.score,
+          issue_date: new Date(oc.issueDate * 1000).toISOString().slice(0, 10),
+          expiry_date: oc.expiryDate > 0 ? new Date(oc.expiryDate * 1000).toISOString().slice(0, 10) : null,
+          token_id: oc.tokenId,
+          tx_hash: oc.certHash,
+          ipfs_hash: oc.ipfsHash,
+          status: oc.isRevoked ? 'REVOKED' : 'ISSUED_ON_CHAIN',
+          revoke_reason: oc.revokeReason || null,
+          onchain_verified: true
+        });
+      }
+    }
+
+    return res.json({
+      success: true,
+      wallet: cleanAddr,
+      data: Array.from(byCode.values()),
+      onChainCount: onChainCerts.length
+    });
+  } catch (error) {
+    console.error('Lỗi publicGetCertificatesByWallet:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 }
@@ -359,11 +523,12 @@ export async function confirmMintCertificate(req, res) {
       });
     }
 
-    // Lấy thông tin chứng chỉ và học viên để đối soát
+    // Lấy thông tin chứng chỉ, học viên và khóa học để đối soát & tái sinh PDF chính thức
     const [[cert]] = await pool.query(`
-      SELECT c.*, s.wallet_address AS student_wallet, s.full_name AS student_name
+      SELECT c.*, s.wallet_address AS student_wallet, s.full_name AS student_name, s.student_code, s.citizen_id, co.course_name
       FROM certificates c
       JOIN students s ON c.student_id = s.id
+      JOIN courses co ON c.course_id = co.id
       WHERE c.id = ?
     `, [certificate_id]);
 
@@ -371,22 +536,23 @@ export async function confirmMintCertificate(req, res) {
       return res.status(404).json({ success: false, message: 'Chứng chỉ không tồn tại trong hệ thống.' });
     }
 
-    // 1. Kiểm tra độc lập giao dịch trên Blockchain Node
-    let verifiedTokenId = token_id || cert.token_id || '1';
-    let onChainDetails = null;
-
+    // 1. BẮT BUỘC kiểm tra độc lập giao dịch trên Blockchain Node (không tin mù quáng client)
+    let verifyRes;
     try {
-      const verifyRes = await verifyMintTransaction({
+      verifyRes = await verifyMintTransaction({
         txHash: tx_hash,
         expectedCode: cert.certificate_code,
         expectedRecipient: cert.student_wallet
       });
-      verifiedTokenId = verifyRes.tokenId;
-      onChainDetails = verifyRes;
-      console.log(`✅ [Blockchain Verify] Giao dịch ${tx_hash} hợp lệ. Token ID: ${verifiedTokenId}`);
+      console.log(`✅ [Blockchain Verify] Giao dịch ${tx_hash} hợp lệ. Token ID: ${verifyRes.tokenId}`);
     } catch (verifyErr) {
-      console.warn(`⚠️ [Blockchain Verify Warning] Không thể xác minh qua RPC (${verifyErr.message}). Tiếp tục chế độ kiểm thử.`);
+      return res.status(400).json({
+        success: false,
+        message: `Xác minh giao dịch on-chain thất bại: ${verifyErr.message}`
+      });
     }
+
+    const verifiedTokenId = verifyRes.tokenId;
 
     // 2. Cập nhật trạng thái trong MySQL
     await pool.query(`
@@ -394,6 +560,17 @@ export async function confirmMintCertificate(req, res) {
       SET tx_hash = ?, token_id = ?, status = 'ISSUED_ON_CHAIN'
       WHERE id = ?
     `, [tx_hash, verifiedTokenId, certificate_id]);
+
+    // 2b. Tái sinh file PDF chính thức có in đầy đủ Token ID & TxHash thật và QR chuẩn cổng 5173
+    try {
+      await generateCertificatePdf({
+        ...cert,
+        token_id: verifiedTokenId,
+        tx_hash
+      });
+    } catch (pdfErr) {
+      console.warn('⚠️ Không thể tái sinh PDF sau khi mint:', pdfErr.message);
+    }
 
     // 3. Tự động dọn dẹp các bản nháp (PENDING) cũ của cùng học viên và khóa học
     const [[currentCert]] = await pool.query('SELECT student_id, course_id FROM certificates WHERE id = ?', [certificate_id]);
@@ -411,7 +588,7 @@ export async function confirmMintCertificate(req, res) {
     `, [
       certificate_id, req.user.id,
       `Đúc SBT on-chain thành công (TxHash: ${tx_hash.substring(0, 16)}...)`,
-      `Token ID: ${verifiedTokenId} | Người xác nhận: ${req.user.username} (Role: ${req.user.role})`
+      `Token ID: ${verifiedTokenId} | Block #${verifyRes.blockNumber} | Người xác nhận: ${req.user.username} (Role: ${req.user.role})`
     ]);
 
     return res.json({
@@ -421,8 +598,9 @@ export async function confirmMintCertificate(req, res) {
         certificate_id,
         tx_hash,
         token_id: verifiedTokenId,
+        block_number: verifyRes.blockNumber,
         status: 'ISSUED_ON_CHAIN',
-        verified_on_chain: Boolean(onChainDetails)
+        verified_on_chain: true
       }
     });
   } catch (error) {
@@ -560,20 +738,37 @@ export async function revokeCertificate(req, res) {
       return res.status(400).json({ success: false, message: 'Chứng chỉ này đã bị thu hồi trước đó.' });
     }
 
+    // Xác minh độc lập giao dịch thu hồi trên Blockchain Node nếu có revoke_tx_hash
+    let verifiedRevokeBlock = null;
+    if (revoke_tx_hash) {
+      try {
+        const revCheck = await verifyRevokeTransaction({
+          txHash: revoke_tx_hash,
+          expectedCode: cert.certificate_code
+        });
+        verifiedRevokeBlock = revCheck.blockNumber;
+      } catch (verifyErr) {
+        return res.status(400).json({
+          success: false,
+          message: `Xác minh giao dịch thu hồi on-chain thất bại: ${verifyErr.message}`
+        });
+      }
+    }
+
     await pool.query(`
       UPDATE certificates
       SET status = 'REVOKED', revoke_reason = ?, revoked_at = NOW(), revoked_by = ?, revoke_tx_hash = ?
       WHERE id = ?
     `, [reason, req.user.id, revoke_tx_hash || null, id]);
 
-    // Ghi nhật ký
+    // Ghi nhật ký kiểm toán
     await pool.query(`
       INSERT INTO issue_logs (certificate_id, action_by, action, action_detail, note)
       VALUES (?, ?, 'REVOKE', ?, ?)
     `, [
       id, req.user.id,
-      `Thu hồi chứng chỉ mã ${cert.certificate_code}`,
-      `Lý do: ${reason}`
+      `Thu hồi chứng chỉ mã ${cert.certificate_code}${revoke_tx_hash ? ` (Tx: ${revoke_tx_hash.substring(0, 14)}...)` : ''}`,
+      `Lý do: ${reason}${verifiedRevokeBlock ? ` | Block #${verifiedRevokeBlock}` : ''}`
     ]);
 
     return res.json({
@@ -583,6 +778,7 @@ export async function revokeCertificate(req, res) {
         id,
         status: 'REVOKED',
         revoke_reason: reason,
+        revoke_tx_hash: revoke_tx_hash || null,
         revoked_at: new Date()
       }
     });
@@ -593,7 +789,7 @@ export async function revokeCertificate(req, res) {
 }
 
 
-// F07-06: Xóa chứng chỉ (Xóa bản nháp PENDING hoặc xóa chứng chỉ)
+// F07-06: Xóa bản nháp chứng chỉ (NGHIÊM CẤM xóa chứng chỉ đã phát hành on-chain để đảm bảo tính Bất biến)
 export async function deleteCertificate(req, res) {
   try {
     const { id } = req.params;
@@ -602,8 +798,11 @@ export async function deleteCertificate(req, res) {
       return res.status(404).json({ success: false, message: 'Chứng chỉ không tồn tại.' });
     }
 
-    if (cert.status === 'ISSUED_ON_CHAIN' && req.user.role !== 'ADMIN') {
-      return res.status(403).json({ success: false, message: 'Chỉ Quản trị viên mới có quyền xóa chứng chỉ đã cấp.' });
+    if (cert.status === 'ISSUED_ON_CHAIN' || cert.status === 'REVOKED') {
+      return res.status(403).json({
+        success: false,
+        message: 'Vi phạm quy tắc Bất biến Blockchain: Không thể xóa chứng chỉ đã phát hành hoặc đã thu hồi. Nếu có vi phạm, hãy sử dụng chức năng Thu Hồi.'
+      });
     }
 
     const filePath = path.join(__dirname, '../../uploads/certificates', `${cert.certificate_code}.pdf`);
@@ -613,7 +812,7 @@ export async function deleteCertificate(req, res) {
 
     await pool.query('DELETE FROM certificates WHERE id = ?', [id]);
 
-    return res.json({ success: true, message: 'Đã xóa chứng chỉ thành công.' });
+    return res.json({ success: true, message: 'Đã xóa bản nháp chứng chỉ thành công.' });
   } catch (error) {
     console.error('Lỗi deleteCertificate:', error);
     return res.status(500).json({ success: false, message: error.message });

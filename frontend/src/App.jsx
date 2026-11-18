@@ -113,7 +113,7 @@ export default function App() {
               element={
                 <ProtectedRoute user={user} allowedRoles={["ADMIN", "STAFF"]} isLoading={authChecking}>
                   <AdminLayout wallet={wallet} setWallet={setWallet} user={user} setUser={setUser}>
-                    <CertificatesListPage wallet={wallet} user={user} />
+                    <CertificatesListPage wallet={wallet} setWallet={setWallet} user={user} />
                   </AdminLayout>
                 </ProtectedRoute>
               }

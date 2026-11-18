@@ -123,10 +123,14 @@ export const getCertificateByCode = async (code) => {
         wallet_address: d.student_wallet || "0x71C...4e8B",
         token_id: d.token_id,
         tx_hash: d.tx_hash,
+        revoke_tx_hash: d.revoke_tx_hash || null,
         ipfs_hash: d.ipfs_hash || null,
         pdf_url: `http://localhost:5000/api/public/pdf/${d.certificate_code}`,
         revoked_reason: d.revoke_reason,
-        revoked_at: d.revoked_at ? d.revoked_at.slice(0, 10) : null
+        revoked_at: d.revoked_at ? d.revoked_at.slice(0, 10) : null,
+        onchain_verified: Boolean(d.onchain_verified),
+        tamper_details: d.tamper_details || null,
+        blockchain_proof: d.blockchain_proof || null
       };
     }
   } catch {
@@ -371,7 +375,7 @@ export const revokeCertificateOnChain = async (certCode, reason, certId, tokenId
   if (receipt?.status !== 1) throw new Error(`Giao dịch thu hồi thất bại (${tx.hash}).`);
 
   try {
-    await certificateApi.revokeCertificate(certId, reason);
+    await certificateApi.revokeCertificate(certId, reason, tx.hash);
   } catch (apiErr) {
     throw new Error(`Đã thu hồi on-chain (Tx: ${tx.hash}) nhưng chưa đồng bộ được MySQL: ${apiErr.message}`);
   }
@@ -392,6 +396,82 @@ export const revokeCertificateOnChain = async (certCode, reason, certId, tokenId
   }
 
   return null;
+};
+
+// 9. Tra cứu toàn bộ chứng chỉ theo địa chỉ ví học viên (Web3 Student Wallet Lookup - Phương án 1)
+export const getCertificatesByStudentWallet = async (walletAddress) => {
+  if (!walletAddress || !ethers.isAddress(walletAddress.trim())) {
+    throw new Error("Địa chỉ ví Ethereum không hợp lệ (cần 42 ký tự bắt đầu bằng 0x).");
+  }
+  const cleanAddress = ethers.getAddress(walletAddress.trim());
+
+  // B1: Gọi Backend (đã tự đối soát chéo với Smart Contract on-chain)
+  try {
+    const res = await certificateApi.getPublicByWallet(cleanAddress);
+    if (res?.success && Array.isArray(res.data)) {
+      return res.data.map((d) => ({
+        id: d.id,
+        certificate_code: d.certificate_code,
+        student_name: d.student_name,
+        student_code: d.student_code,
+        citizen_id: d.citizen_id,
+        course_name: d.course_name,
+        course_code: d.course_code,
+        score: d.score_overall,
+        listening: d.score_listening || "-",
+        reading: d.score_reading || "-",
+        writing: d.score_writing || "-",
+        speaking: d.score_speaking || "-",
+        issue_date: d.issue_date ? String(d.issue_date).slice(0, 10) : "",
+        expiry_date: d.expiry_date ? String(d.expiry_date).slice(0, 10) : null,
+        status: d.status,
+        wallet_address: d.student_wallet || cleanAddress,
+        token_id: d.token_id,
+        tx_hash: d.tx_hash,
+        revoke_tx_hash: d.revoke_tx_hash || null,
+        ipfs_hash: d.ipfs_hash || null,
+        pdf_url: `http://localhost:5000/api/public/pdf/${d.certificate_code}`,
+        revoked_reason: d.revoke_reason || null,
+        revoked_at: d.revoked_at ? String(d.revoked_at).slice(0, 10) : null,
+        onchain_verified: Boolean(d.onchain_verified)
+      }));
+    }
+  } catch (err) {
+    console.warn("Fallback đọc trực tiếp Smart Contract theo ví:", err.message);
+  }
+
+  // B2: Fallback đọc trực tiếp Smart Contract qua MetaMask nếu backend offline
+  if (isMetaMaskInstalled()) {
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const contract = getCertificateContract(provider);
+    const tokenIds = await contract.getCertificatesByStudent(cleanAddress);
+    const results = [];
+    for (const tid of tokenIds) {
+      const cert = await contract.getCertificateDetails(tid);
+      results.push({
+        id: Number(cert.tokenId),
+        certificate_code: cert.certificateCode,
+        student_name: cert.recipientName,
+        student_code: cert.studentCode,
+        course_name: cert.courseName,
+        course_code: cert.courseCode,
+        score: cert.score,
+        issue_date: new Date(Number(cert.issueDate) * 1000).toISOString().slice(0, 10),
+        expiry_date: Number(cert.expiryDate) > 0 ? new Date(Number(cert.expiryDate) * 1000).toISOString().slice(0, 10) : null,
+        status: cert.isRevoked ? "REVOKED" : "ISSUED_ON_CHAIN",
+        wallet_address: cert.recipientAddress,
+        token_id: cert.tokenId.toString(),
+        tx_hash: cert.certHash,
+        ipfs_hash: cert.ipfsHash,
+        pdf_url: `http://localhost:5000/api/public/pdf/${cert.certificateCode}`,
+        revoked_reason: cert.revokeReason || null,
+        onchain_verified: true
+      });
+    }
+    return results;
+  }
+
+  return [];
 };
 
 export { INITIAL_STUDENTS, INITIAL_COURSES };

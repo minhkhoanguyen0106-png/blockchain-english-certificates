@@ -79,11 +79,11 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
 
   // Breadcrumbs title determination
   const getBreadcrumb = () => {
-    if (location.pathname === "/admin/dashboard") return "Tổng quan hệ thống";
-    if (location.pathname === "/admin/certificates") return "Danh sách & Thu hồi chứng chỉ";
-    if (location.pathname === "/admin/certificates/issue") return "Cấp phát chứng chỉ số";
-    if (location.pathname === "/admin/data-management") return "Quản trị học viên & danh mục kỳ thi";
-    return "Phân hệ quản trị";
+    if (location.pathname === "/admin/dashboard") return user?.role === "ADMIN" ? "Tổng quan quản trị" : "Tổng quan khảo thí";
+    if (location.pathname === "/admin/certificates") return user?.role === "ADMIN" ? "Danh sách & Thu hồi chứng chỉ" : "Danh sách chứng chỉ";
+    if (location.pathname === "/admin/certificates/issue") return user?.role === "ADMIN" ? "Duyệt & Cấp phát chứng chỉ số" : "Soạn hồ sơ nháp chứng chỉ";
+    if (location.pathname === "/admin/data-management") return user?.role === "ADMIN" ? "Quản trị học viên & danh mục kỳ thi" : "Quản lý danh sách học viên";
+    return user?.role === "ADMIN" ? "Phân hệ quản trị" : "Phân hệ khảo thí";
   };
 
   return (
@@ -145,7 +145,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
                 CERT<span style={{ color: "var(--primary)" }}>CHAIN</span>
               </div>
               <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
-                Admin Workspace
+                {user?.role === "ADMIN" ? "Quản Trị Hệ Thống" : "Phân Hệ Khảo Thí"}
               </div>
             </div>
           </Link>

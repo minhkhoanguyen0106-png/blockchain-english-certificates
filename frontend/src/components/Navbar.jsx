@@ -264,7 +264,7 @@ export default function Navbar({ user, setUser }) {
               className="btn btn-primary"
               style={{ padding: "8px 18px", fontSize: "13px" }}
             >
-              Đăng Nhập
+              Đăng Nhập Nội Bộ
             </Link>
           )}
 

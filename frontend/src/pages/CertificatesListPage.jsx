@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ListFilter, Search, Eye, AlertOctagon, RefreshCw, Plus, Download, Trash2, Sparkles, X, Award, ExternalLink } from "lucide-react";
-import { getAllCertificates, revokeCertificateOnChain, shortenAddress } from "../services/web3Service";
+import { getAllCertificates, revokeCertificateOnChain, shortenAddress, connectMetaMask, isMetaMaskInstalled } from "../services/web3Service";
 import { certificateApi } from "../services/apiService";
 import CertificateCard from "../components/CertificateCard";
 
-export default function CertificatesListPage({ wallet, user }) {
+export default function CertificatesListPage({ wallet, setWallet, user }) {
   const [searchParams] = useSearchParams();
   const initialStatus = searchParams.get("status") || "ALL";
 
@@ -117,17 +117,31 @@ export default function CertificatesListPage({ wallet, user }) {
 
     setRevoking(true);
     try {
+      let activeWallet = wallet;
+      if (!activeWallet?.signer) {
+        if (!isMetaMaskInstalled()) {
+          throw new Error("Vui lòng cài đặt hoặc mở khóa ví MetaMask của Quản trị viên trước khi ký thu hồi.");
+        }
+        activeWallet = await connectMetaMask();
+        if (activeWallet && setWallet) {
+          setWallet(activeWallet);
+        }
+      }
+      if (!activeWallet?.signer) {
+        throw new Error("Không lấy được chữ ký ví MetaMask của Quản trị viên.");
+      }
+
       await revokeCertificateOnChain(
         revokeTarget.certificate_code,
         revokeReason,
         revokeTarget.id,
         revokeTarget.token_id,
-        wallet
+        activeWallet
       );
       await loadCerts();
       setRevokeTarget(null);
       setRevokeReason("");
-      alert(`Đã ghi nhận thu hồi thành công chứng chỉ [${revokeTarget.certificate_code}]!`);
+      alert(`Đã ghi nhận thu hồi on-chain thành công chứng chỉ [${revokeTarget.certificate_code}]!`);
     } catch (err) {
       alert("Lỗi khi thu hồi: " + (err.message || err));
     } finally {
@@ -141,10 +155,16 @@ export default function CertificatesListPage({ wallet, user }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
         <div>
           <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-primary)" }}>
-            Danh Sách & <span className="text-gradient">Thu Hồi Chứng Chỉ</span>
+            {user?.role === "ADMIN" ? (
+              <>Danh Sách &amp; <span className="text-gradient">Thu Hồi Chứng Chỉ</span></>
+            ) : (
+              <>Danh Sách <span className="text-gradient">Chứng Chỉ Khảo Thí</span></>
+            )}
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>
-            Quản lý toàn bộ hồ sơ chứng chỉ điện tử đã phát hành và hủy hiệu lực khi có vi phạm.
+            {user?.role === "ADMIN"
+              ? "Quản lý toàn bộ hồ sơ chứng chỉ điện tử đã phát hành và hủy hiệu lực khi có vi phạm."
+              : "Theo dõi tiến độ duyệt hồ sơ nháp và tra cứu danh sách chứng chỉ của trung tâm."}
           </p>
         </div>
 
@@ -311,29 +331,17 @@ export default function CertificatesListPage({ wallet, user }) {
                           )
                         )}
 
-                        {c.status === "ISSUED_ON_CHAIN" && (
-                          user?.role === "ADMIN" ? (
-                            <button
-                              type="button"
-                              onClick={() => setRevokeTarget(c)}
-                              className="btn btn-danger"
-                              style={{ padding: "6px 12px", fontSize: "12px" }}
-                              title="Thu hồi chứng chỉ (Chỉ Quản trị viên)"
-                            >
-                              <AlertOctagon size={14} />
-                              Thu Hồi
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled
-                              className="btn btn-outline"
-                              style={{ padding: "6px 12px", fontSize: "12px", opacity: 0.5 }}
-                              title="Chỉ Quản trị viên (ADMIN) mới có quyền thu hồi chứng chỉ"
-                            >
-                              Thu Hồi (Khóa)
-                            </button>
-                          )
+                        {c.status === "ISSUED_ON_CHAIN" && user?.role === "ADMIN" && (
+                          <button
+                            type="button"
+                            onClick={() => setRevokeTarget(c)}
+                            className="btn btn-danger"
+                            style={{ padding: "6px 12px", fontSize: "12px" }}
+                            title="Thu hồi chứng chỉ (Chỉ Quản trị viên)"
+                          >
+                            <AlertOctagon size={14} />
+                            Thu Hồi
+                          </button>
                         )}
                       </div>
                     </td>

@@ -29,14 +29,12 @@ export default function LoginPage({ setUser }) {
       setUser(userData);
       localStorage.setItem("certchain_user", JSON.stringify(userData));
 
-      if (userData.role === "STUDENT") {
-        navigate("/verify");
-      } else if (["ADMIN", "STAFF"].includes(userData.role)) {
+      if (["ADMIN", "STAFF"].includes(userData.role)) {
         navigate("/admin/dashboard");
       } else {
         authApi.logout();
         setUser(null);
-        setErrorMessage("Vai trò tài khoản không được hỗ trợ.");
+        setErrorMessage("Cổng đăng nhập chỉ dành cho Quản trị viên và Cán bộ Khảo thí. Học viên vui lòng tra cứu trực tiếp tại Cổng Tra Cứu Công Khai.");
       }
     } catch (err) {
       authApi.logout();
@@ -71,9 +69,9 @@ export default function LoginPage({ setUser }) {
           }}>
             <ShieldCheck size={28} color="#04121e" />
           </div>
-          <h2 style={{ fontSize: "24px", fontWeight: 800, color: "var(--text-primary)" }}>Đăng Nhập Hệ Thống</h2>
+          <h2 style={{ fontSize: "24px", fontWeight: 800, color: "var(--text-primary)" }}>Đăng Nhập Nội Bộ</h2>
           <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "4px" }}>
-            Vai trò được xác định từ tài khoản đã được cấp bởi hệ thống.
+            Dành riêng cho Quản trị viên và Cán bộ Khảo thí của Trung tâm.
           </p>
         </div>
 
@@ -173,6 +171,13 @@ export default function LoginPage({ setUser }) {
           <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: "100%", padding: "13px", fontSize: "15px" }}>
             {loading ? "Đang xác thực..." : "Xác Nhận Đăng Nhập"}
           </button>
+
+          <div style={{ marginTop: "18px", paddingTop: "16px", borderTop: "1px solid var(--border-subtle)", textAlign: "center", fontSize: "12px", color: "var(--text-secondary)" }}>
+            Bạn là <strong>Học viên</strong> hoặc <strong>Nhà tuyển dụng</strong>? Không cần đăng nhập.{" "}
+            <Link to="/verify" style={{ color: "var(--primary)", fontWeight: 600 }}>
+              Tra cứu &amp; Xem ví bằng cấp ngay →
+            </Link>
+          </div>
         </form>
 
       </div>

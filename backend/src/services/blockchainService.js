@@ -11,10 +11,14 @@ const RPC_URL = process.env.RPC_URL || 'http://127.0.0.1:8545';
 const EXPECTED_CHAIN_ID = Number(process.env.CHAIN_ID || 31337);
 const CONTRACT_ADDRESS = (process.env.CONTRACT_ADDRESS || '0x5FbDB2315678afecb367f032d93F642f64180aa3').toLowerCase();
 
+const CERT_TUPLE = 'tuple(uint256 tokenId, string certificateCode, string recipientName, string studentCode, address recipientAddress, string courseCode, string courseName, string score, uint256 issueDate, uint256 expiryDate, string issuerName, address issuerAddress, string ipfsHash, bytes32 certHash, bool isRevoked, string revokeReason)';
+
 const CERT_ABI = [
   'event CertificateIssued(uint256 indexed tokenId, string indexed certificateCode, address indexed recipient, string studentCode, string courseCode, bytes32 certHash, uint256 issueDate)',
   'event CertificateRevoked(uint256 indexed tokenId, string indexed certificateCode, string reason, address indexed revokedBy, uint256 revokeDate)',
-  'function verifyByCertificateCode(string certificateCode) view returns (bool exists, uint256 tokenId, string studentName, string studentCode, address recipient, string courseName, string score, uint256 issueDate, uint256 expiryDate, bool isRevoked, string revokeReason, string ipfsHash, bytes32 certHash)',
+  `function verifyByCertificateCode(string certCode) view returns (bool exists, uint256 tokenId, bool isValid, ${CERT_TUPLE} cert)`,
+  `function getCertificateDetails(uint256 tokenId) view returns (${CERT_TUPLE})`,
+  'function getCertificatesByStudent(address student) view returns (uint256[])',
   'function owner() view returns (address)'
 ];
 
@@ -151,30 +155,79 @@ export async function verifyRevokeTransaction({ txHash, expectedCode }) {
 }
 
 /**
- * Đối soát dữ liệu trực tiếp từ Smart Contract (Reconciliation Engine)
- * Xử lý tình huống giao dịch on-chain đã thành công nhưng MySQL bị mất mạng/chưa kịp cập nhật
+ * Đối soát dữ liệu trực tiếp từ Smart Contract (Reconciliation & Anti-Tampering Engine)
  */
 export async function queryOnChainCertificate(certificateCode) {
   try {
     const contract = getReadOnlyContract();
     const result = await contract.verifyByCertificateCode(certificateCode);
+    if (!result.exists) {
+      return { exists: false };
+    }
+    const cert = result.cert;
     return {
-      exists: result.exists,
+      exists: true,
+      isValid: Boolean(result.isValid),
       tokenId: result.tokenId ? result.tokenId.toString() : null,
-      studentName: result.studentName,
-      studentCode: result.studentCode,
-      recipient: result.recipient,
-      courseName: result.courseName,
-      score: result.score,
-      issueDate: Number(result.issueDate),
-      expiryDate: Number(result.expiryDate),
-      isRevoked: result.isRevoked,
-      revokeReason: result.revokeReason,
-      ipfsHash: result.ipfsHash,
-      certHash: result.certHash
+      certificateCode: cert.certificateCode,
+      studentName: cert.recipientName,
+      studentCode: cert.studentCode,
+      recipient: cert.recipientAddress,
+      courseCode: cert.courseCode,
+      courseName: cert.courseName,
+      score: cert.score,
+      issueDate: Number(cert.issueDate),
+      expiryDate: Number(cert.expiryDate),
+      issuerName: cert.issuerName,
+      issuerAddress: cert.issuerAddress,
+      isRevoked: Boolean(cert.isRevoked),
+      revokeReason: cert.revokeReason,
+      ipfsHash: cert.ipfsHash,
+      certHash: cert.certHash
     };
   } catch (error) {
     console.warn(`Lỗi đối soát On-chain cho mã ${certificateCode}:`, error.message);
-    return { exists: false, error: error.message };
+    return { exists: false, rpcError: error.message };
+  }
+}
+
+/**
+ * Lấy danh sách toàn bộ Soulbound Certificate NFT của 1 địa chỉ ví học viên trực tiếp từ Smart Contract
+ */
+export async function getCertificatesByWalletOnChain(walletAddress) {
+  try {
+    if (!walletAddress || !ethers.isAddress(walletAddress)) return [];
+    const contract = getReadOnlyContract();
+    const tokenIds = await contract.getCertificatesByStudent(ethers.getAddress(walletAddress));
+    const results = [];
+    for (const tid of tokenIds) {
+      try {
+        const cert = await contract.getCertificateDetails(tid);
+        results.push({
+          tokenId: cert.tokenId.toString(),
+          certificateCode: cert.certificateCode,
+          studentName: cert.recipientName,
+          studentCode: cert.studentCode,
+          recipient: cert.recipientAddress,
+          courseCode: cert.courseCode,
+          courseName: cert.courseName,
+          score: cert.score,
+          issueDate: Number(cert.issueDate),
+          expiryDate: Number(cert.expiryDate),
+          issuerName: cert.issuerName,
+          issuerAddress: cert.issuerAddress,
+          isRevoked: Boolean(cert.isRevoked),
+          revokeReason: cert.revokeReason,
+          ipfsHash: cert.ipfsHash,
+          certHash: cert.certHash
+        });
+      } catch {
+        // Bỏ qua token lỗi
+      }
+    }
+    return results;
+  } catch (error) {
+    console.warn(`Lỗi đọc danh sách SBT theo ví ${walletAddress}:`, error.message);
+    return [];
   }
 }

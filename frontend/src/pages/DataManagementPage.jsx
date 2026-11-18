@@ -10,6 +10,7 @@ import {
   Pencil,
   Trash2,
   AlertTriangle,
+  Sparkles,
   X
 } from "lucide-react";
 import { ethers } from "ethers";
@@ -816,8 +817,16 @@ export default function DataManagementPage({ user }) {
               </div>
 
               <div className="form-group">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
-                  <label className="form-label" style={{ marginBottom: 0 }}>Địa chỉ ví điện tử định danh (tùy chọn)</label>
+                <label className="form-label">Địa chỉ ví điện tử định danh (tùy chọn)</label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type="text"
+                    placeholder="0x... (42 ký tự, hoặc bấm icon để sinh ví)"
+                    value={newStudent.wallet_address}
+                    onChange={(e) => setNewStudent({ ...newStudent, wallet_address: e.target.value })}
+                    className="form-input"
+                    style={{ fontSize: "12px", fontFamily: "monospace", paddingRight: "38px" }}
+                  />
                   <button
                     type="button"
                     onClick={() => {
@@ -826,31 +835,27 @@ export default function DataManagementPage({ user }) {
                       toast.success("Đã sinh ví Ethereum định danh cho học viên!");
                     }}
                     style={{
+                      position: "absolute",
+                      right: "6px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
                       background: "rgba(14, 165, 233, 0.12)",
-                      border: "1px dashed var(--accent-primary, #0ea5e9)",
+                      border: "1px solid rgba(14, 165, 233, 0.25)",
                       color: "var(--accent-primary, #0ea5e9)",
-                      fontSize: "11px",
-                      padding: "2px 8px",
+                      width: "28px",
+                      height: "28px",
                       borderRadius: "6px",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      display: "inline-flex",
+                      display: "flex",
                       alignItems: "center",
-                      gap: "4px"
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease"
                     }}
-                    title="Tự động sinh ví Ethereum 42 ký tự chuẩn cho học viên"
+                    title="Tự động sinh địa chỉ ví Ethereum 42 ký tự (0x...)"
                   >
-                    ✨ Tạo ví tự động
+                    <Sparkles size={14} />
                   </button>
                 </div>
-                <input
-                  type="text"
-                  placeholder="0x... (42 ký tự, hoặc bấm 'Tạo ví tự động')"
-                  value={newStudent.wallet_address}
-                  onChange={(e) => setNewStudent({ ...newStudent, wallet_address: e.target.value })}
-                  className="form-input"
-                  style={{ fontSize: "12px", fontFamily: "monospace" }}
-                />
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "22px" }}>
@@ -969,8 +974,16 @@ export default function DataManagementPage({ user }) {
               </div>
 
               <div className="form-group">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
-                  <label className="form-label" style={{ marginBottom: 0 }}>Địa chỉ ví điện tử định danh (0x...)</label>
+                <label className="form-label">Địa chỉ ví điện tử định danh (0x...)</label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type="text"
+                    placeholder="0x... (hoặc bấm icon để sinh ví)"
+                    value={editingStudent.wallet_address || ""}
+                    onChange={(e) => setEditingStudent({ ...editingStudent, wallet_address: e.target.value })}
+                    className="form-input"
+                    style={{ fontSize: "12px", fontFamily: "monospace", paddingRight: "38px" }}
+                  />
                   <button
                     type="button"
                     onClick={() => {
@@ -979,31 +992,27 @@ export default function DataManagementPage({ user }) {
                       toast.success("Đã sinh ví Ethereum định danh mới cho học viên!");
                     }}
                     style={{
+                      position: "absolute",
+                      right: "6px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
                       background: "rgba(14, 165, 233, 0.12)",
-                      border: "1px dashed var(--accent-primary, #0ea5e9)",
+                      border: "1px solid rgba(14, 165, 233, 0.25)",
                       color: "var(--accent-primary, #0ea5e9)",
-                      fontSize: "11px",
-                      padding: "2px 8px",
+                      width: "28px",
+                      height: "28px",
                       borderRadius: "6px",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      display: "inline-flex",
+                      display: "flex",
                       alignItems: "center",
-                      gap: "4px"
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease"
                     }}
-                    title="Tự động sinh ví Ethereum 42 ký tự chuẩn cho học viên"
+                    title="Tự động sinh địa chỉ ví Ethereum 42 ký tự (0x...)"
                   >
-                    ✨ Tạo ví tự động
+                    <Sparkles size={14} />
                   </button>
                 </div>
-                <input
-                  type="text"
-                  placeholder="0x... (hoặc bấm 'Tạo ví tự động')"
-                  value={editingStudent.wallet_address || ""}
-                  onChange={(e) => setEditingStudent({ ...editingStudent, wallet_address: e.target.value })}
-                  className="form-input"
-                  style={{ fontSize: "12px", fontFamily: "monospace" }}
-                />
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "22px" }}>

@@ -286,7 +286,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
           CERTIFICATE OF PROFICIENCY
         </h2>
         <p style={{ color: "#64748b", fontSize: "11.5px", fontWeight: 600, letterSpacing: "1.2px", textTransform: "uppercase" }}>
-          Chứng Chỉ Khảo Thí Tiếng Anh Quốc Tế • Xác Thực Blockchain
+          Chứng Chỉ Khảo Thí Tiếng Anh Quốc Tế
         </p>
       </div>
 

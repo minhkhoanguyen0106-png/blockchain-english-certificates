@@ -2,165 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Lock, User, ArrowLeft, ShieldCheck, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { authApi } from "../services/apiService";
-
-function BlockchainIllustration() {
-  return (
-    <svg
-      viewBox="0 0 460 390"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ width: "100%", maxWidth: "390px", height: "auto", display: "block", margin: "0 auto" }}
-      aria-label="Minh họa hệ thống xác thực chứng chỉ Blockchain"
-    >
-      <defs>
-        <linearGradient id="blobOuter" x1="60" y1="40" x2="390" y2="350" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#d8eef7" />
-          <stop offset="100%" stopColor="#e8f5fa" />
-        </linearGradient>
-        <linearGradient id="blobInner" x1="110" y1="90" x2="340" y2="310" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#b8dfef" stopOpacity="0.7" />
-          <stop offset="100%" stopColor="#cce8f4" stopOpacity="0.45" />
-        </linearGradient>
-        <linearGradient id="cubeTop" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#38bdf8" />
-          <stop offset="100%" stopColor="#0ea5e9" />
-        </linearGradient>
-        <linearGradient id="cubeLeft" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#0f3d5e" />
-          <stop offset="100%" stopColor="#0a2940" />
-        </linearGradient>
-        <linearGradient id="cubeRight" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#1b587d" />
-          <stop offset="100%" stopColor="#123f5d" />
-        </linearGradient>
-        <linearGradient id="shieldGrad" x1="190" y1="125" x2="270" y2="235" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#0284c7" />
-          <stop offset="100%" stopColor="#143d59" />
-        </linearGradient>
-        <linearGradient id="goldBadge" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#fbbf24" />
-          <stop offset="100%" stopColor="#d97706" />
-        </linearGradient>
-      </defs>
-
-      {/* Organic Pastel Background Blobs (matching reference soft aesthetic) */}
-      <path
-        d="M118 68C178 24 275 30 335 76C395 122 418 205 378 272C338 339 245 362 162 340C79 318 28 258 46 184C64 110 58 112 118 68Z"
-        fill="url(#blobOuter)"
-      />
-      <path
-        d="M150 105C204 72 282 82 322 126C362 170 364 242 318 282C272 322 192 326 140 286C88 246 96 138 150 105Z"
-        fill="url(#blobInner)"
-      />
-
-      {/* Soft Bokeh Circles */}
-      <circle cx="88" cy="84" r="11" fill="#cce8f4" opacity="0.7" />
-      <circle cx="386" cy="112" r="8" fill="#bae6fd" opacity="0.8" />
-      <circle cx="372" cy="316" r="14" fill="#d8eef7" opacity="0.85" />
-      <circle cx="76" cy="298" r="7" fill="#bae6fd" opacity="0.65" />
-
-      {/* Ground shadow ellipse */}
-      <ellipse cx="228" cy="306" rx="115" ry="16" fill="#0f3d5e" opacity="0.1" />
-
-      {/* Interconnecting Cryptographic Hash Chain Lines */}
-      <g stroke="#2980a8" strokeWidth="2.2" strokeDasharray="5 5" strokeLinecap="round" opacity="0.75">
-        <line x1="120" y1="158" x2="195" y2="188" />
-        <line x1="336" y1="154" x2="262" y2="188" />
-        <line x1="138" y1="264" x2="200" y2="232" />
-        <line x1="322" y1="262" x2="258" y2="232" />
-        <line x1="228" y1="78" x2="228" y2="124" />
-      </g>
-
-      {/* Glowing Node Dots along Chain Links */}
-      <circle cx="158" cy="173" r="4" fill="#0ea5e9" />
-      <circle cx="298" cy="171" r="4" fill="#0ea5e9" />
-      <circle cx="170" cy="248" r="3.5" fill="#38bdf8" />
-      <circle cx="288" cy="247" r="3.5" fill="#38bdf8" />
-      <circle cx="228" cy="100" r="3.5" fill="#fbbf24" />
-
-      {/* Top Floating Isometric Block (Genesis Block) */}
-      <g className="login-float-med">
-        <polygon points="228,44 256,59 228,74 200,59" fill="url(#cubeTop)" />
-        <polygon points="200,59 228,74 228,100 200,85" fill="url(#cubeLeft)" />
-        <polygon points="256,59 228,74 228,100 256,85" fill="url(#cubeRight)" />
-        <circle cx="228" cy="59" r="3.5" fill="#ffffff" opacity="0.9" />
-      </g>
-
-      {/* Left Upper Isometric Block */}
-      <g className="login-float-slow">
-        <polygon points="108,126 138,142 108,158 78,142" fill="#5cc4d8" />
-        <polygon points="78,142 108,158 108,188 78,172" fill="#143d59" />
-        <polygon points="138,142 108,158 108,188 138,172" fill="#1f5c7e" />
-        <rect x="86" y="159" width="12" height="3" rx="1.5" fill="#7dd3fc" transform="skewY(26)" />
-      </g>
-
-      {/* Right Upper Floating Block (like the floating gift/box in reference) */}
-      <g className="login-float-med">
-        <polygon points="344,116 376,133 344,150 312,133" fill="url(#goldBadge)" />
-        <polygon points="312,133 344,150 344,182 312,165" fill="#102a43" />
-        <polygon points="376,133 344,150 344,182 376,165" fill="#1d4b6e" />
-        {/* Tiny Lock Icon on Right Block */}
-        <circle cx="344" cy="133" r="4.5" fill="#ffffff" opacity="0.92" />
-      </g>
-
-      {/* Bottom Left Mini Node Block */}
-      <g className="login-float-med">
-        <polygon points="124,242 150,256 124,270 98,256" fill="#38bdf8" />
-        <polygon points="98,256 124,270 124,294 98,280" fill="#0f3450" />
-        <polygon points="150,256 124,270 124,294 150,280" fill="#1b5478" />
-      </g>
-
-      {/* Bottom Right Mini Node Block */}
-      <g className="login-float-slow">
-        <polygon points="332,240 358,254 332,268 306,254" fill="#5cc4d8" />
-        <polygon points="306,254 332,268 332,292 306,278" fill="#0f3450" />
-        <polygon points="358,254 332,268 332,292 358,278" fill="#1b5478" />
-      </g>
-
-      {/* Center Hero Pedestal + Verified Blockchain Certificate Card */}
-      <g className="login-float-slow">
-        {/* Elevated Certificate Card */}
-        <rect x="166" y="132" width="124" height="148" rx="18" fill="#ffffff" stroke="#0f3d5e" strokeWidth="2.5" />
-        <rect x="174" y="140" width="108" height="132" rx="12" fill="#f0f9ff" stroke="#bae6fd" strokeWidth="1.2" strokeDasharray="4 3" />
-
-        {/* Central Verification Shield */}
-        <path
-          d="M228 152L258 164V186C258 205 245 220 228 227C211 220 198 205 198 186V164L228 152Z"
-          fill="url(#shieldGrad)"
-        />
-        <path
-          d="M217 189L225 197L241 179"
-          stroke="#ffffff"
-          strokeWidth="4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* Certificate Text Lines */}
-        <rect x="192" y="238" width="72" height="6" rx="3" fill="#143d59" opacity="0.85" />
-        <rect x="204" y="250" width="48" height="4.5" rx="2.25" fill="#5cc4d8" />
-
-        {/* Gold Seal Ribbon at corner */}
-        <circle cx="272" cy="146" r="14" fill="url(#goldBadge)" stroke="#ffffff" strokeWidth="2.5" />
-        <path d="M267 146L270.5 149.5L277.5 142.5" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      </g>
-
-      {/* Subtle Floating Hash Pills */}
-      <g opacity="0.9">
-        <rect x="74" y="208" width="66" height="20" rx="10" fill="#ffffff" stroke="#bae6fd" strokeWidth="1.2" />
-        <text x="107" y="221" textAnchor="middle" fill="#143d59" fontSize="8.5" fontFamily="monospace" fontWeight="700">
-          0x9f...a4c
-        </text>
-      </g>
-      <g opacity="0.9">
-        <rect x="316" y="202" width="70" height="20" rx="10" fill="#ffffff" stroke="#bae6fd" strokeWidth="1.2" />
-        <text x="351" y="215" textAnchor="middle" fill="#0284c7" fontSize="8.5" fontFamily="monospace" fontWeight="700">
-          SBT #721
-        </text>
-      </g>
-    </svg>
-  );
-}
+import loginIllustration from "../assets/login-illustration.jpg";
 
 export default function LoginPage({ setUser }) {
   const navigate = useNavigate();
@@ -283,9 +125,22 @@ export default function LoginPage({ setUser }) {
             </div>
           </Link>
 
-          {/* Center Bespoke Blockchain Illustration */}
-          <div style={{ position: "relative", zIndex: 4, paddingRight: "44px", margin: "6px 0" }}>
-            <BlockchainIllustration />
+          {/* Center Bespoke Certificate + English + Blockchain Illustration */}
+          <div style={{ position: "relative", zIndex: 4, paddingRight: "48px", margin: "4px 0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <img
+              src={loginIllustration}
+              alt="Minh họa hệ thống chứng chỉ tiếng Anh xác thực Blockchain"
+              className="login-float-slow"
+              draggable={false}
+              style={{
+                width: "100%",
+                maxWidth: "380px",
+                height: "auto",
+                display: "block",
+                mixBlendMode: "multiply",
+                userSelect: "none"
+              }}
+            />
           </div>
 
           {/* Bottom-Left Subtle Institutional Attribution */}

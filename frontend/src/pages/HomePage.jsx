@@ -80,6 +80,9 @@ function LivingQrVerificationIllustration() {
         <filter id="liveCardShadow" x="80" y="30" width="300" height="310" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
           <feDropShadow dx="0" dy="18" stdDeviation="16" floodColor="#0f172a" floodOpacity="0.11" />
         </filter>
+        <filter id="livePillShadow" x="-25%" y="-40%" width="150%" height="200%" colorInterpolationFilters="sRGB">
+          <feDropShadow dx="0" dy="8" stdDeviation="8" floodColor="#0f172a" floodOpacity="0.12" />
+        </filter>
       </defs>
 
       {/* Soft Breathing Pastel Sky Blob (Deliverest Signature) */}
@@ -158,11 +161,11 @@ function LivingQrVerificationIllustration() {
 
       {/* Offset-Phase Floating Verification Pill A (Top-Right — Flies in from right edge!) */}
       <g className="reveal-fly-right">
-        <g className="live-badge-float-a">
-          <rect x="302" y="34" width="122" height="36" rx="18" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1.2" />
-          <circle cx="322" cy="52" r="9" fill="#dcfce7" />
-          <path d="M318.5 52 L321 54.5 L326 49.5" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-          <text x="338" y="55.5" fill="#0f172a" fontSize="11" fontWeight="700" fontFamily="Plus Jakarta Sans, sans-serif">
+        <g className="live-badge-float-a" filter="url(#livePillShadow)">
+          <rect x="304" y="30" width="124" height="36" rx="18" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1.2" />
+          <circle cx="324" cy="48" r="9" fill="#dcfce7" />
+          <path d="M320.5 48 L323 50.5 L328 45.5" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          <text x="340" y="51.5" fill="#0f172a" fontSize="11" fontWeight="700" fontFamily="Plus Jakarta Sans, sans-serif">
             Hợp lệ 100%
           </text>
         </g>
@@ -170,10 +173,10 @@ function LivingQrVerificationIllustration() {
 
       {/* Offset-Phase Floating Pill B (Bottom-Left — Flies in from left edge!) */}
       <g className="reveal-fly-left">
-        <g className="live-badge-float-b">
-          <rect x="36" y="252" width="126" height="38" rx="19" fill="#0f2c42" />
-          <circle cx="56" cy="271" r="6" fill="#38bdf8" />
-          <text x="70" y="274.5" fill="#ffffff" fontSize="11" fontWeight="700" fontFamily="Plus Jakarta Sans, sans-serif">
+        <g className="live-badge-float-b" filter="url(#livePillShadow)">
+          <rect x="28" y="276" width="132" height="38" rx="19" fill="#0f2c42" />
+          <circle cx="48" cy="295" r="5.5" fill="#38bdf8" />
+          <text x="62" y="298.5" fill="#ffffff" fontSize="11" fontWeight="700" fontFamily="Plus Jakarta Sans, sans-serif">
             Tra cứu &lt; 2 giây
           </text>
         </g>

@@ -953,8 +953,8 @@ html {
 }
 
 @keyframes liveBarMorph {
-  0%, 100% { transform: scaleX(1); opacity: 0.95; }
-  50% { transform: scaleX(0.62); opacity: 0.55; }
+  0%, 100% { transform: scaleX(1); opacity: 0.92; }
+  50% { transform: scaleX(0.78); opacity: 0.58; }
 }
 
 @keyframes liveSignatureLoop {
@@ -964,20 +964,26 @@ html {
 }
 
 .live-blob-breathe {
+  transform-box: fill-box;
   transform-origin: center;
   animation: liveBlobBreathe 7s ease-in-out infinite;
 }
 
 .live-card-levitate {
+  transform-box: fill-box;
   transform-origin: center;
   animation: liveLevitate 4.8s ease-in-out infinite;
 }
 
 .live-badge-float-a {
+  transform-box: fill-box;
+  transform-origin: center;
   animation: liveFloatOffsetA 3.8s ease-in-out infinite;
 }
 
 .live-badge-float-b {
+  transform-box: fill-box;
+  transform-origin: center;
   animation: liveFloatOffsetB 4.4s ease-in-out infinite 0.5s;
 }
 
@@ -986,16 +992,19 @@ html {
 }
 
 .live-bar-pulse-1 {
+  transform-box: fill-box;
   transform-origin: left center;
   animation: liveBarMorph 2.8s ease-in-out infinite;
 }
 
 .live-bar-pulse-2 {
+  transform-box: fill-box;
   transform-origin: left center;
   animation: liveBarMorph 2.8s ease-in-out infinite 0.45s;
 }
 
 .live-bar-pulse-3 {
+  transform-box: fill-box;
   transform-origin: left center;
   animation: liveBarMorph 2.8s ease-in-out infinite 0.9s;
 }
@@ -1129,14 +1138,18 @@ html {
 
 /* Outer Floating Badges Flying In from Opposite Edges after Split Settles */
 .reveal-fly-right {
+  transform-box: fill-box;
+  transform-origin: center;
   opacity: 0;
-  transform: translateX(52px) translateY(-10px) scale(0.75);
+  transform: translateX(46px) translateY(-8px) scale(0.82);
   transition: opacity 0.55s ease 0.42s, transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) 0.42s;
 }
 
 .reveal-fly-left {
+  transform-box: fill-box;
+  transform-origin: center;
   opacity: 0;
-  transform: translateX(-52px) translateY(10px) scale(0.75);
+  transform: translateX(-46px) translateY(8px) scale(0.82);
   transition: opacity 0.55s ease 0.55s, transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) 0.55s;
 }
 

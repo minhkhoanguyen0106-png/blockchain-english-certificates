@@ -187,6 +187,11 @@ export const studentApi = {
       method: "PUT",
       body: JSON.stringify(studentData)
     });
+  },
+  deleteStudent: async (id) => {
+    return await apiRequest(`/students/${id}`, {
+      method: "DELETE"
+    });
   }
 };
 

@@ -314,7 +314,7 @@ export default function VerifyPage() {
                   Xem toàn bộ chứng chỉ thuộc quyền sở hữu ví của bạn
                 </div>
                 <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "3px" }}>
-                  Kết nối ví MetaMask cá nhân hoặc dán địa chỉ ví Ethereum (`0x...`) đã đăng ký với Trung tâm để xem tất cả chứng chỉ số định danh.
+                  Kết nối ví điện tử cá nhân hoặc dán địa chỉ ví (0x...) đã đăng ký với Trung tâm để xem tất cả chứng chỉ số định danh của bạn.
                 </div>
               </div>
 
@@ -328,7 +328,7 @@ export default function VerifyPage() {
                 <div style={{ position: "relative", flex: 1, minWidth: "240px" }}>
                   <input
                     type="text"
-                    placeholder="Nhập địa chỉ ví học viên (0x...)..."
+                    placeholder="Nhập địa chỉ ví học viên (bắt đầu bằng 0x)"
                     value={walletInput}
                     onChange={(e) => setWalletInput(e.target.value)}
                     className="form-input"
@@ -348,9 +348,10 @@ export default function VerifyPage() {
                   disabled={walletLoading}
                   className="btn btn-gold"
                   style={{ height: "46px", padding: "0 18px" }}
+                  title="Kết nối ví MetaMask cá nhân"
                 >
                   <Wallet size={16} />
-                  Kết Nối MetaMask
+                  Kết Nối Ví
                 </button>
               </form>
 
@@ -549,6 +550,15 @@ export default function VerifyPage() {
                     Thời điểm thu hồi: {result.revoked_at}
                   </p>
                 </div>
+              </div>
+            )}
+
+            {result.status === "UNVERIFIED" && (
+              <div role="status" style={{ background: "rgba(245, 158, 11, 0.15)", border: "1px solid rgba(245, 158, 11, 0.5)", borderRadius: "var(--radius-md)", padding: "16px 20px", marginBottom: "24px" }}>
+                <h4 style={{ color: "#d97706", fontWeight: 800, fontSize: "16px" }}>CHƯA THỂ XÁC MINH CHỨNG CHỈ</h4>
+                <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "4px" }}>
+                  Không đối soát được blockchain hoặc PDF gốc. Hãy thử lại sau; trạng thái này chưa xác nhận chứng chỉ hợp lệ.
+                </p>
               </div>
             )}
 

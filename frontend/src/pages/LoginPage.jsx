@@ -78,12 +78,13 @@ export default function LoginPage({ setUser }) {
         <form onSubmit={handleSubmit}>
           
           <div className="form-group">
-            <label className="form-label">Tài khoản</label>
+            <label className="form-label">Tên đăng nhập</label>
             <div style={{ position: "relative" }}>
               <input
                 type="text"
                 required
-                placeholder="VD: admin_khoa, staff_long"
+                autoComplete="username"
+                placeholder="Nhập tên đăng nhập..."
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="form-input"
@@ -93,13 +94,14 @@ export default function LoginPage({ setUser }) {
             </div>
           </div>
 
-          <div className="form-group">
+          <div className="form-group" style={{ marginBottom: "22px" }}>
             <label className="form-label">Mật khẩu</label>
             <div style={{ position: "relative" }}>
               <input
                 type="password"
                 required
-                placeholder="Mật khẩu mặc định: 123456"
+                autoComplete="current-password"
+                placeholder="Nhập mật khẩu..."
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="form-input"
@@ -109,67 +111,14 @@ export default function LoginPage({ setUser }) {
             </div>
           </div>
 
-          {/* Quick Demo Fill Buttons (Hỗ trợ chấm thi & kiểm thử nhanh qua API thật) */}
-          <div style={{ marginBottom: "18px" }}>
-            <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "6px", fontWeight: 600 }}>
-              Điền nhanh tài khoản kiểm thử (Mật khẩu: 123456):
-            </div>
-            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-              <button
-                type="button"
-                onClick={() => { setUsername("admin_khoa"); setPassword("123456"); }}
-                style={{
-                  fontSize: "11px",
-                  padding: "4px 8px",
-                  borderRadius: "var(--radius-sm)",
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
-                  color: "var(--text-secondary)",
-                  cursor: "pointer"
-                }}
-              >
-                🛡️ Quản trị viên: admin_khoa
-              </button>
-              <button
-                type="button"
-                onClick={() => { setUsername("staff_long"); setPassword("123456"); }}
-                style={{
-                  fontSize: "11px",
-                  padding: "4px 8px",
-                  borderRadius: "var(--radius-sm)",
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
-                  color: "var(--text-secondary)",
-                  cursor: "pointer"
-                }}
-              >
-                💼 Nhân viên Khảo thí: staff_long
-              </button>
-            </div>
-          </div>
-
           {errorMessage && (
             <div role="alert" style={{ background: "var(--danger-bg)", color: "var(--danger-text)", padding: "12px 14px", borderRadius: "var(--radius-sm)", marginBottom: "16px", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
               <AlertCircle size={16} /> {errorMessage}
             </div>
           )}
 
-          <div style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border-subtle)",
-            borderRadius: "var(--radius-sm)",
-            padding: "12px 14px",
-            fontSize: "12px",
-            color: "var(--text-secondary)",
-            marginBottom: "20px"
-          }}>
-            <span style={{ color: "var(--text-secondary)" }}>
-              Sau khi xác thực, hệ thống sẽ mở các chức năng tương ứng với quyền của tài khoản.
-            </span>
-          </div>
-
           <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: "100%", padding: "13px", fontSize: "15px" }}>
-            {loading ? "Đang xác thực..." : "Xác Nhận Đăng Nhập"}
+            {loading ? "Đang xác thực..." : "Đăng Nhập"}
           </button>
 
           <div style={{ marginTop: "18px", paddingTop: "16px", borderTop: "1px solid var(--border-subtle)", textAlign: "center", fontSize: "12px", color: "var(--text-secondary)" }}>

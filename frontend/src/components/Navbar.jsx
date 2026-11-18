@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ShieldCheck, QrCode, Search, LayoutDashboard, LogOut } from "lucide-react";
+import { ShieldCheck, QrCode, Search, LayoutDashboard, LogOut, Lock } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { authApi } from "../services/apiService";
 
@@ -258,15 +258,17 @@ export default function Navbar({ user, setUser }) {
                 <LogOut size={14} />
               </button>
             </div>
-          ) : (
+          ) : !isActive("/login") ? (
             <Link
               to="/login"
-              className="btn btn-primary"
-              style={{ padding: "8px 18px", fontSize: "13px" }}
+              className="btn btn-outline"
+              style={{ padding: "7px 14px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              title="Dành cho Quản trị viên và Cán bộ Khảo thí"
             >
-              Đăng Nhập Nội Bộ
+              <Lock size={13} />
+              Cổng Nội Bộ
             </Link>
-          )}
+          ) : null}
 
         </div>
 

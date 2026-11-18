@@ -402,12 +402,61 @@ export const issueCertificateOnChain = async (certData, walletSigner) => {
         ? Math.floor(new Date(certData.expiry_date).getTime() / 1000)
         : 0;
 
-      const tokenURI = `data:application/json;utf8,${encodeURIComponent(JSON.stringify({
+      // Tạo phôi ảnh SVG nhúng trực tiếp (On-Chain Data URI) để ví MetaMask và NFT Explorer luôn hiển thị ảnh đẹp mắt
+      const svgCertificateImage = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#04121e"/>
+      <stop offset="60%" stop-color="#0b2942"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="400" rx="16" fill="url(#bgGrad)"/>
+  <rect x="16" y="16" width="568" height="368" rx="12" fill="none" stroke="url(#goldGrad)" stroke-width="2" stroke-dasharray="6 4"/>
+  <circle cx="300" cy="65" r="24" fill="#0284c7" opacity="0.3"/>
+  <path d="M300 48 L312 58 L307 72 L293 72 L288 58 Z" fill="#fbbf24"/>
+  <text x="300" y="115" fill="#f8fafc" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" letter-spacing="2">CERTIFICATE OF ACHIEVEMENT</text>
+  <text x="300" y="138" fill="#94a3b8" font-family="Arial, sans-serif" font-size="11" text-anchor="middle">SOULBOUND TOKEN • OFFICIAL BLOCKCHAIN RECORD</text>
+  <text x="300" y="185" fill="#38bdf8" font-family="Arial, sans-serif" font-size="22" font-weight="bold" text-anchor="middle">${certData.student_name}</text>
+  <text x="300" y="215" fill="#e2e8f0" font-family="Arial, sans-serif" font-size="13" text-anchor="middle">${certData.course_name}</text>
+  <rect x="210" y="240" width="180" height="32" rx="16" fill="rgba(245, 158, 11, 0.15)" stroke="#f59e0b" stroke-width="1"/>
+  <text x="300" y="262" fill="#fbbf24" font-family="Arial, sans-serif" font-size="15" font-weight="bold" text-anchor="middle">${certData.score}</text>
+  <text x="35" y="340" fill="#64748b" font-family="monospace" font-size="10">CODE: ${certData.certificate_code}</text>
+  <text x="565" y="340" fill="#64748b" font-family="monospace" font-size="10" text-anchor="end">DATE: ${certData.issue_date || new Date().toISOString().slice(0, 10)}</text>
+  <text x="300" y="362" fill="#0ea5e9" font-family="Arial, sans-serif" font-size="9" text-anchor="middle">NON-TRANSFERABLE SBT • CAMBRIDGE &amp; BRITISH ACADEMY</text>
+</svg>
+`)}`;
+
+      const metadataPayload = {
         name: `${certData.course_name} - ${certData.student_name}`,
+        description: `Chứng chỉ tiếng Anh chuẩn Soulbound NFT (ERC-721 Không thể chuyển nhượng) cấp cho ${certData.student_name}. Đạt kết quả: ${certData.score}. Bảo chứng toàn vẹn dữ liệu mật mã trên Smart Contract và IPFS.`,
+        image: svgCertificateImage,
+        external_url: `http://localhost:5173/verify?code=${certData.certificate_code}`,
+        attributes: [
+          { trait_type: "Mã chứng chỉ", value: certData.certificate_code },
+          { trait_type: "Họ và tên", value: certData.student_name },
+          { trait_type: "Mã học viên", value: certData.student_code },
+          { trait_type: "Khóa học", value: certData.course_name },
+          { trait_type: "Điểm số Overall", value: certData.score },
+          { trait_type: "Nghe (Listening)", value: certData.listening || "-" },
+          { trait_type: "Đọc (Reading)", value: certData.reading || "-" },
+          { trait_type: "Viết (Writing)", value: certData.writing || "-" },
+          { trait_type: "Nói (Speaking)", value: certData.speaking || "-" },
+          { trait_type: "Ngày cấp", value: certData.issue_date || new Date().toISOString().slice(0, 10) },
+          { trait_type: "Hạn hiệu lực", value: certData.expiry_date || "Vô thời hạn" },
+          { trait_type: "Chuẩn Token", value: "Soulbound Token (ERC-721 Non-Transferable)" }
+        ],
         code: certData.certificate_code,
         score: certData.score,
         ipfs: ipfsHash
-      }))}`;
+      };
+
+      const tokenURI = `data:application/json;utf8,${encodeURIComponent(JSON.stringify(metadataPayload))}`;
 
       console.log("🚀 Đang gửi giao dịch issueCertificate lên Smart Contract...");
       const tx = await contract.issueCertificate(

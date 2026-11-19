@@ -115,7 +115,6 @@ contracts/
 ├── artifacts-export/                # Thư mục xuất file ABI + Address phục vụ TV2 và TV3
 ├── .env.example                     # Mẫu biến môi trường (Private key, RPC, Pinata)
 ├── hardhat.config.js                # Cấu hình Hardhat đa mạng (Local, Sepolia, Amoy)
-├── GAS_REPORT.md                    # Báo cáo phân tích chi phí giao dịch & tối ưu hóa gas
 └── package.json                     # Quản lý thư viện và scripts
 ```
 

@@ -68,7 +68,6 @@ blockchain-english-certificates/
 │   ├── src/components/         # Component UI tái sử dụng
 │   ├── src/pages/              # Trang chủ, Dashboard, Tra cứu QR
 │   └── src/services/           # Kết nối ví MetaMask, gọi API Backend
-├── docs/                       # Tài liệu thiết kế hệ thống, sơ đồ kiến trúc
 └── README.md                   # Tài liệu tổng quan đề tài & phân công nhiệm vụ
 ```
 

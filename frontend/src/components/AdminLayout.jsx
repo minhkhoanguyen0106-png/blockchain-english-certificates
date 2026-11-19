@@ -189,7 +189,7 @@ export default function AdminLayout({ children, wallet, setWallet, user, setUser
         </aside>
 
         {/* Right Workspace Column */}
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+        <div className="admin-workspace-col">
           {/* Balanced Top Workspace Header */}
           <header className="admin-topbar">
             <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>

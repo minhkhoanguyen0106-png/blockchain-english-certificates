@@ -402,14 +402,14 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
       {/* Filter and Search Bar */}
       <div className="finnova-kpi-card" style={{ padding: "16px 20px", marginBottom: "20px" }}>
         <div className="filter-controls-wrap">
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", width: "100%" }}>
             <input
               type="text"
               placeholder="Tìm theo mã bằng, tên học viên, mã học viên hoặc số CCCD..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="form-input"
-              style={{ paddingLeft: "38px", paddingRight: searchTerm ? "34px" : "14px" }}
+              style={{ width: "100%", paddingLeft: "38px", paddingRight: searchTerm ? "34px" : "14px" }}
             />
             <Search size={16} color="var(--text-muted)" style={{ position: "absolute", left: "12px", top: "13px" }} />
             {searchTerm && (
@@ -438,7 +438,6 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
             value={statusFilter}
             onChange={(e) => handleStatusFilterChange(e.target.value)}
             className="form-select"
-            style={{ minWidth: "210px" }}
           >
             <option value="ALL">Tất cả trạng thái ({certs.length})</option>
             <option value="PENDING">Chờ duyệt / xử lý ({pendingQueueCount})</option>
@@ -450,7 +449,7 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
             <option value="EXPIRED">Đã hết hạn ({certs.filter((c) => c.status === "EXPIRED").length})</option>
           </select>
 
-          <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className="form-select" style={{ minWidth: "185px" }}>
+          <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className="form-select">
             <option value="ALL">Tất cả khóa học</option>
             {courses.length > 0 ? (
               courses.map((cr) => (
@@ -519,24 +518,24 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
               ) : (
                 filteredCerts.map((c) => (
                   <tr key={c.id || c.certificate_code}>
-                    <td style={{ fontWeight: 700, color: "var(--primary)", fontFamily: "monospace", fontSize: "13px" }}>
+                    <td style={{ fontWeight: 700, color: "var(--primary)", fontFamily: "monospace", fontSize: "13px", whiteSpace: "nowrap" }}>
                       {c.certificate_code}
                     </td>
 
                     <td>
-                      <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{c.student_name}</div>
-                      <div style={{ fontSize: "11.5px", color: "var(--text-muted)" }}>
+                      <div style={{ fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap" }}>{c.student_name}</div>
+                      <div style={{ fontSize: "11.5px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
                         {c.student_code}
                         {c.citizen_id && <span> • CCCD: {c.citizen_id}</span>}
                       </div>
                     </td>
 
                     <td>
-                      <div style={{ fontWeight: 500 }}>{c.course_name}</div>
-                      <div style={{ fontSize: "12.5px", color: "#0369a1", fontWeight: 700, marginTop: "2px" }}>{c.score}</div>
+                      <div style={{ fontWeight: 500, minWidth: "150px" }}>{c.course_name}</div>
+                      <div style={{ fontSize: "12.5px", color: "#0369a1", fontWeight: 700, marginTop: "2px", whiteSpace: "nowrap" }}>{c.score}</div>
                     </td>
 
-                    <td style={{ color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>
+                    <td style={{ color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
                       <div>{formatDateVN(c.issue_date)}</div>
                       {c.expiry_date && (
                         <div style={{ fontSize: "11px", color: c.status === "EXPIRED" ? "var(--danger-text)" : "var(--text-muted)" }}>
@@ -545,7 +544,7 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                       )}
                     </td>
 
-                    <td>
+                    <td style={{ whiteSpace: "nowrap" }}>
                       {c.status === "ISSUED_ON_CHAIN" && <span className="badge badge-success">Hợp Lệ</span>}
                       {c.status === "REVOKED" && <span className="badge badge-danger">Đã Thu Hồi</span>}
                       {c.status === "PENDING" && <span className="badge badge-warning">Chờ Duyệt</span>}
@@ -568,7 +567,7 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                       )}
                     </td>
 
-                    <td style={{ fontSize: "11.5px" }}>
+                    <td style={{ fontSize: "11.5px", whiteSpace: "nowrap" }}>
                       <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
                         {hasTokenId(c.token_id)
                           ? `Token #${c.token_id}`
@@ -593,8 +592,8 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                       </div>
                     </td>
 
-                    <td style={{ textAlign: "right" }}>
-                      <div style={{ display: "inline-flex", gap: "7px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      <div style={{ display: "inline-flex", gap: "7px", alignItems: "center", justifyContent: "flex-end", flexWrap: "nowrap" }}>
                         <button
                           type="button"
                           onClick={() => handleViewCert(c)}

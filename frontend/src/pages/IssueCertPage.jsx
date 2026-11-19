@@ -14,7 +14,7 @@ import {
   CONTRACT_ABI
 } from "../services/web3Service";
 import { API_BASE_URL, certificateApi, studentApi, courseApi } from "../services/apiService";
-import { computeOverallScore, getExpiryDateForCourse, validateSubScores, detectCourseType, getScoreRangeHint, normalizeScoreInput } from "../services/scoreEngine";
+import { computeOverallScore, getExpiryDateForCourse, validateSubScores, detectCourseType, getScoreRangeHint, normalizeScoreInput, formatSubScore } from "../services/scoreEngine";
 import CertificateCard from "../components/CertificateCard";
 import { toast } from "../components/ToastContainer";
 
@@ -282,16 +282,27 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   };
 
   const handleSubScoreChange = (field, val) => {
-    const updated = { ...formData, [field]: val };
+    const cleanVal = String(val).replace(/,/g, ".");
+    const updated = { ...formData, [field]: cleanVal };
     const courseOpts = getCourseOptions(updated.course_code);
     const overall = computeOverallScore(updated.course_code, {
-      listening: field === "listening" ? val : updated.listening,
-      reading: field === "reading" ? val : updated.reading,
-      writing: field === "writing" ? val : updated.writing,
-      speaking: field === "speaking" ? val : updated.speaking
+      listening: field === "listening" ? cleanVal : updated.listening,
+      reading: field === "reading" ? cleanVal : updated.reading,
+      writing: field === "writing" ? cleanVal : updated.writing,
+      speaking: field === "speaking" ? cleanVal : updated.speaking
     }, courseOpts);
     updated.score = overall;
     setFormData(updated);
+  };
+
+  const handleSubScoreBlur = (field) => {
+    const rawVal = formData[field];
+    if (!rawVal) return;
+    const courseOpts = getCourseOptions(formData.course_code);
+    const formatted = formatSubScore(formData.course_code, rawVal, courseOpts);
+    if (formatted && formatted !== rawVal) {
+      handleSubScoreChange(field, formatted);
+    }
   };
 
   const handleDateChange = (issueDate) => {
@@ -449,10 +460,10 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     const cleanCertCode = (formData.certificate_code || "").trim().toUpperCase();
     const courseOpts = getCourseOptions(formData.course_code);
     const isToeic = detectCourseType(formData.course_code, courseOpts.scoreType) === "TOEIC";
-    const normL = normalizeScoreInput(formData.listening);
-    const normR = normalizeScoreInput(formData.reading);
-    const normW = isToeic ? "" : normalizeScoreInput(formData.writing);
-    const normS = isToeic ? "" : normalizeScoreInput(formData.speaking);
+    const normL = formatSubScore(formData.course_code, formData.listening, courseOpts) || normalizeScoreInput(formData.listening);
+    const normR = formatSubScore(formData.course_code, formData.reading, courseOpts) || normalizeScoreInput(formData.reading);
+    const normW = isToeic ? "" : (formatSubScore(formData.course_code, formData.writing, courseOpts) || normalizeScoreInput(formData.writing));
+    const normS = isToeic ? "" : (formatSubScore(formData.course_code, formData.speaking, courseOpts) || normalizeScoreInput(formData.speaking));
     const recomputedOverall = computeOverallScore(
       formData.course_code,
       { listening: normL, reading: normR, writing: normW, speaking: normS },
@@ -1450,6 +1461,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                         placeholder="—"
                         value={formData.listening}
                         onChange={(e) => handleSubScoreChange("listening", e.target.value)}
+                        onBlur={() => handleSubScoreBlur("listening")}
                         className="form-input"
                         style={{ padding: "8px 10px", textAlign: "center" }}
                       />
@@ -1461,6 +1473,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                         placeholder="—"
                         value={formData.reading}
                         onChange={(e) => handleSubScoreChange("reading", e.target.value)}
+                        onBlur={() => handleSubScoreBlur("reading")}
                         className="form-input"
                         style={{ padding: "8px 10px", textAlign: "center" }}
                       />
@@ -1475,6 +1488,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                         placeholder={detectCourseType(formData.course_code, getCourseOptions(formData.course_code).scoreType) === "TOEIC" ? "N/A" : "—"}
                         value={formData.writing}
                         onChange={(e) => handleSubScoreChange("writing", e.target.value)}
+                        onBlur={() => handleSubScoreBlur("writing")}
                         className="form-input"
                         style={{
                           padding: "8px 10px",
@@ -1494,6 +1508,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                         placeholder={detectCourseType(formData.course_code, getCourseOptions(formData.course_code).scoreType) === "TOEIC" ? "N/A" : "—"}
                         value={formData.speaking}
                         onChange={(e) => handleSubScoreChange("speaking", e.target.value)}
+                        onBlur={() => handleSubScoreBlur("speaking")}
                         className="form-input"
                         style={{
                           padding: "8px 10px",

@@ -818,48 +818,59 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         }
       }
 
-      const tx = await contract.issueCertificate(
-        recipientAddress,
-        formData.certificate_code,
-        formData.student_name,
-        formData.student_code,
-        formData.course_code,
-        formData.course_name,
-        formData.score,
-        expiryTimestamp,
-        currentPrepared.ipfs_hash,
-        currentPrepared.data_commitment_hash,
-        currentPrepared.token_uri
-      );
-
-      setActiveTxHash(tx.hash);
-      setMintStageLabel(`Đã phát sóng Tx: ${tx.hash.slice(0, 8)}... Đang chờ đào khối...`);
-
-      const receipt = await tx.wait();
-      if (receipt?.status !== 1) {
-        throw new Error(`Giao dịch phát hành thất bại trên blockchain (${tx.hash}).`);
-      }
-
-      // Trích xuất Token ID từ receipt logs hoặc verifyByCertificateCode
+      // 1. Kiểm tra trước: Nếu mã chứng chỉ đã từng được đúc trên Blockchain rồi (tránh lỗi CertificateCodeAlreadyExists)
+      let txHash = null;
       let tokenId = null;
-      if (receipt?.logs) {
-        for (const log of receipt.logs) {
+      try {
+        const existingOnChain = await contract.verifyByCertificateCode(formData.certificate_code);
+        if (existingOnChain && existingOnChain.exists) {
+          tokenId = existingOnChain.tokenId.toString();
+          toast.info(`Mã chứng chỉ ${formData.certificate_code} đã tồn tại trên Blockchain (Token #${tokenId}). Đang tự động hoàn tất đồng bộ...`);
+        }
+      } catch {}
+
+      if (!tokenId) {
+        const tx = await contract.issueCertificate(
+          recipientAddress,
+          formData.certificate_code,
+          formData.student_name,
+          formData.student_code,
+          formData.course_code,
+          formData.course_name,
+          formData.score,
+          expiryTimestamp,
+          currentPrepared.ipfs_hash,
+          currentPrepared.data_commitment_hash,
+          currentPrepared.token_uri
+        );
+
+        setMintStageLabel(`Đã phát sóng Tx: ${tx.hash.slice(0, 8)}... Đang chờ đào khối...`);
+
+        const receipt = await tx.wait();
+        if (receipt?.status !== 1) {
+          throw new Error(`Giao dịch phát hành thất bại trên blockchain (${tx.hash}).`);
+        }
+        txHash = tx.hash;
+
+        if (receipt?.logs) {
+          for (const log of receipt.logs) {
+            try {
+              const parsed = contract.interface.parseLog(log);
+              if (parsed && (parsed.name === "CertificateIssued" || parsed.fragment?.name === "CertificateIssued")) {
+                tokenId = (parsed.args[0] || parsed.args.tokenId)?.toString();
+                break;
+              }
+            } catch {}
+          }
+        }
+        if (!tokenId) {
           try {
-            const parsed = contract.interface.parseLog(log);
-            if (parsed && (parsed.name === "CertificateIssued" || parsed.fragment?.name === "CertificateIssued")) {
-              tokenId = (parsed.args[0] || parsed.args.tokenId)?.toString();
-              break;
+            const onchainResult = await contract.verifyByCertificateCode(formData.certificate_code);
+            if (onchainResult?.exists) {
+              tokenId = onchainResult.tokenId.toString();
             }
           } catch {}
         }
-      }
-      if (!tokenId) {
-        try {
-          const onchainResult = await contract.verifyByCertificateCode(formData.certificate_code);
-          if (onchainResult?.exists) {
-            tokenId = onchainResult.tokenId.toString();
-          }
-        } catch {}
       }
       if (!tokenId) {
         tokenId = "1";
@@ -870,14 +881,14 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       try {
         await certificateApi.confirmMint({
           certificate_id: currentPrepared.certificate_id,
-          tx_hash: tx.hash,
+          tx_hash: txHash || "0x0000000000000000000000000000000000000000000000000000000000000000",
           token_id: tokenId
         });
       } catch (confirmErr) {
         const reconcileRecord = {
           certificate_id: currentPrepared.certificate_id,
           certificate_code: formData.certificate_code,
-          tx_hash: tx.hash,
+          tx_hash: txHash || "0x0000000000000000000000000000000000000000000000000000000000000000",
           token_id: tokenId,
           reason: confirmErr.message || "Backend chưa xác minh kịp giao dịch on-chain",
           created_at: new Date().toISOString()
@@ -908,7 +919,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         status: "ISSUED_ON_CHAIN",
         wallet_address: recipientAddress,
         token_id: tokenId,
-        tx_hash: tx.hash,
+        tx_hash: txHash || "0x0000000000000000000000000000000000000000000000000000000000000000",
         ipfs_hash: currentPrepared.ipfs_hash,
         pdf_url: `${API_BASE_URL}/public/pdf/${formData.certificate_code}`
       };
@@ -922,6 +933,8 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         localStorage.setItem("certchain_certificates", JSON.stringify(list));
       } catch {}
 
+      setPendingDrafts((prev) => prev.filter((d) => d.certificate_code !== formData.certificate_code));
+      setSelectedDraftCode("");
       setSuccessCert(newCert);
       toast.success(`Phát hành thành công chứng chỉ ${newCert.certificate_code}!`);
 
@@ -937,6 +950,12 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         errorMsg = "Bạn đã hủy yêu cầu ký giao dịch trên MetaMask.";
       } else if (errorMsg.includes("nonce") || errorMsg.includes("Nonce")) {
         errorMsg = "Lệch Nonce trên MetaMask: Hãy mở MetaMask > Cài đặt > Nâng cao > Bấm 'Xóa dữ liệu hoạt động tab' (Reset Account) để đồng bộ với Hardhat.";
+      } else if (errorMsg.includes("0x4b6c686e") || errorMsg.includes("CertificateCodeAlreadyExists")) {
+        errorMsg = `Mã chứng chỉ ${formData.certificate_code} đã tồn tại trên Blockchain (không thể phát hành 2 lần). Hệ thống sẽ tự động đồng bộ lại!`;
+      } else if (errorMsg.includes("0xe9f469db") || errorMsg.includes("CertificateHashAlreadyExists")) {
+        errorMsg = `Bản băm dữ liệu chứng chỉ này đã tồn tại trên Blockchain!`;
+      } else if (errorMsg.includes("execution reverted")) {
+        errorMsg = "Giao dịch bị hợp đồng từ chối (có thể mã chứng chỉ hoặc dữ liệu băm đã tồn tại trên Blockchain).";
       }
       toast.error("Lỗi khi xử lý: " + errorMsg);
     } finally {

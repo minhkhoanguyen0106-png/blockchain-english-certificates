@@ -43,6 +43,32 @@ export function parseStrictScore(val) {
 }
 
 /**
+ * Tự động format chuẩn hóa điểm theo chuẩn chứng chỉ (7 -> 7.0 đối với IELTS/VSTEP):
+ * - IELTS & VSTEP: số nguyên 7 -> 7.0, 7,5 -> 7.5
+ * - TOEIC / CAMBRIDGE / TOEFL: số nguyên (ví dụ 450, 195, 28)
+ */
+export function formatSubScore(courseCode, val, options = {}) {
+  const normalized = normalizeScoreInput(val);
+  if (!normalized) return "";
+  const num = parseStrictScore(normalized);
+  if (isNaN(num)) return normalized;
+
+  const type = detectCourseType(courseCode, options.scoreType);
+  switch (type) {
+    case CERTIFICATE_TYPES.IELTS:
+    case CERTIFICATE_TYPES.VSTEP:
+      return num.toFixed(1);
+    case CERTIFICATE_TYPES.TOEIC:
+    case CERTIFICATE_TYPES.CAMBRIDGE:
+    case CERTIFICATE_TYPES.TOEFL:
+      return String(Math.round(num));
+    case CERTIFICATE_TYPES.GENERAL:
+    default:
+      return Number.isInteger(num) ? String(num) : num.toFixed(1);
+  }
+}
+
+/**
  * Nhận diện chuẩn thang điểm: ưu tiên score_type từ CSDL, fallback theo course_code
  */
 export function detectCourseType(courseCode = "", explicitScoreType = "") {

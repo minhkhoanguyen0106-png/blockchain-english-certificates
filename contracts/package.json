@@ -6,10 +6,17 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
+    "test:all": "hardhat test",
+    "test:gas": "hardhat test test/GasConsumption.test.js",
+    "test:edge": "hardhat test test/EdgeCasesAndSecurity.test.js",
     "node": "hardhat node",
     "deploy:local": "hardhat run scripts/deploy.js --network localhost",
     "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
-    "upload:ipfs": "node scripts/ipfsHelper.js"
+    "roles:check": "hardhat run scripts/checkRoles.js",
+    "roles:manage": "hardhat run scripts/manageRoles.js",
+    "benchmark:gas": "hardhat run scripts/benchmarkGas.js",
+    "upload:ipfs": "node scripts/ipfsHelper.js",
+    "ipfs:verify": "hardhat run scripts/verifyIpfsUpload.js"
   },
   "keywords": [
     "solidity",

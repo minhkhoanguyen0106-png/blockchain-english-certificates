@@ -10,10 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@rive-app/react-canvas": "^4.39.0",
     "canvas-confetti": "^1.9.4",
     "ethers": "^6.17.0",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^1.64.0",
+    "qrcode": "^1.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.5"

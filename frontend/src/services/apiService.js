@@ -75,6 +75,10 @@ export const certificateApi = {
   verifyPublic: async (code) => {
     return await apiRequest(`/public/verify/${encodeURIComponent(code)}`);
   },
+  // Tra cứu toàn bộ chứng chỉ theo địa chỉ ví học viên (Web3 Student Wallet - Phương án 1)
+  getPublicByWallet: async (address) => {
+    return await apiRequest(`/public/wallet/${encodeURIComponent(address)}`);
+  },
   // Lấy danh sách chứng chỉ nội bộ
   getCertificates: async ({ page = 1, limit = 50, status = "ALL", search = "", course_id } = {}) => {
     const params = new URLSearchParams();
@@ -109,11 +113,24 @@ export const certificateApi = {
       body: JSON.stringify({ certificate_id, tx_hash, token_id })
     });
   },
-  // Thu hồi chứng chỉ
-  revokeCertificate: async (id, reason) => {
+  // Thu hồi chứng chỉ (gửi kèm revoke_tx_hash để Backend xác minh on-chain)
+  revokeCertificate: async (id, reason, revoke_tx_hash = null) => {
     return await apiRequest(`/certificates/${id}/revoke`, {
       method: "POST",
-      body: JSON.stringify({ reason })
+      body: JSON.stringify({ reason, revoke_tx_hash })
+    });
+  },
+  // Từ chối bản nháp (ADMIN)
+  rejectDraft: async (id, reject_reason) => {
+    return await apiRequest(`/certificates/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reject_reason })
+    });
+  },
+  // Đối soát On-Chain (Reconciliation)
+  reconcile: async (id) => {
+    return await apiRequest(`/certificates/${id}/reconcile`, {
+      method: "POST"
     });
   },
   // Xóa bản nháp chứng chỉ
@@ -121,6 +138,35 @@ export const certificateApi = {
     return await apiRequest(`/certificates/${id}`, {
       method: "DELETE"
     });
+  },
+  // Tải & mở file PDF an toàn (kiểm tra HTTP/Content-Type trước để không văng tab JSON lỗi)
+  openCertificatePdf: async (certificateCode) => {
+    if (!certificateCode) {
+      throw new Error("Thiếu mã chứng chỉ để tải PDF.");
+    }
+    const pdfEndpoint = `${API_BASE_URL}/public/pdf/${encodeURIComponent(certificateCode)}`;
+    const response = await fetch(pdfEndpoint);
+    const contentType = (response.headers.get("content-type") || "").toLowerCase();
+
+    if (!response.ok || !contentType.includes("application/pdf")) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(
+        errData.message || `Không thể tải file PDF chứng chỉ (HTTP ${response.status}).`
+      );
+    }
+
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const win = window.open(blobUrl, "_blank");
+    if (!win) {
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `${certificateCode}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
   }
 };
 
@@ -135,6 +181,17 @@ export const studentApi = {
       method: "POST",
       body: JSON.stringify(studentData)
     });
+  },
+  updateStudent: async (id, studentData) => {
+    return await apiRequest(`/students/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(studentData)
+    });
+  },
+  deleteStudent: async (id) => {
+    return await apiRequest(`/students/${id}`, {
+      method: "DELETE"
+    });
   }
 };
 
@@ -146,6 +203,11 @@ export const courseApi = {
     return await apiRequest("/courses", {
       method: "POST",
       body: JSON.stringify(courseData)
+    });
+  },
+  deleteCourse: async (id) => {
+    return await apiRequest(`/courses/${id}`, {
+      method: "DELETE"
     });
   }
 };

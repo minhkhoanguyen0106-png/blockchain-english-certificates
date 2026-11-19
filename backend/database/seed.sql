@@ -30,7 +30,8 @@ INSERT INTO students (id, student_code, citizen_id, full_name, email, date_of_bi
 (3, 'HV2026-0012', '079204001203', 'Lê Hoàng Yến', 'hoangyen.le@gmail.com', '2003-12-12', '0903001203', '0x82C61Fe1234567890abcdef1234567890abcdef1'),
 (4, 'HV2026-0199', '079204019904', 'Phạm Quốc Hưng', 'quochung.pham@gmail.com', '2002-09-19', '0904019904', '0x91F84e8B291823eF4512C890123456789ABCDEF9'),
 (5, 'HV2026-0001', '079204001234', 'Lê Hoàng Nam', 'nam.le@gmail.com', '2002-05-15', '0901234567', '0x71C67Ed3484A2A7767577827e770f733827Fcb45'),
-(6, 'HV2026-0002', '079204005678', 'Phạm Minh Anh', 'minhanh.pham@gmail.com', '2003-08-20', '0912345678', '0x2546BcD3c84621e976D8185a91A922aE77ECEc30')
+(6, 'HV2026-0002', '079204005678', 'Phạm Minh Anh', 'minhanh.pham@gmail.com', '2003-08-20', '0912345678', '0x2546BcD3c84621e976D8185a91A922aE77ECEc30'),
+(7, 'HV2026-0219', '079204085661', 'Trần Quang Lâm', 'quanglam.tran@gmail.com', '2002-11-20', '0909219219', '0xf82b80C145E738fAC445deb06c17b8D9BDEaDcc6')
 ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), wallet_address = VALUES(wallet_address);
 
 -- 4. DỮ LIỆU CHỨNG CHỈ (Khớp hoàn toàn với bảng hiển thị gần đây trên Frontend)
@@ -76,7 +77,27 @@ INSERT INTO certificates (
  '7.5 Overall', '7.5', '7.5', '7.0', '7.5',
  '2026-10-29', '2028-10-29', NULL, 
  NULL, NULL, NULL,
- NULL, 'PENDING', NULL, NULL, NULL, NULL, 3)
+ NULL, 'PENDING', NULL, NULL, NULL, NULL, 3),
+
+-- [7] CERT-IELTS-2026-268: Trần Quang Lâm - Sepolia On-Chain Token #1
+(7, 'CERT-IELTS-2026-268', 7, 1,
+ '7.5 Overall', '8.0', '7.5', '7.0', '7.5',
+ '2026-11-18', '2028-11-18', '1',
+ '0xc0a7bfd8775fe851a795b79b26ef8c6f6485fb86bb13fc021a400de484114bb1',
+ 'Qm6WvlTZrmXLgqdhMaWWRFaQwsRtHJpBR5ZuvPKdXZC0qG',
+ 'https://gateway.pinata.cloud/ipfs/Qm6WvlTZrmXLgqdhMaWWRFaQwsRtHJpBR5ZuvPKdXZC0qG',
+ '/uploads/certificates/CERT-IELTS-2026-268.pdf',
+ 'ISSUED_ON_CHAIN', NULL, NULL, NULL, NULL, 1),
+
+-- [8] CERT-IELTS-2026-500: Phạm Quốc Hưng - Sepolia On-Chain Token #2
+(8, 'CERT-IELTS-2026-500', 4, 1,
+ '7.5 Overall', '8.0', '7.5', '7.0', '7.5',
+ '2026-11-18', '2028-11-18', '2',
+ '0x9af4b838e298781326090d0b419def507f9bc4e134ac499fd9aa31522b1a3aee',
+ 'Qm434552542d49454c54532d323032362d353030313739',
+ 'https://gateway.pinata.cloud/ipfs/Qm434552542d49454c54532d323032362d353030313739',
+ '/uploads/certificates/CERT-IELTS-2026-500.pdf',
+ 'ISSUED_ON_CHAIN', NULL, NULL, NULL, NULL, 1)
 ON DUPLICATE KEY UPDATE 
     score_overall = VALUES(score_overall),
     status = VALUES(status),

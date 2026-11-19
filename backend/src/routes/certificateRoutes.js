@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   publicVerifyCertificate,
+  publicGetCertificatesByWallet,
   downloadCertificatePdf,
   getCertificates,
   getCertificateById,
@@ -21,6 +22,10 @@ const router = Router();
 // Tra cứu theo mã bằng hoặc CCCD hoặc Token ID (F02-01, F02-02, F03-04)
 router.get('/public/verify/:code', publicVerifyCertificate);
 router.get('/verify/:code', publicVerifyCertificate);
+
+// Tra cứu theo địa chỉ ví học viên
+router.get('/public/wallet/:address', publicGetCertificatesByWallet);
+router.get('/wallet/:address', publicGetCertificatesByWallet);
 
 // Tải / xem phôi PDF công khai (F02-06)
 router.get('/public/pdf/:code', downloadCertificatePdf);

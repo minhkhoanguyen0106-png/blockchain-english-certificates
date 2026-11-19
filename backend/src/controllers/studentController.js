@@ -77,6 +77,12 @@ export async function deleteStudent(req, res) {
     await pool.query('DELETE FROM students WHERE id = ?', [id]);
     return res.json({ success: true, message: 'Xóa học viên thành công.' });
   } catch (error) {
+    if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+      return res.status(409).json({
+        success: false,
+        message: 'Không thể xóa học viên này vì học viên đã có chứng chỉ trong hệ thống. Vui lòng kiểm tra lại.'
+      });
+    }
     return res.status(500).json({ success: false, message: error.message });
   }
 }

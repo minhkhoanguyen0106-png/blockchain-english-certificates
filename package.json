@@ -1,0 +1,33 @@
+{
+  "name": "blockchain-english-certificates",
+  "version": "1.0.0",
+  "description": "Hệ thống cấp phát và xác minh chứng chỉ tiếng Anh ứng dụng công nghệ Soulbound NFT trên Blockchain",
+  "scripts": {
+    "contracts:compile": "npm --prefix contracts run compile",
+    "contracts:test": "npm --prefix contracts run test",
+    "contracts:test:gas": "npm --prefix contracts run test:gas",
+    "contracts:test:edge": "npm --prefix contracts run test:edge",
+    "contracts:benchmark": "npm --prefix contracts run benchmark:gas",
+    "contracts:roles": "npm --prefix contracts run roles:check",
+    "contracts:node": "npm --prefix contracts run node",
+    "contracts:deploy": "npm --prefix contracts run deploy:local",
+    "backend:dev": "npm --prefix backend run dev",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "dev": "concurrently \"npm run backend:dev\" \"npm run frontend:dev\""
+  },
+  "keywords": [
+    "blockchain",
+    "soulbound-token",
+    "nft",
+    "english-certificate",
+    "solidity",
+    "hardhat",
+    "react",
+    "express"
+  ],
+  "author": "Blockchain English Cert Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

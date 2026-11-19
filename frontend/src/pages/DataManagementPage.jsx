@@ -530,11 +530,11 @@ export default function DataManagementPage({ user }) {
                 ) : (
                   filteredStudents.map((s) => (
                     <tr key={s.id}>
-                      <td style={{ fontWeight: 700, color: "var(--primary)", fontFamily: "monospace", fontSize: "13px" }}>
+                      <td style={{ fontWeight: 700, color: "var(--primary)", fontFamily: "monospace", fontSize: "13px", whiteSpace: "nowrap" }}>
                         {s.student_code}
                       </td>
-                      <td style={{ fontWeight: 600, color: "var(--text-primary)" }}>{s.full_name}</td>
-                      <td>
+                      <td style={{ fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap" }}>{s.full_name}</td>
+                      <td style={{ whiteSpace: "nowrap" }}>
                         <div style={{ color: "var(--text-primary)", fontFamily: "monospace", fontSize: "12.5px" }}>
                           {s.citizen_id || "—"}
                         </div>
@@ -545,20 +545,20 @@ export default function DataManagementPage({ user }) {
                       <td>
                         <div style={{ color: "var(--text-secondary)", fontSize: "13px" }}>{s.email}</div>
                         {s.phone && (
-                          <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+                          <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px", whiteSpace: "nowrap" }}>
                             SĐT: {s.phone}
                           </div>
                         )}
                       </td>
-                      <td style={{ fontSize: "12px", fontFamily: "monospace" }}>
+                      <td style={{ fontSize: "12px", fontFamily: "monospace", whiteSpace: "nowrap" }}>
                         {s.wallet_address ? (
                           <span title={s.wallet_address}>{shortenAddress(s.wallet_address)}</span>
                         ) : (
                           <span style={{ color: "var(--text-muted)", fontFamily: "inherit" }}>Chưa liên kết</span>
                         )}
                       </td>
-                      <td style={{ textAlign: "right" }}>
-                        <div style={{ display: "inline-flex", gap: "7px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                      <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "inline-flex", gap: "7px", alignItems: "center", justifyContent: "flex-end", flexWrap: "nowrap" }}>
                           <button
                             type="button"
                             onClick={() =>
@@ -643,7 +643,7 @@ export default function DataManagementPage({ user }) {
                 ) : (
                   filteredCourses.map((c) => (
                     <tr key={c.id}>
-                      <td style={{ fontWeight: 700, color: "#0369a1", fontFamily: "monospace", fontSize: "13px" }}>
+                      <td style={{ fontWeight: 700, color: "#0369a1", fontFamily: "monospace", fontSize: "13px", whiteSpace: "nowrap" }}>
                         {c.course_code}
                       </td>
                       <td>
@@ -654,14 +654,14 @@ export default function DataManagementPage({ user }) {
                           </div>
                         )}
                       </td>
-                      <td>
+                      <td style={{ whiteSpace: "nowrap" }}>
                         <span className="badge badge-info">
                           {c.score_type || "IELTS"} (Tối đa {c.max_score || "9.0"})
                         </span>
                       </td>
-                      <td style={{ color: "var(--text-secondary)" }}>{c.duration || "3 tháng"}</td>
-                      <td style={{ textAlign: "right" }}>
-                        <div style={{ display: "inline-flex", gap: "7px", justifyContent: "flex-end" }}>
+                      <td style={{ color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{c.duration || "3 tháng"}</td>
+                      <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "inline-flex", gap: "7px", alignItems: "center", justifyContent: "flex-end", flexWrap: "nowrap" }}>
                           <Link
                             to={`/admin/certificates/issue?course=${encodeURIComponent(c.course_code)}`}
                             className="btn btn-outline"

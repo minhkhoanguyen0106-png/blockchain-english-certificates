@@ -518,24 +518,24 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
               ) : (
                 filteredCerts.map((c) => (
                   <tr key={c.id || c.certificate_code}>
-                    <td style={{ fontWeight: 700, color: "var(--primary)", fontFamily: "monospace", fontSize: "13px" }}>
+                    <td style={{ fontWeight: 700, color: "var(--primary)", fontFamily: "monospace", fontSize: "13px", whiteSpace: "nowrap" }}>
                       {c.certificate_code}
                     </td>
 
                     <td>
-                      <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{c.student_name}</div>
-                      <div style={{ fontSize: "11.5px", color: "var(--text-muted)" }}>
+                      <div style={{ fontWeight: 600, color: "var(--text-primary)", whiteSpace: "nowrap" }}>{c.student_name}</div>
+                      <div style={{ fontSize: "11.5px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
                         {c.student_code}
                         {c.citizen_id && <span> • CCCD: {c.citizen_id}</span>}
                       </div>
                     </td>
 
                     <td>
-                      <div style={{ fontWeight: 500 }}>{c.course_name}</div>
-                      <div style={{ fontSize: "12.5px", color: "#0369a1", fontWeight: 700, marginTop: "2px" }}>{c.score}</div>
+                      <div style={{ fontWeight: 500, minWidth: "150px" }}>{c.course_name}</div>
+                      <div style={{ fontSize: "12.5px", color: "#0369a1", fontWeight: 700, marginTop: "2px", whiteSpace: "nowrap" }}>{c.score}</div>
                     </td>
 
-                    <td style={{ color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>
+                    <td style={{ color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
                       <div>{formatDateVN(c.issue_date)}</div>
                       {c.expiry_date && (
                         <div style={{ fontSize: "11px", color: c.status === "EXPIRED" ? "var(--danger-text)" : "var(--text-muted)" }}>
@@ -544,7 +544,7 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                       )}
                     </td>
 
-                    <td>
+                    <td style={{ whiteSpace: "nowrap" }}>
                       {c.status === "ISSUED_ON_CHAIN" && <span className="badge badge-success">Hợp Lệ</span>}
                       {c.status === "REVOKED" && <span className="badge badge-danger">Đã Thu Hồi</span>}
                       {c.status === "PENDING" && <span className="badge badge-warning">Chờ Duyệt</span>}
@@ -567,7 +567,7 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                       )}
                     </td>
 
-                    <td style={{ fontSize: "11.5px" }}>
+                    <td style={{ fontSize: "11.5px", whiteSpace: "nowrap" }}>
                       <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>
                         {hasTokenId(c.token_id)
                           ? `Token #${c.token_id}`
@@ -592,8 +592,8 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
                       </div>
                     </td>
 
-                    <td style={{ textAlign: "right" }}>
-                      <div style={{ display: "inline-flex", gap: "7px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      <div style={{ display: "inline-flex", gap: "7px", alignItems: "center", justifyContent: "flex-end", flexWrap: "nowrap" }}>
                         <button
                           type="button"
                           onClick={() => handleViewCert(c)}

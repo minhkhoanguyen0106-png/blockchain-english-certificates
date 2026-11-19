@@ -20,6 +20,7 @@ dist/
 build/
 .next/
 out/
+backend/uploads/**/*.pdf
 
 # OS / Editor files
 .DS_Store

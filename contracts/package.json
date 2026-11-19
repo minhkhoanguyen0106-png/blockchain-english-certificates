@@ -1,0 +1,43 @@
+{
+  "name": "english-certificate-contracts",
+  "version": "1.0.0",
+  "description": "Smart Contract Soulbound NFT (ERC-721 Non-Transferable) Quản lý và Xác thực chứng chỉ tiếng Anh",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:all": "hardhat test",
+    "test:gas": "hardhat test test/GasConsumption.test.js",
+    "test:edge": "hardhat test test/EdgeCasesAndSecurity.test.js",
+    "node": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
+    "roles:check": "hardhat run scripts/checkRoles.js",
+    "roles:manage": "hardhat run scripts/manageRoles.js",
+    "benchmark:gas": "hardhat run scripts/benchmarkGas.js",
+    "upload:ipfs": "node scripts/ipfsHelper.js",
+    "ipfs:verify": "hardhat run scripts/verifyIpfsUpload.js"
+  },
+  "keywords": [
+    "solidity",
+    "smart-contract",
+    "ethereum",
+    "soulbound-token",
+    "nft",
+    "erc721",
+    "english-certificate",
+    "hardhat"
+  ],
+  "author": "Thanh Vien 1 (Blockchain Engineer)",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "^5.0.2",
+    "dotenv": "^16.4.5",
+    "hardhat": "^2.22.6"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "form-data": "^4.0.0"
+  }
+}

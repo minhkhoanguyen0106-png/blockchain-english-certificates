@@ -402,14 +402,14 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
       {/* Filter and Search Bar */}
       <div className="finnova-kpi-card" style={{ padding: "16px 20px", marginBottom: "20px" }}>
         <div className="filter-controls-wrap">
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", width: "100%" }}>
             <input
               type="text"
               placeholder="Tìm theo mã bằng, tên học viên, mã học viên hoặc số CCCD..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="form-input"
-              style={{ paddingLeft: "38px", paddingRight: searchTerm ? "34px" : "14px" }}
+              style={{ width: "100%", paddingLeft: "38px", paddingRight: searchTerm ? "34px" : "14px" }}
             />
             <Search size={16} color="var(--text-muted)" style={{ position: "absolute", left: "12px", top: "13px" }} />
             {searchTerm && (
@@ -438,7 +438,6 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
             value={statusFilter}
             onChange={(e) => handleStatusFilterChange(e.target.value)}
             className="form-select"
-            style={{ minWidth: "210px" }}
           >
             <option value="ALL">Tất cả trạng thái ({certs.length})</option>
             <option value="PENDING">Chờ duyệt / xử lý ({pendingQueueCount})</option>
@@ -450,7 +449,7 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
             <option value="EXPIRED">Đã hết hạn ({certs.filter((c) => c.status === "EXPIRED").length})</option>
           </select>
 
-          <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className="form-select" style={{ minWidth: "185px" }}>
+          <select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)} className="form-select">
             <option value="ALL">Tất cả khóa học</option>
             {courses.length > 0 ? (
               courses.map((cr) => (

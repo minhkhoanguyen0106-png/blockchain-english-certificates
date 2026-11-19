@@ -2189,21 +2189,30 @@ body {
 
 /* 6. Filter Controls on List Pages */
 .filter-controls-wrap {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 220px 200px;
   gap: 12px;
   align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
+}
+
+@media (max-width: 900px) {
+  .filter-controls-wrap {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .filter-controls-wrap > div:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 580px) {
+  .filter-controls-wrap {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
 }
 
 @media (max-width: 640px) {
-  .filter-controls-wrap {
-    gap: 8px;
-  }
-  .filter-controls-wrap > * {
-    width: 100% !important;
-    min-width: 100% !important;
-  }
   .data-search-wrap {
     width: 100% !important;
   }

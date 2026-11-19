@@ -78,8 +78,6 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   const [reconciling, setReconciling] = useState(false);
   const [preparedData, setPreparedData] = useState(null);
   const [mintStageLabel, setMintStageLabel] = useState("");
-  const [showMetaMaskModal, setShowMetaMaskModal] = useState(false);
-  const [activeTxHash, setActiveTxHash] = useState(null);
   const [reconcilePending, setReconcilePending] = useState(null);
   const [successCert, setSuccessCert] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -696,20 +694,10 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     }
   };
 
-  const handleCancelMinting = () => {
-    setLoading(false);
-    setMintStageLabel("");
-    setShowMetaMaskModal(false);
-    setActiveTxHash(null);
-    toast.info("Đã đặt lại trạng thái phát hành.");
-  };
-
   const executeMintOnChain = async () => {
     setShowConfirmModal(false);
     setLoading(true);
-    setActiveTxHash(null);
     setMintStageLabel("Đang kết nối ví MetaMask...");
-    setShowMetaMaskModal(true);
 
     try {
       if (!isMetaMaskInstalled()) {
@@ -897,7 +885,6 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         savePendingReconcile(reconcileRecord);
         setReconcilePending(reconcileRecord);
         toast.warning("Giao dịch đã lên Blockchain nhưng Backend chưa đồng bộ kịp — đã ghi nhận vào hàng chờ đối soát!");
-        setShowMetaMaskModal(false);
         return;
       }
 
@@ -936,7 +923,6 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       } catch {}
 
       setSuccessCert(newCert);
-      setShowMetaMaskModal(false);
       toast.success(`Phát hành thành công chứng chỉ ${newCert.certificate_code}!`);
 
       confetti({
@@ -956,7 +942,6 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     } finally {
       setLoading(false);
       setMintStageLabel("");
-      setShowMetaMaskModal(false);
     }
   };
 
@@ -1331,28 +1316,10 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                       )}
                     </button>
 
-                    {loading && (
+                    {selectedDraftCode && !reconcilePending && (
                       <button
                         type="button"
-                        onClick={handleCancelMinting}
-                        className="btn btn-outline"
-                        style={{
-                          padding: "11px 14px",
-                          fontSize: "13px",
-                          color: "#fbbf24",
-                          borderColor: "rgba(245, 158, 11, 0.5)",
-                          whiteSpace: "nowrap"
-                        }}
-                        title="Hủy chờ và đặt lại trạng thái để thử lại"
-                      >
-                        Hủy / Thử Lại
-                      </button>
-                    )}
-
-                    {selectedDraftCode && !loading && !reconcilePending && (
-                      <button
-                        type="button"
-                        disabled={preparing}
+                        disabled={loading || preparing}
                         onClick={handleRejectDraft}
                         className="btn btn-outline"
                         style={{
@@ -1845,115 +1812,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         </div>
       )}
 
-      {/* MetaMask Waiting Modal */}
-      {showMetaMaskModal && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(10, 15, 30, 0.8)",
-          backdropFilter: "blur(10px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 1000,
-          padding: "20px"
-        }}>
-          <div className="glass-panel" style={{
-            maxWidth: "520px",
-            width: "100%",
-            padding: "30px 26px",
-            background: "var(--bg-surface-elevated)",
-            borderRadius: "16px",
-            border: "1px solid rgba(245, 158, 11, 0.45)",
-            boxShadow: "0 25px 60px rgba(0,0,0,0.6)",
-            textAlign: "center"
-          }}>
-            {/* Animated Fox / Pulse Icon */}
-            <div style={{
-              width: "72px",
-              height: "72px",
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(249, 115, 22, 0.3))",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 16px auto",
-              border: "2px solid rgba(245, 158, 11, 0.6)"
-            }}>
-              <span style={{ fontSize: "36px" }}>🦊</span>
-            </div>
 
-            <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "8px" }}>
-              {activeTxHash ? "Đang Chờ Khối Blockchain Xác Nhận" : "Đang Chờ ADMIN Ký Số Trên MetaMask"}
-            </h3>
-
-            <p style={{ fontSize: "13.5px", color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: "18px" }}>
-              {activeTxHash ? (
-                <>Giao dịch đã được phát sóng lên mạng Blockchain! Đang đợi thợ đào đưa vào khối mới.</>
-              ) : (
-                <>
-                  Trình duyệt đang chờ bạn bấm <strong>Xác nhận (Confirm)</strong> trên tiện ích mở rộng <strong>MetaMask</strong>.
-                </>
-              )}
-            </p>
-
-            {/* Instruction Checklist */}
-            <div style={{
-              background: "rgba(0, 0, 0, 0.25)",
-              borderRadius: "12px",
-              padding: "14px 16px",
-              textAlign: "left",
-              fontSize: "12.5px",
-              lineHeight: 1.7,
-              color: "var(--text-secondary)",
-              marginBottom: "20px",
-              border: "1px solid rgba(255, 255, 255, 0.08)"
-            }}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
-                <span style={{ color: "#38bdf8", fontWeight: 700 }}>1.</span>
-                <span>Nhấp vào biểu tượng <strong>con Cáo MetaMask</strong> ở góc trên bên phải trình duyệt nếu popup không tự nhảy ra.</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
-                <span style={{ color: "#38bdf8", fontWeight: 700 }}>2.</span>
-                <span>Kiểm tra phí Gas ước tính và nhấn <strong>Xác nhận (Confirm)</strong>.</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
-                <span style={{ color: "#f59e0b", fontWeight: 700 }}>💡</span>
-                <span>Nếu MetaMask bị treo do Nonce cũ: Vào <em>MetaMask &gt; Cài đặt &gt; Nâng cao &gt; Xóa dữ liệu hoạt động tab (Reset Account)</em>.</span>
-              </div>
-            </div>
-
-            {/* Stage status indicator */}
-            <div style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "8px 16px",
-              borderRadius: "20px",
-              background: "rgba(245, 158, 11, 0.15)",
-              color: "#fbbf24",
-              fontSize: "12.5px",
-              fontWeight: 600,
-              marginBottom: "22px"
-            }}>
-              <RefreshCw size={14} className="animate-spin" />
-              <span>{mintStageLabel}</span>
-            </div>
-
-            {/* Abort / Cancel Button */}
-            <div>
-              <button
-                type="button"
-                onClick={handleCancelMinting}
-                className="btn btn-outline"
-                style={{ padding: "9px 22px", fontSize: "13px" }}
-              >
-                Hủy Chờ &amp; Đặt Lại Trạng Thái
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Reject Draft Modal (Thay thế prompt() thô của trình duyệt) */}
       {showRejectModal && (

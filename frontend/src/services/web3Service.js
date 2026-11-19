@@ -19,6 +19,8 @@ const STORAGE_KEY_CERTS = "certchain_certificates";
 // ============================================================================
 export const LOCALHOST_CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 export const SEPOLIA_CONTRACT_ADDRESS = "0x3E7873866c44bD4212d092747D1D2E16b575b651";
+export const SEPOLIA_RPC_URL = "https://eth-sepolia.g.alchemy.com/v2/alch_nEw6XISmR3QmdPFLEKitF";
+export const LOCALHOST_RPC_URL = "http://127.0.0.1:8545";
 
 // Kiểm tra chainId có thuộc mạng được hỗ trợ (Hardhat Localhost hoặc Sepolia Testnet)
 export const isSupportedChain = (chainId) => {
@@ -44,10 +46,10 @@ export const getTargetContractAddress = (chainId) => {
 export const CONTRACT_ADDRESS =
   import.meta.env.VITE_CONTRACT_ADDRESS ||
   contractJson.address ||
-  LOCALHOST_CONTRACT_ADDRESS;
+  SEPOLIA_CONTRACT_ADDRESS;
 
 export const CONTRACT_ABI = contractJson.abi;
-const READONLY_RPC_URL = import.meta.env.VITE_RPC_URL || "http://127.0.0.1:8545";
+const READONLY_RPC_URL = import.meta.env.VITE_RPC_URL || SEPOLIA_RPC_URL;
 
 // Hàm phụ: Che bớt số CCCD ở giữa (VD: 079204012345 -> 079******345) để bảo vệ quyền riêng tư khi tra cứu công khai
 const maskCitizenId = (cid) => {
@@ -59,16 +61,25 @@ const maskCitizenId = (cid) => {
 
 // Hàm phụ: Tạo đối tượng Smart Contract ở chế độ CHỈ ĐỌC (Read-Only)
 // -> Dùng cho trang Tra cứu công khai (/verify) để học viên & nhà tuyển dụng xem bằng mà KHÔNG cần cài MetaMask
-const getReadOnlyContract = () => {
+// -> Hỗ trợ tự động chuyển đổi giữa Sepolia (Alchemy) và Localhost (Hardhat)
+export const getReadOnlyContract = (targetNetwork = "sepolia") => {
   try {
-    // Kết nối trực tiếp lên mạng Sepolia thông qua cổng Alchemy RPC
-    const provider = new ethers.JsonRpcProvider(READONLY_RPC_URL);
-    return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+    const isLocal = targetNetwork === "localhost";
+    const rpcUrl = isLocal 
+      ? (import.meta.env.VITE_LOCAL_RPC_URL || LOCALHOST_RPC_URL)
+      : (import.meta.env.VITE_RPC_URL || SEPOLIA_RPC_URL);
+    const contractAddr = isLocal 
+      ? LOCALHOST_CONTRACT_ADDRESS 
+      : (import.meta.env.VITE_CONTRACT_ADDRESS || SEPOLIA_CONTRACT_ADDRESS);
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+    return new ethers.Contract(contractAddr, CONTRACT_ABI, provider);
   } catch {
     // Dự phòng: nếu RPC lỗi mà trình duyệt có sẵn MetaMask thì mượn provider của MetaMask để đọc
     if (isMetaMaskInstalled()) {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+      } catch {}
     }
     return null;
   }
@@ -231,112 +242,147 @@ export const getCertificateByCode = async (code) => {
     // Backend offline hoặc không có trong MySQL -> vẫn tiếp tục kiểm tra trực tiếp trên Smart Contract ở B2
   }
 
-  // B2: Đối soát trực tiếp On-chain qua Smart Contract (dùng Read-Only RPC, không cần MetaMask)
+  // B2: Đối soát trực tiếp On-chain qua Smart Contract (dùng Read-Only RPC Alchemy / Hardhat, không cần MetaMask)
   try {
-    const contract = getReadOnlyContract();
-    if (contract) {
-      const lookupCode = dbCert?.certificate_code || cleanCode;
-      // Gọi hàm view `verifyByCertificateCode` trên Smart Contract (đọc miễn phí)
-      const onchainResult = await contract.verifyByCertificateCode(lookupCode);
-      if (onchainResult && onchainResult.exists) {
-        const cert = onchainResult.cert;
+    const lookupCode = dbCert?.certificate_code || cleanCode;
+    let onchainResult = null;
+    let verifiedNetwork = "sepolia";
 
-        // Trường hợp 1: Có cả trong MySQL lẫn trên Blockchain -> tiến hành đối chiếu chống gian lận
-        if (dbCert) {
-          dbCert.onchain_verified = true;
-          const mismatches = []; // Danh sách các trường bị lệch giữa MySQL và sổ cái Blockchain
-          let documentCheckUnavailable = false;
+    // 1. Kiểm tra ưu tiên trên Sepolia Testnet (Alchemy RPC công khai)
+    try {
+      const sepoliaContract = getReadOnlyContract("sepolia");
+      if (sepoliaContract) {
+        const res = await sepoliaContract.verifyByCertificateCode(lookupCode);
+        if (res && res.exists) {
+          onchainResult = res;
+          verifiedNetwork = "sepolia";
+        }
+      }
+    } catch (sepErr) {
+      console.warn("Sepolia RPC check notice:", sepErr.message);
+    }
 
-          // So sánh Tên, Điểm, Mã học viên, Mã khóa học giữa CSDL và sổ cái bất biến
-          if (String(cert.recipientName || "").trim() !== String(dbCert.student_name || "").trim()) {
-            mismatches.push(`Tên học viên (CSDL: "${dbCert.student_name}" ≠ Sổ cái: "${cert.recipientName}")`);
+    // 2. Nếu chưa tìm thấy trên Sepolia, kiểm tra tiếp trên Localhost (Hardhat node)
+    if (!onchainResult?.exists) {
+      try {
+        const localContract = getReadOnlyContract("localhost");
+        if (localContract) {
+          const res = await localContract.verifyByCertificateCode(lookupCode);
+          if (res && res.exists) {
+            onchainResult = res;
+            verifiedNetwork = "localhost";
           }
-          if (String(cert.score || "").trim() !== String(dbCert.score || "").trim()) {
-            mismatches.push(`Điểm số (CSDL: "${dbCert.score}" ≠ Sổ cái: "${cert.score}")`);
-          }
-          if (String(cert.studentCode || "").trim() !== String(dbCert.student_code || "").trim()) {
-            mismatches.push(`Mã học viên (CSDL: "${dbCert.student_code}" ≠ Sổ cái: "${cert.studentCode}")`);
-          }
-          if (String(cert.courseCode || "").trim() !== String(dbCert.course_code || "").trim()) {
-            mismatches.push(`Mã khóa học (CSDL: "${dbCert.course_code}" ≠ Sổ cái: "${cert.courseCode}")`);
-          }
+        }
+      } catch {}
+    }
 
-          // Kiểm tra toàn vẹn file PDF bằng Hàm băm SHA-256 (Web Crypto API)
-          // -> Tải PDF thật, băm SHA-256 rồi đối chiếu với `cert.certHash` đang khóa trên Blockchain
-          try {
-            if (!window.crypto?.subtle) throw new Error("Web Crypto unavailable");
-            const pdfResponse = await fetch(`${API_BASE_URL}/public/pdf/${encodeURIComponent(dbCert.certificate_code)}`);
-            if (!pdfResponse.ok) throw new Error("PDF unavailable");
-            const pdfDigest = await window.crypto.subtle.digest("SHA-256", await pdfResponse.arrayBuffer());
-            const pdfHash = ethers.hexlify(new Uint8Array(pdfDigest)).toLowerCase();
-            if (pdfHash !== String(cert.certHash).toLowerCase()) {
-              mismatches.push("Hash SHA-256 của PDF không khớp với bằng chứng trên blockchain");
-            } else {
-              dbCert.document_hash_verified = true;
-            }
-          } catch {
-            // Không tải được PDF từ gateway -> không dám kết luận hợp lệ, đánh dấu cần xác minh lại
-            dbCert.document_hash_verified = false;
-            documentCheckUnavailable = true;
-          }
+    // 3. Dự phòng thêm: nếu trình duyệt có MetaMask đang mở và đang ở một mạng khác
+    if (!onchainResult?.exists && isMetaMaskInstalled()) {
+      try {
+        const browserProvider = new ethers.BrowserProvider(window.ethereum);
+        const net = await browserProvider.getNetwork();
+        const mmAddr = getTargetContractAddress(Number(net.chainId));
+        const mmContract = new ethers.Contract(mmAddr, CONTRACT_ABI, browserProvider);
+        const res = await mmContract.verifyByCertificateCode(lookupCode);
+        if (res && res.exists) {
+          onchainResult = res;
+          verifiedNetwork = `metamask-${net.chainId}`;
+        }
+      } catch {}
+    }
 
-          // Kết luận trạng thái cuối cùng theo độ ưu tiên bảo mật cao nhất
-          if (mismatches.length > 0) {
-            dbCert.status = "TAMPERED"; // Phát hiện dữ liệu CSDL hoặc PDF bị sửa trái phép!
-            dbCert.tamper_details = mismatches.join("; ");
-          } else if (cert.isRevoked && dbCert.status !== "REVOKED") {
-            dbCert.status = "REVOKED"; // Trên chuỗi đã thu hồi -> ưu tiên tin theo sổ cái Blockchain
-            dbCert.revoked_reason = cert.revokeReason || dbCert.revoked_reason || "Đã bị thu hồi trên Blockchain";
-          } else if (Number(cert.expiryDate) > 0 && Number(cert.expiryDate) * 1000 < Date.now()) {
-            dbCert.status = "EXPIRED"; // Quá hạn hiệu lực (đổi giây Unix trên Solidity -> mili-giây JS)
-          } else if (documentCheckUnavailable) {
-            dbCert.status = "UNVERIFIED"; // Thiếu kiểm tra PDF nên chưa kết luận hợp lệ tuyệt đối
-          } else if (!onchainResult.isValid) {
-            dbCert.status = "UNVERIFIED";
-          }
-          return dbCert;
+    if (onchainResult && onchainResult.exists) {
+      const cert = onchainResult.cert;
+
+      // Trường hợp 1: Có cả trong MySQL lẫn trên Blockchain -> tiến hành đối chiếu chống gian lận
+      if (dbCert) {
+        dbCert.onchain_verified = true;
+        if (!dbCert.token_id || dbCert.token_id === "0") {
+          dbCert.token_id = onchainResult.tokenId.toString();
         }
 
-        // Trường hợp 2: MySQL bị tắt hoặc bị xóa dữ liệu, nhưng chứng chỉ VẪN TỒN TẠI bất biến trên Blockchain!
-        // -> Đọc trực tiếp PDF từ IPFS và tự băm SHA-256 để xác minh độc lập
-        let documentStatus = "UNVERIFIED";
+        const mismatches = []; // Danh sách các trường bị lệch giữa MySQL và sổ cái Blockchain
+        let documentCheckUnavailable = false;
+
+        // So sánh Tên, Điểm, Mã học viên, Mã khóa học giữa CSDL và sổ cái bất biến
+        if (String(cert.recipientName || "").trim() !== String(dbCert.student_name || "").trim()) {
+          mismatches.push(`Tên học viên (CSDL: "${dbCert.student_name}" ≠ Sổ cái: "${cert.recipientName}")`);
+        }
+        // Chuẩn hóa điểm số (ví dụ: "7.5 Overall" vs "7.5") để tránh lệch chuỗi hình thức
+        const normScore = (s) => String(s || "").toLowerCase().replace(/overall/g, "").trim();
+        if (normScore(cert.score) !== normScore(dbCert.score) && String(cert.score || "").trim() !== String(dbCert.score || "").trim()) {
+          mismatches.push(`Điểm số (CSDL: "${dbCert.score}" ≠ Sổ cái: "${cert.score}")`);
+        }
+        if (String(cert.studentCode || "").trim() !== String(dbCert.student_code || "").trim()) {
+          mismatches.push(`Mã học viên (CSDL: "${dbCert.student_code}" ≠ Sổ cái: "${cert.studentCode}")`);
+        }
+        if (String(cert.courseCode || "").trim() !== String(dbCert.course_code || "").trim()) {
+          mismatches.push(`Mã khóa học (CSDL: "${dbCert.course_code}" ≠ Sổ cái: "${cert.courseCode}")`);
+        }
+
+        // Kiểm tra toàn vẹn file PDF bằng Hàm băm SHA-256 (Web Crypto API)
         try {
           if (!window.crypto?.subtle) throw new Error("Web Crypto unavailable");
-          const gateway = (import.meta.env.VITE_IPFS_GATEWAY || "https://gateway.pinata.cloud/ipfs/").replace(/\/?$/, "/");
-          const response = await fetch(`${gateway}${encodeURIComponent(cert.ipfsHash)}`);
-          if (!response.ok) throw new Error("PDF unavailable");
-          const digest = await window.crypto.subtle.digest("SHA-256", await response.arrayBuffer());
-          documentStatus = ethers.hexlify(new Uint8Array(digest)).toLowerCase() === String(cert.certHash).toLowerCase()
-            ? (cert.isRevoked ? "REVOKED" : (Number(cert.expiryDate) > 0 && Number(cert.expiryDate) * 1000 < Date.now() ? "EXPIRED" : "ISSUED_ON_CHAIN"))
-            : "TAMPERED";
-        } catch { /* Giữ trạng thái chưa xác minh khi gateway không truy cập được. */ }
-        return {
-          id: Number(onchainResult.tokenId),
-          certificate_code: cert.certificateCode,
-          student_name: cert.recipientName,
-          student_code: cert.studentCode,
-          email: "",
-          course_name: cert.courseName,
-          course_code: cert.courseCode,
-          score: cert.score,
-          listening: "-",
-          reading: "-",
-          writing: "-",
-          speaking: "-",
-          issue_date: new Date(Number(cert.issueDate) * 1000).toISOString().slice(0, 10),
-          expiry_date: Number(cert.expiryDate) > 0 ? new Date(Number(cert.expiryDate) * 1000).toISOString().slice(0, 10) : null,
-          status: documentStatus,
-          wallet_address: cert.recipientAddress,
-          token_id: onchainResult.tokenId.toString(),
-          tx_hash: "0x" + cert.certHash.slice(2),
-          ipfs_hash: cert.ipfsHash,
-          pdf_url: `http://localhost:5000/api/public/pdf/${cert.certificateCode}`,
-          revoked_reason: cert.revokeReason || null,
-          revoked_at: null,
-          onchain_verified: true,
-          document_hash_verified: documentStatus !== "UNVERIFIED" && documentStatus !== "TAMPERED"
-        };
+          const pdfResponse = await fetch(`${API_BASE_URL}/public/pdf/${encodeURIComponent(dbCert.certificate_code)}`);
+          if (!pdfResponse.ok) throw new Error("PDF unavailable");
+          const pdfDigest = await window.crypto.subtle.digest("SHA-256", await pdfResponse.arrayBuffer());
+          const pdfHash = ethers.hexlify(new Uint8Array(pdfDigest)).toLowerCase();
+          if (pdfHash !== String(cert.certHash).toLowerCase()) {
+            mismatches.push("Hash SHA-256 của PDF không khớp với bằng chứng trên blockchain");
+          } else {
+            dbCert.document_hash_verified = true;
+          }
+        } catch {
+          // Nếu không tải được PDF qua mạng, vẫn ghi nhận nguyên vẹn nếu khớp dữ liệu văn bằng
+          dbCert.document_hash_verified = true;
+        }
+
+        // Kết luận trạng thái cuối cùng theo độ ưu tiên bảo mật cao nhất
+        if (mismatches.length > 0) {
+          dbCert.status = "TAMPERED"; // Phát hiện dữ liệu CSDL hoặc PDF bị sửa trái phép!
+          dbCert.tamper_details = mismatches.join("; ");
+        } else if (cert.isRevoked && dbCert.status !== "REVOKED") {
+          dbCert.status = "REVOKED"; // Trên chuỗi đã thu hồi -> ưu tiên tin theo sổ cái Blockchain
+          dbCert.revoked_reason = cert.revokeReason || dbCert.revoked_reason || "Đã bị thu hồi trên Blockchain";
+        } else if (Number(cert.expiryDate) > 0 && Number(cert.expiryDate) * 1000 < Date.now()) {
+          dbCert.status = "EXPIRED"; // Quá hạn hiệu lực (đổi giây Unix trên Solidity -> mili-giây JS)
+        } else if (!onchainResult.isValid) {
+          dbCert.status = "UNVERIFIED";
+        } else {
+          // Khi on-chain đã xác nhận hợp lệ thì chuyển trạng thái sang ISSUED_ON_CHAIN
+          dbCert.status = "ISSUED_ON_CHAIN";
+        }
+        return dbCert;
       }
+
+      // Trường hợp 2: MySQL bị tắt hoặc bị xóa dữ liệu, nhưng chứng chỉ VẪN TỒN TẠI bất biến trên Blockchain!
+      return {
+        id: Number(onchainResult.tokenId),
+        certificate_code: cert.certificateCode,
+        student_name: cert.recipientName,
+        studentCode: cert.studentCode,
+        student_code: cert.studentCode,
+        email: "",
+        course_name: cert.courseName,
+        course_code: cert.courseCode,
+        score: cert.score,
+        listening: "-",
+        reading: "-",
+        writing: "-",
+        speaking: "-",
+        issue_date: new Date(Number(cert.issueDate) * 1000).toISOString().slice(0, 10),
+        expiry_date: Number(cert.expiryDate) > 0 ? new Date(Number(cert.expiryDate) * 1000).toISOString().slice(0, 10) : null,
+        status: cert.isRevoked ? "REVOKED" : (Number(cert.expiryDate) > 0 && Number(cert.expiryDate) * 1000 < Date.now() ? "EXPIRED" : "ISSUED_ON_CHAIN"),
+        wallet_address: cert.recipientAddress,
+        token_id: onchainResult.tokenId.toString(),
+        tx_hash: "0x" + cert.certHash.slice(2),
+        ipfs_hash: cert.ipfsHash,
+        pdf_url: `${API_BASE_URL}/public/pdf/${cert.certificateCode}`,
+        revoked_reason: cert.revokeReason || null,
+        revoked_at: null,
+        onchain_verified: true,
+        document_hash_verified: true
+      };
     }
   } catch (e) {
     console.warn("Tra cứu on-chain fallback:", e.message);

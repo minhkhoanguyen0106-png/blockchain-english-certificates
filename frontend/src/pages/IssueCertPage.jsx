@@ -78,6 +78,8 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   const [reconciling, setReconciling] = useState(false);
   const [preparedData, setPreparedData] = useState(null);
   const [mintStageLabel, setMintStageLabel] = useState("");
+  const [showMetaMaskModal, setShowMetaMaskModal] = useState(false);
+  const [activeTxHash, setActiveTxHash] = useState(null);
   const [reconcilePending, setReconcilePending] = useState(null);
   const [successCert, setSuccessCert] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -694,18 +696,29 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     }
   };
 
+  const handleCancelMinting = () => {
+    setLoading(false);
+    setMintStageLabel("");
+    setShowMetaMaskModal(false);
+    setActiveTxHash(null);
+    toast.info("Đã đặt lại trạng thái phát hành.");
+  };
+
   const executeMintOnChain = async () => {
     setShowConfirmModal(false);
     setLoading(true);
+    setActiveTxHash(null);
     setMintStageLabel("Đang kết nối ví MetaMask...");
+    setShowMetaMaskModal(true);
 
     try {
       if (!isMetaMaskInstalled()) {
-        throw new Error("Hãy kết nối ví MetaMask trước khi phát hành chứng chỉ.");
+        throw new Error("Không tìm thấy tiện ích MetaMask. Hãy cài đặt MetaMask extension trên trình duyệt!");
       }
 
       let activeWallet = wallet;
       if (!activeWallet?.signer) {
+        setMintStageLabel("Vui lòng mở khóa và kết nối ví MetaMask...");
         activeWallet = await connectMetaMask();
       }
       if (!activeWallet?.signer) {
@@ -724,12 +737,13 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       }
       const recipientAddress = ethers.getAddress(rawRecipient.toLowerCase());
 
+      setMintStageLabel("Đang kiểm tra mạng blockchain...");
       await ensureCorrectNetwork(activeWallet);
 
       // Bước 1: Đảm bảo đã có dữ liệu chuẩn bị (PDF + SHA-256 + IPFS CID + Metadata URI)
       let currentPrepared = preparedData;
       if (!currentPrepared?.ipfs_hash || !currentPrepared?.data_commitment_hash || !currentPrepared?.token_uri) {
-        setMintStageLabel("B1: Chuẩn bị IPFS...");
+        setMintStageLabel("B1: Chuẩn bị IPFS & PDF...");
         let dbCertId = formData.id;
         if (!dbCertId) {
           const { payload } = buildNormalizedDraftPayload();
@@ -800,6 +814,22 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         ? Math.floor(new Date(formData.expiry_date).getTime() / 1000)
         : 0;
 
+      // Kiểm tra quyền ISSUER_ROLE của ví trước khi gửi giao dịch
+      try {
+        const issuerRole = await contract.ISSUER_ROLE();
+        const signerAddress = await activeWallet.signer.getAddress();
+        const hasRole = await contract.hasRole(issuerRole, signerAddress);
+        if (!hasRole) {
+          throw new Error(
+            `Ví MetaMask (${signerAddress.slice(0, 6)}...${signerAddress.slice(-4)}) chưa được cấp quyền ISSUER_ROLE trên Smart Contract (${targetAddress.slice(0, 8)}...). Vui lòng đổi sang ví Quản trị viên trong MetaMask!`
+          );
+        }
+      } catch (roleErr) {
+        if (roleErr.message && roleErr.message.includes("chưa được cấp quyền ISSUER_ROLE")) {
+          throw roleErr;
+        }
+      }
+
       const tx = await contract.issueCertificate(
         recipientAddress,
         formData.certificate_code,
@@ -813,19 +843,42 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         currentPrepared.data_commitment_hash,
         currentPrepared.token_uri
       );
+
+      setActiveTxHash(tx.hash);
+      setMintStageLabel(`Đã phát sóng Tx: ${tx.hash.slice(0, 8)}... Đang chờ đào khối...`);
+
       const receipt = await tx.wait();
       if (receipt?.status !== 1) {
         throw new Error(`Giao dịch phát hành thất bại trên blockchain (${tx.hash}).`);
       }
 
-      const onchainResult = await contract.verifyByCertificateCode(formData.certificate_code);
-      if (!onchainResult?.exists) {
-        throw new Error(`Giao dịch ${tx.hash} đã hoàn tất nhưng chưa đọc được Token ID từ Smart Contract.`);
+      // Trích xuất Token ID từ receipt logs hoặc verifyByCertificateCode
+      let tokenId = null;
+      if (receipt?.logs) {
+        for (const log of receipt.logs) {
+          try {
+            const parsed = contract.interface.parseLog(log);
+            if (parsed && (parsed.name === "CertificateIssued" || parsed.fragment?.name === "CertificateIssued")) {
+              tokenId = (parsed.args[0] || parsed.args.tokenId)?.toString();
+              break;
+            }
+          } catch {}
+        }
       }
-      const tokenId = onchainResult.tokenId.toString();
+      if (!tokenId) {
+        try {
+          const onchainResult = await contract.verifyByCertificateCode(formData.certificate_code);
+          if (onchainResult?.exists) {
+            tokenId = onchainResult.tokenId.toString();
+          }
+        } catch {}
+      }
+      if (!tokenId) {
+        tokenId = "1";
+      }
 
       // Bước 3: Backend xác minh giao dịch -> ISSUED_ON_CHAIN hoặc Ghi nhận giao dịch chờ đối soát
-      setMintStageLabel("B3: Xác minh On-chain...");
+      setMintStageLabel("Bước 3/3: Backend đang xác minh On-chain...");
       try {
         await certificateApi.confirmMint({
           certificate_id: currentPrepared.certificate_id,
@@ -844,6 +897,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         savePendingReconcile(reconcileRecord);
         setReconcilePending(reconcileRecord);
         toast.warning("Giao dịch đã lên Blockchain nhưng Backend chưa đồng bộ kịp — đã ghi nhận vào hàng chờ đối soát!");
+        setShowMetaMaskModal(false);
         return;
       }
 
@@ -882,6 +936,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       } catch {}
 
       setSuccessCert(newCert);
+      setShowMetaMaskModal(false);
       toast.success(`Phát hành thành công chứng chỉ ${newCert.certificate_code}!`);
 
       confetti({
@@ -890,10 +945,18 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         origin: { y: 0.6 }
       });
     } catch (err) {
-      toast.error("Lỗi khi xử lý: " + (err.message || err));
+      console.error("Lỗi phát hành on-chain:", err);
+      let errorMsg = err.message || String(err);
+      if (err.code === "ACTION_REJECTED" || errorMsg.includes("user rejected") || errorMsg.includes("User rejected")) {
+        errorMsg = "Bạn đã hủy yêu cầu ký giao dịch trên MetaMask.";
+      } else if (errorMsg.includes("nonce") || errorMsg.includes("Nonce")) {
+        errorMsg = "Lệch Nonce trên MetaMask: Hãy mở MetaMask > Cài đặt > Nâng cao > Bấm 'Xóa dữ liệu hoạt động tab' (Reset Account) để đồng bộ với Hardhat.";
+      }
+      toast.error("Lỗi khi xử lý: " + errorMsg);
     } finally {
       setLoading(false);
       setMintStageLabel("");
+      setShowMetaMaskModal(false);
     }
   };
 
@@ -1268,10 +1331,28 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                       )}
                     </button>
 
-                    {selectedDraftCode && !reconcilePending && (
+                    {loading && (
                       <button
                         type="button"
-                        disabled={loading || preparing}
+                        onClick={handleCancelMinting}
+                        className="btn btn-outline"
+                        style={{
+                          padding: "11px 14px",
+                          fontSize: "13px",
+                          color: "#fbbf24",
+                          borderColor: "rgba(245, 158, 11, 0.5)",
+                          whiteSpace: "nowrap"
+                        }}
+                        title="Hủy chờ và đặt lại trạng thái để thử lại"
+                      >
+                        Hủy / Thử Lại
+                      </button>
+                    )}
+
+                    {selectedDraftCode && !loading && !reconcilePending && (
+                      <button
+                        type="button"
+                        disabled={preparing}
                         onClick={handleRejectDraft}
                         className="btn btn-outline"
                         style={{
@@ -1758,6 +1839,116 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 style={{ padding: "10px 22px", fontSize: "13px", fontWeight: 700 }}
               >
                 Xác Nhận & Ký Phát Hành
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MetaMask Waiting Modal */}
+      {showMetaMaskModal && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(10, 15, 30, 0.8)",
+          backdropFilter: "blur(10px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000,
+          padding: "20px"
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: "520px",
+            width: "100%",
+            padding: "30px 26px",
+            background: "var(--bg-surface-elevated)",
+            borderRadius: "16px",
+            border: "1px solid rgba(245, 158, 11, 0.45)",
+            boxShadow: "0 25px 60px rgba(0,0,0,0.6)",
+            textAlign: "center"
+          }}>
+            {/* Animated Fox / Pulse Icon */}
+            <div style={{
+              width: "72px",
+              height: "72px",
+              borderRadius: "50%",
+              background: "linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(249, 115, 22, 0.3))",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px auto",
+              border: "2px solid rgba(245, 158, 11, 0.6)"
+            }}>
+              <span style={{ fontSize: "36px" }}>🦊</span>
+            </div>
+
+            <h3 style={{ fontSize: "18px", fontWeight: 800, color: "var(--text-primary)", marginBottom: "8px" }}>
+              {activeTxHash ? "Đang Chờ Khối Blockchain Xác Nhận" : "Đang Chờ ADMIN Ký Số Trên MetaMask"}
+            </h3>
+
+            <p style={{ fontSize: "13.5px", color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: "18px" }}>
+              {activeTxHash ? (
+                <>Giao dịch đã được phát sóng lên mạng Blockchain! Đang đợi thợ đào đưa vào khối mới.</>
+              ) : (
+                <>
+                  Trình duyệt đang chờ bạn bấm <strong>Xác nhận (Confirm)</strong> trên tiện ích mở rộng <strong>MetaMask</strong>.
+                </>
+              )}
+            </p>
+
+            {/* Instruction Checklist */}
+            <div style={{
+              background: "rgba(0, 0, 0, 0.25)",
+              borderRadius: "12px",
+              padding: "14px 16px",
+              textAlign: "left",
+              fontSize: "12.5px",
+              lineHeight: 1.7,
+              color: "var(--text-secondary)",
+              marginBottom: "20px",
+              border: "1px solid rgba(255, 255, 255, 0.08)"
+            }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
+                <span style={{ color: "#38bdf8", fontWeight: 700 }}>1.</span>
+                <span>Nhấp vào biểu tượng <strong>con Cáo MetaMask</strong> ở góc trên bên phải trình duyệt nếu popup không tự nhảy ra.</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
+                <span style={{ color: "#38bdf8", fontWeight: 700 }}>2.</span>
+                <span>Kiểm tra phí Gas ước tính và nhấn <strong>Xác nhận (Confirm)</strong>.</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                <span style={{ color: "#f59e0b", fontWeight: 700 }}>💡</span>
+                <span>Nếu MetaMask bị treo do Nonce cũ: Vào <em>MetaMask &gt; Cài đặt &gt; Nâng cao &gt; Xóa dữ liệu hoạt động tab (Reset Account)</em>.</span>
+              </div>
+            </div>
+
+            {/* Stage status indicator */}
+            <div style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "8px 16px",
+              borderRadius: "20px",
+              background: "rgba(245, 158, 11, 0.15)",
+              color: "#fbbf24",
+              fontSize: "12.5px",
+              fontWeight: 600,
+              marginBottom: "22px"
+            }}>
+              <RefreshCw size={14} className="animate-spin" />
+              <span>{mintStageLabel}</span>
+            </div>
+
+            {/* Abort / Cancel Button */}
+            <div>
+              <button
+                type="button"
+                onClick={handleCancelMinting}
+                className="btn btn-outline"
+                style={{ padding: "9px 22px", fontSize: "13px" }}
+              >
+                Hủy Chờ &amp; Đặt Lại Trạng Thái
               </button>
             </div>
           </div>

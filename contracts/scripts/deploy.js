@@ -146,6 +146,13 @@ async function main() {
   const exportDir = path.join(__dirname, "../artifacts-export");
   if (!fs.existsSync(exportDir)) fs.mkdirSync(exportDir, { recursive: true });
   fs.writeFileSync(path.join(exportDir, "EnglishCertificateNFT.json"), JSON.stringify(exportPayload, null, 2));
+  fs.writeFileSync(path.join(exportDir, "EnglishCertificateNFT-address.json"), JSON.stringify({
+    address: contractAddress,
+    network: hre.network.name,
+    chainId: hre.network.config.chainId || 31337,
+    deployer: deployer.address,
+    deployedAt: new Date().toISOString()
+  }, null, 2));
 
   // 2. Tự động xuất sang thư mục backend/ (dành cho TV2)
   const backendContractsDir = path.join(__dirname, "../../backend/src/contracts");

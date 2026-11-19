@@ -10,6 +10,7 @@ import {
   Pencil,
   Trash2,
   AlertTriangle,
+  Sparkles,
   X
 } from "lucide-react";
 import { ethers } from "ethers";
@@ -457,7 +458,7 @@ export default function DataManagementPage({ user }) {
           </div>
 
           {/* Search */}
-          <div style={{ position: "relative", width: "360px", maxWidth: "100%" }}>
+          <div className="data-search-wrap" style={{ position: "relative", width: "360px", maxWidth: "100%" }}>
             <input
               type="text"
               placeholder={
@@ -817,14 +818,44 @@ export default function DataManagementPage({ user }) {
 
               <div className="form-group">
                 <label className="form-label">Địa chỉ ví điện tử định danh (tùy chọn)</label>
-                <input
-                  type="text"
-                  placeholder="0x... (42 ký tự, có thể bổ sung sau)"
-                  value={newStudent.wallet_address}
-                  onChange={(e) => setNewStudent({ ...newStudent, wallet_address: e.target.value })}
-                  className="form-input"
-                  style={{ fontSize: "12px", fontFamily: "monospace" }}
-                />
+                <div style={{ position: "relative" }}>
+                  <input
+                    type="text"
+                    placeholder="0x... (42 ký tự, hoặc bấm icon để sinh ví)"
+                    value={newStudent.wallet_address}
+                    onChange={(e) => setNewStudent({ ...newStudent, wallet_address: e.target.value })}
+                    className="form-input"
+                    style={{ fontSize: "12px", fontFamily: "monospace", paddingRight: "38px" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rand = ethers.Wallet.createRandom().address;
+                      setNewStudent({ ...newStudent, wallet_address: rand });
+                      toast.success("Đã sinh ví Ethereum định danh cho học viên!");
+                    }}
+                    style={{
+                      position: "absolute",
+                      right: "6px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "rgba(14, 165, 233, 0.12)",
+                      border: "1px solid rgba(14, 165, 233, 0.25)",
+                      color: "var(--accent-primary, #0ea5e9)",
+                      width: "28px",
+                      height: "28px",
+                      borderRadius: "6px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease"
+                    }}
+                    title="Tự động sinh địa chỉ ví Ethereum 42 ký tự (0x...)"
+                  >
+                    <Sparkles size={14} />
+                  </button>
+                </div>
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "22px" }}>
@@ -944,14 +975,44 @@ export default function DataManagementPage({ user }) {
 
               <div className="form-group">
                 <label className="form-label">Địa chỉ ví điện tử định danh (0x...)</label>
-                <input
-                  type="text"
-                  placeholder="0x..."
-                  value={editingStudent.wallet_address || ""}
-                  onChange={(e) => setEditingStudent({ ...editingStudent, wallet_address: e.target.value })}
-                  className="form-input"
-                  style={{ fontSize: "12px", fontFamily: "monospace" }}
-                />
+                <div style={{ position: "relative" }}>
+                  <input
+                    type="text"
+                    placeholder="0x... (hoặc bấm icon để sinh ví)"
+                    value={editingStudent.wallet_address || ""}
+                    onChange={(e) => setEditingStudent({ ...editingStudent, wallet_address: e.target.value })}
+                    className="form-input"
+                    style={{ fontSize: "12px", fontFamily: "monospace", paddingRight: "38px" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const rand = ethers.Wallet.createRandom().address;
+                      setEditingStudent({ ...editingStudent, wallet_address: rand });
+                      toast.success("Đã sinh ví Ethereum định danh mới cho học viên!");
+                    }}
+                    style={{
+                      position: "absolute",
+                      right: "6px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "rgba(14, 165, 233, 0.12)",
+                      border: "1px solid rgba(14, 165, 233, 0.25)",
+                      color: "var(--accent-primary, #0ea5e9)",
+                      width: "28px",
+                      height: "28px",
+                      borderRadius: "6px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease"
+                    }}
+                    title="Tự động sinh địa chỉ ví Ethereum 42 ký tự (0x...)"
+                  >
+                    <Sparkles size={14} />
+                  </button>
+                </div>
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "22px" }}>

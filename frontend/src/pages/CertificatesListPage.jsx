@@ -401,7 +401,7 @@ export default function CertificatesListPage({ wallet, setWallet, user }) {
 
       {/* Filter and Search Bar */}
       <div className="finnova-kpi-card" style={{ padding: "16px 20px", marginBottom: "20px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "12px", alignItems: "center" }}>
+        <div className="filter-controls-wrap">
           <div style={{ position: "relative" }}>
             <input
               type="text"

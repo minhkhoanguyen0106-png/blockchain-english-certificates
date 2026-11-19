@@ -17,6 +17,25 @@ export const toast = {
   info: (msg, duration) => emitToast("info", msg, duration)
 };
 
+function cleanToastMessage(msg) {
+  if (!msg) return "";
+  let str = String(msg);
+  // Bắt lỗi AccessControlUnauthorizedAccount (0xe2517d3f) từ Smart Contract
+  if (str.includes("0xe2517d3f") || str.includes("AccessControlUnauthorizedAccount")) {
+    return "Lỗi phân quyền Blockchain: Ví MetaMask của bạn chưa được cấp quyền ISSUER_ROLE để phát hành chứng chỉ. Vui lòng chuyển sang ví Admin gốc (0xf82b...Dcc6) trên MetaMask để ký!";
+  }
+  // Loại bỏ các đoạn mã hex nhị phân dài ngoằng làm tràn màn hình
+  if (str.includes('data="0x') || str.includes('transaction=')) {
+    str = str.replace(/data="0x[a-fA-F0-9]{20,}"/g, 'data="[mã hex nhị phân]"');
+    str = str.replace(/transaction=\{[\s\S]*?\}/g, "");
+    str = str.replace(/\(action="estimateGas"[\s\S]*?\)/g, "");
+  }
+  if (str.length > 220) {
+    str = str.slice(0, 220) + "...";
+  }
+  return str.trim();
+}
+
 export default function ToastContainer() {
   const [toasts, setToasts] = useState([]);
 
@@ -77,7 +96,9 @@ export default function ToastContainer() {
             }}
           >
             <Icon size={18} color={cfg.iconColor} style={{ flexShrink: 0, marginTop: "1px" }} />
-            <div style={{ flex: 1, whiteSpace: "pre-line", wordBreak: "break-word" }}>{t.message}</div>
+            <div style={{ flex: 1, whiteSpace: "pre-line", wordBreak: "break-word", maxHeight: "160px", overflowY: "auto", paddingRight: "4px" }}>
+              {cleanToastMessage(t.message)}
+            </div>
             <button
               type="button"
               onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}

@@ -5,8 +5,6 @@ import { ethers } from "ethers";
 import confetti from "canvas-confetti";
 import {
   issueCertificateOnChain,
-  INITIAL_STUDENTS,
-  INITIAL_COURSES,
   connectMetaMask,
   isMetaMaskInstalled,
   ensureCorrectNetwork,
@@ -49,8 +47,8 @@ function clearPendingReconcile(certificateCode) {
 export default function IssueCertPage({ wallet, setWallet, user }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [studentsList, setStudentsList] = useState(INITIAL_STUDENTS);
-  const [coursesList, setCoursesList] = useState(INITIAL_COURSES);
+  const [studentsList, setStudentsList] = useState([]);
+  const [coursesList, setCoursesList] = useState([]);
   const [pendingDrafts, setPendingDrafts] = useState([]);
   const [selectedDraftCode, setSelectedDraftCode] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
@@ -199,8 +197,8 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
           courseApi.getCourses(),
           certificateApi.getCertificates({ status: "ALL", limit: 100 })
         ]);
-        let loadedStudents = INITIAL_STUDENTS;
-        let loadedCourses = INITIAL_COURSES;
+        let loadedStudents = [];
+        let loadedCourses = [];
 
         if (stuRes.status === "fulfilled" && stuRes.value?.success && Array.isArray(stuRes.value.data) && stuRes.value.data.length > 0) {
           loadedStudents = stuRes.value.data;
@@ -416,10 +414,18 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     }
   };
 
+  const handleAutoGenerateWallet = () => {
+    const randomWallet = ethers.Wallet.createRandom().address;
+    setFormData((prev) => ({ ...prev, wallet_address: randomWallet }));
+    toast.success("Đã tự động tạo địa chỉ ví định danh Ethereum cho học viên!");
+    return randomWallet;
+  };
+
   const syncStudentWalletIfNeeded = async (rawWallet) => {
-    const cleanWallet = (rawWallet || "").trim();
+    let cleanWallet = (rawWallet || "").trim();
     if (!cleanWallet || !ethers.isAddress(cleanWallet.toLowerCase())) {
-      throw new Error("Địa chỉ ví học viên không hợp lệ (cần đúng địa chỉ Ethereum 42 ký tự bắt đầu bằng 0x).");
+      cleanWallet = ethers.Wallet.createRandom().address;
+      setFormData((prev) => ({ ...prev, wallet_address: cleanWallet }));
     }
     const checksumWallet = ethers.getAddress(cleanWallet.toLowerCase());
     const matchedStudent = studentsList.find((s) => s.student_code === formData.student_code);
@@ -498,8 +504,10 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
     }
 
     if (!formData.wallet_address || !ethers.isAddress(formData.wallet_address.trim().toLowerCase())) {
-      toast.warning("Địa chỉ ví học viên chưa hợp lệ (cần địa chỉ Ethereum 42 ký tự bắt đầu bằng 0x).");
-      return;
+      const generatedWallet = ethers.Wallet.createRandom().address;
+      formData.wallet_address = generatedWallet;
+      setFormData((prev) => ({ ...prev, wallet_address: generatedWallet }));
+      toast.info("Học viên chưa có ví — Hệ thống đã tự động tạo địa chỉ ví định danh Ethereum mới!");
     }
 
     const courseOpts = getCourseOptions(formData.course_code);
@@ -678,7 +686,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   const executeMintOnChain = async () => {
     setShowConfirmModal(false);
     setLoading(true);
-    setMintStageLabel("Đang kết nối ví MetaMask & kiểm tra mạng...");
+    setMintStageLabel("Đang kết nối ví MetaMask...");
 
     try {
       if (!isMetaMaskInstalled()) {
@@ -696,9 +704,12 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
         setWallet(activeWallet);
       }
 
-      const rawRecipient = (formData.wallet_address || "").trim();
+      let rawRecipient = (formData.wallet_address || "").trim();
       if (!rawRecipient || !ethers.isAddress(rawRecipient.toLowerCase())) {
-        throw new Error("Địa chỉ ví của học viên không hợp lệ (cần địa chỉ Ethereum 42 ký tự).");
+        rawRecipient = ethers.Wallet.createRandom().address;
+        formData.wallet_address = rawRecipient;
+        setFormData((prev) => ({ ...prev, wallet_address: rawRecipient }));
+        toast.info("Đã tự động tạo địa chỉ ví định danh Ethereum cho học viên.");
       }
       const recipientAddress = ethers.getAddress(rawRecipient.toLowerCase());
 
@@ -707,7 +718,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       // Bước 1: Đảm bảo đã có dữ liệu chuẩn bị (PDF + SHA-256 + IPFS CID + Metadata URI)
       let currentPrepared = preparedData;
       if (!currentPrepared?.ipfs_hash || !currentPrepared?.data_commitment_hash || !currentPrepared?.token_uri) {
-        setMintStageLabel("Bước 1/3: Tạo PDF + SHA-256 & Upload lên IPFS...");
+        setMintStageLabel("B1: Chuẩn bị IPFS...");
         let dbCertId = formData.id;
         if (!dbCertId) {
           const { payload } = buildNormalizedDraftPayload();
@@ -803,7 +814,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       const tokenId = onchainResult.tokenId.toString();
 
       // Bước 3: Backend xác minh giao dịch -> ISSUED_ON_CHAIN hoặc Ghi nhận giao dịch chờ đối soát
-      setMintStageLabel("Bước 3/3: Backend đang xác minh giao dịch, event & SHA-256 PDF...");
+      setMintStageLabel("B3: Xác minh On-chain...");
       try {
         await certificateApi.confirmMint({
           certificate_id: currentPrepared.certificate_id,
@@ -878,15 +889,15 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
   return (
     <div className="admin-page admin-issue">
       {/* Page Title */}
-      <div className="admin-page-heading" style={{ marginBottom: "26px" }}>
-        <h1 style={{ fontSize: "26px", fontWeight: 800, color: "var(--text-primary)" }}>
+      <div className="admin-page-heading" style={{ marginBottom: "18px" }}>
+        <h1 style={{ fontSize: "24px", fontWeight: 800, color: "var(--text-primary)" }}>
           {user?.role === "ADMIN" ? (
             <>Duyệt &amp; <span className="text-gradient">Cấp Phát Chứng Chỉ Số</span></>
           ) : (
             <>Soạn <span className="text-gradient">Hồ Sơ Nháp Chứng Chỉ</span></>
           )}
         </h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginTop: "4px" }}>
+        <p style={{ color: "var(--text-secondary)", fontSize: "13.5px", marginTop: "3px" }}>
           {user?.role === "ADMIN"
             ? "Đối soát hồ sơ khảo thí, ký xác thực và phát hành chứng chỉ điện tử bất biến."
             : "Nhập điểm khảo thí và lập bản nháp chứng chỉ để trình Quản trị viên kiểm duyệt."}
@@ -897,10 +908,10 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
       <div className="issue-split-grid">
         
         {/* Left Column: Input Form */}
-        <div className="glass-panel" style={{ padding: "26px" }}>
-          <h3 style={{ fontSize: "17px", fontWeight: 700, marginBottom: "20px", display: "flex", alignItems: "center", gap: "8px", color: "var(--text-primary)" }}>
-            <FileCheck size={19} color="var(--primary)" />
-            Thông Tin Khảo Thí & Học Viên
+        <div className="glass-panel" style={{ padding: "20px 22px" }}>
+          <h3 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px", color: "var(--text-primary)" }}>
+            <FileCheck size={18} color="var(--primary)" />
+            Thông Tin Khảo Thí &amp; Học Viên
           </h3>
 
           <form onSubmit={handleIssue}>
@@ -909,8 +920,8 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
             {user?.role === "ADMIN" && !isManualMode ? (
               <div>
                 {/* 1. Bộ chọn duy nhất: Hồ sơ nháp chờ duyệt */}
-                <div className="form-group" style={{ marginBottom: "16px" }}>
-                  <label className="form-label" style={{ fontWeight: 700, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div className="form-group" style={{ marginBottom: "12px" }}>
+                  <label className="form-label" style={{ fontWeight: 700, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                     <span>Chọn hồ sơ nháp chờ phê duyệt</span>
                     {pendingDrafts.length > 0 && (
                       <span className="badge badge-warning" style={{ fontSize: "11px", padding: "2px 8px" }}>
@@ -923,7 +934,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     onChange={handleDraftSelect}
                     className="form-select"
                   >
-                    <option value="">-- Chọn hồ sơ nháp để đối soát & phê duyệt --</option>
+                    <option value="">-- Chọn hồ sơ nháp để đối soát &amp; phê duyệt --</option>
                     {pendingDrafts.map(d => (
                       <option key={d.id} value={d.certificate_code}>
                         {d.certificate_code} — {d.student_name} ({d.course_name}: {d.score_overall || d.score})
@@ -938,14 +949,14 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     background: "var(--bg-surface)",
                     border: "1px solid var(--border-subtle)",
                     borderRadius: "12px",
-                    padding: "18px",
-                    marginBottom: "18px",
+                    padding: "14px 16px",
+                    marginBottom: "14px",
                     boxShadow: "var(--shadow-sm)"
                   }}>
                     {/* Học viên */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px", paddingBottom: "10px", borderBottom: "1px solid var(--border-subtle)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px", paddingBottom: "8px", borderBottom: "1px solid var(--border-subtle)" }}>
                       <div>
-                        <div style={{ fontSize: "17px", fontWeight: 700, color: "var(--text-primary)" }}>{formData.student_name}</div>
+                        <div style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-primary)" }}>{formData.student_name}</div>
                         <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>
                           Mã HV: <strong style={{ color: "var(--text-primary)" }}>{formData.student_code}</strong>
                           {formData.email && <span> • {formData.email}</span>}
@@ -964,7 +975,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     </div>
 
                     {/* Thanh tiến độ 4 bước tinh gọn (Circular Connected Stepper) */}
-                    <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px", marginBottom: "18px", paddingTop: "2px" }}>
+                    <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px", marginBottom: "14px", paddingTop: "2px" }}>
                       {/* Horizontal Connector Rail */}
                       <div style={{
                         position: "absolute",
@@ -1080,7 +1091,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     )}
 
                     {/* Khóa thi & Điểm */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "13px", marginBottom: "14px" }}>
+                    <div className="issue-form-row-2col" style={{ fontSize: "13px", marginBottom: "14px" }}>
                       <div>
                         <div style={{ color: "var(--text-muted)", fontSize: "11px" }}>Kỳ thi / Khóa học</div>
                         <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{formData.course_name}</div>
@@ -1113,7 +1124,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                           <ShieldCheck size={12} /> Đã chốt điểm
                         </span>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", textAlign: "center" }}>
+                      <div className="issue-scores-4col" style={{ textAlign: "center" }}>
                         <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", padding: "8px 4px", borderRadius: "8px" }}>
                           <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>Listening</div>
                           <div style={{ fontWeight: 700, fontSize: "15px", color: "var(--text-primary)", marginTop: "2px" }}>{formData.listening || "—"}</div>
@@ -1140,17 +1151,43 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                           Địa chỉ ví nhận chứng chỉ của học viên
                         </label>
                         <span style={{ fontSize: "11px", color: formData.wallet_address ? "var(--success-text)" : "var(--warning-text)", fontWeight: 600 }}>
-                          {formData.wallet_address ? "Tự động từ hồ sơ học viên" : "Học viên chưa có ví"}
+                          {formData.wallet_address ? "Đã có ví định danh" : "Chưa có ví"}
                         </span>
                       </div>
-                      <input
-                        type="text"
-                        value={formData.wallet_address}
-                        onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
-                        className="form-input"
-                        style={{ fontSize: "12px", fontFamily: "monospace" }}
-                        placeholder="0x... (tự động điền từ hồ sơ học viên)"
-                      />
+                      <div style={{ position: "relative" }}>
+                        <input
+                          type="text"
+                          value={formData.wallet_address}
+                          onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
+                          className="form-input"
+                          style={{ fontSize: "12px", fontFamily: "monospace", paddingRight: "38px" }}
+                          placeholder="0x... (tự động điền hoặc bấm icon để sinh ví)"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAutoGenerateWallet}
+                          style={{
+                            position: "absolute",
+                            right: "6px",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            background: "rgba(14, 165, 233, 0.12)",
+                            border: "1px solid rgba(14, 165, 233, 0.25)",
+                            color: "var(--accent-primary, #0ea5e9)",
+                            width: "28px",
+                            height: "28px",
+                            borderRadius: "6px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease"
+                          }}
+                          title="Tự động sinh địa chỉ ví Ethereum 42 ký tự (0x...)"
+                        >
+                          <Sparkles size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -1176,25 +1213,25 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     className="btn btn-outline"
                     style={{
                       width: "100%",
-                      padding: "11px 14px",
-                      fontSize: "13.5px",
+                      padding: "10px 14px",
+                      fontSize: "13px",
                       borderColor: preparedData ? "rgba(16, 185, 129, 0.45)" : "rgba(14, 165, 233, 0.45)",
                       color: preparedData ? "var(--success-text)" : "var(--primary)"
                     }}
                   >
                     {preparing ? (
                       <>
-                        <RefreshCw size={15} className="animate-spin" />
+                        <RefreshCw size={14} className="animate-spin" />
                         Đang tạo PDF + SHA-256 &amp; Upload IPFS...
                       </>
                     ) : preparedData ? (
                       <>
-                        <CheckCircle2 size={15} />
+                        <CheckCircle2 size={14} />
                         Đã Chuẩn Bị IPFS (READY_TO_MINT) — Tạo Lại Nếu Cần
                       </>
                     ) : (
                       <>
-                        <UploadCloud size={16} />
+                        <UploadCloud size={15} />
                         Bước 1: Chuẩn Bị Phát Hành (PDF + SHA-256 + IPFS)
                       </>
                     )}
@@ -1205,16 +1242,16 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                       type="submit"
                       disabled={loading || preparing || !formData.student_name || Boolean(reconcilePending)}
                       className="btn btn-gold"
-                      style={{ flex: 1, padding: "13px", fontSize: "14px" }}
+                      style={{ flex: 1, padding: "11px 14px", fontSize: "13.5px", minHeight: "42px" }}
                     >
                       {loading ? (
                         <>
-                          <RefreshCw size={16} className="animate-spin" />
-                          {mintStageLabel || "Đang xử lý phát hành chứng chỉ..."}
+                          <RefreshCw size={15} className="animate-spin" />
+                          {mintStageLabel || "Đang xử lý..."}
                         </>
                       ) : (
                         <>
-                          <Sparkles size={16} />
+                          <Sparkles size={15} />
                           Bước 2: Ký MetaMask &amp; Mint SBT
                         </>
                       )}
@@ -1227,7 +1264,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                         onClick={handleRejectDraft}
                         className="btn btn-outline"
                         style={{
-                          padding: "13px 16px",
+                          padding: "11px 14px",
                           fontSize: "13px",
                           color: "var(--danger-text)",
                           borderColor: "rgba(239, 68, 68, 0.4)",
@@ -1242,7 +1279,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 </div>
 
                 {/* Nút chuyển chế độ thủ công */}
-                <div style={{ textAlign: "center", marginTop: "14px" }}>
+                <div style={{ textAlign: "center", marginTop: "12px", marginBottom: "4px" }}>
                   <button
                     type="button"
                     onClick={() => {
@@ -1337,7 +1374,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                   </select>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="issue-form-row-2col">
                   <div className="form-group">
                     <label className="form-label">Họ tên học viên</label>
                     <input
@@ -1405,7 +1442,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                     </span>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
+                  <div className="issue-scores-4col">
                     <div>
                       <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>Listening</label>
                       <input
@@ -1470,7 +1507,7 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
                 </div>
 
                 {/* Ngày cấp chứng chỉ / hạn hiệu lực */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+                <div className="issue-form-row-2col" style={{ marginBottom: "16px" }}>
                   <div>
                     <label className="form-label" style={{ fontSize: "12px" }}>Ngày cấp chứng chỉ</label>
                     <input
@@ -1497,14 +1534,40 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
 
                 <div className="form-group">
                   <label className="form-label">Địa chỉ ví điện tử học viên</label>
-                  <input
-                    type="text"
-                    placeholder="0x... (Địa chỉ ví điện tử học viên)"
-                    value={formData.wallet_address}
-                    onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
-                    className="form-input"
-                    style={{ fontSize: "12px" }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type="text"
+                      placeholder="0x... (tự động điền hoặc bấm icon để sinh ví)"
+                      value={formData.wallet_address}
+                      onChange={(e) => setFormData({ ...formData, wallet_address: e.target.value })}
+                      className="form-input"
+                      style={{ fontSize: "12px", fontFamily: "monospace", paddingRight: "38px" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAutoGenerateWallet}
+                      style={{
+                        position: "absolute",
+                        right: "6px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "rgba(14, 165, 233, 0.12)",
+                        border: "1px solid rgba(14, 165, 233, 0.25)",
+                        color: "var(--accent-primary, #0ea5e9)",
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "6px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease"
+                      }}
+                      title="Tự động sinh địa chỉ ví Ethereum 42 ký tự (0x...)"
+                    >
+                      <Sparkles size={14} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Nút lưu hoặc phát hành */}
@@ -1766,44 +1829,132 @@ export default function IssueCertPage({ wallet, setWallet, user }) {
               Chứng chỉ <strong>{successCert.certificate_code}</strong> đã được xác thực và lưu trữ thành công trên hệ thống.
             </p>
 
-            <div style={{ background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", padding: "14px", borderRadius: "var(--radius-md)", fontSize: "12px", textAlign: "left", marginBottom: "24px" }}>
-              <div><strong>Mã giao dịch xác thực:</strong> <span style={{ color: "var(--primary)" }}>{successCert.tx_hash}</span></div>
-              <div style={{ marginTop: "4px" }}><strong>Mã số bằng:</strong> <span style={{ color: "var(--accent-gold)" }}>#{successCert.token_id}</span></div>
-              <div style={{ marginTop: "4px" }}><strong>Mã lưu trữ số:</strong> <span style={{ color: "var(--accent-gold)" }}>{successCert.ipfs_hash}</span></div>
+            {/* Khung Bằng Chứng On-Chain Sang Trọng (Không bao giờ tràn) */}
+            <div style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-subtle)",
+              padding: "16px",
+              borderRadius: "12px",
+              fontSize: "12px",
+              textAlign: "left",
+              marginBottom: "22px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px"
+            }}>
+              {/* Token ID & Trạng thái */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "8px", borderBottom: "1px dashed var(--border-subtle)" }}>
+                <span style={{ color: "var(--text-muted)", fontWeight: 600 }}>Mã số Token (SBT):</span>
+                <span style={{
+                  fontWeight: 800,
+                  fontSize: "13px",
+                  color: "#d97706",
+                  background: "rgba(245, 158, 11, 0.12)",
+                  padding: "2px 10px",
+                  borderRadius: "9999px",
+                  border: "1px solid rgba(245, 158, 11, 0.3)"
+                }}>
+                  Token #{successCert.token_id}
+                </span>
+              </div>
+
+              {/* Mã giao dịch xác thực (TxHash) */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <span style={{ color: "var(--text-muted)", fontWeight: 600 }}>Mã giao dịch xác thực (Tx Hash):</span>
+                  <a
+                    href={`https://sepolia.etherscan.io/tx/${successCert.tx_hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: "11px", color: "var(--primary)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "3px" }}
+                    title="Xem trên Sepolia Etherscan"
+                  >
+                    Etherscan <ExternalLink size={11} />
+                  </a>
+                </div>
+                <div style={{
+                  background: "rgba(0, 0, 0, 0.04)",
+                  padding: "8px 10px",
+                  borderRadius: "6px",
+                  fontFamily: "monospace",
+                  fontSize: "11.5px",
+                  color: "var(--primary)",
+                  wordBreak: "break-all",
+                  lineHeight: 1.45,
+                  userSelect: "all"
+                }}>
+                  {successCert.tx_hash}
+                </div>
+              </div>
+
+              {/* Mã lưu trữ IPFS */}
+              {successCert.ipfs_hash && (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                    <span style={{ color: "var(--text-muted)", fontWeight: 600 }}>Mã lưu trữ số (IPFS CID):</span>
+                    <a
+                      href={`https://gateway.pinata.cloud/ipfs/${successCert.ipfs_hash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: "11px", color: "#d97706", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "3px" }}
+                      title="Mở trên IPFS Gateway"
+                    >
+                      Pinata <ExternalLink size={11} />
+                    </a>
+                  </div>
+                  <div style={{
+                    background: "rgba(0, 0, 0, 0.04)",
+                    padding: "8px 10px",
+                    borderRadius: "6px",
+                    fontFamily: "monospace",
+                    fontSize: "11.5px",
+                    color: "var(--text-secondary)",
+                    wordBreak: "break-all",
+                    lineHeight: 1.45,
+                    userSelect: "all"
+                  }}>
+                    {successCert.ipfs_hash}
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+            {/* Các nút hành động cân đối */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div className="modal-buttons-2col">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await certificateApi.openCertificatePdf(successCert.certificate_code);
+                    } catch (err) {
+                      toast.error(err.message || "Không thể tải file PDF chứng chỉ từ IPFS.");
+                    }
+                  }}
+                  className="btn btn-gold"
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "10px 14px", fontSize: "13px" }}
+                >
+                  <Download size={15} /> Tải PDF Thật
+                </button>
+                <a
+                  href={`/verify?code=${successCert.certificate_code}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-outline"
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", padding: "10px 14px", fontSize: "13px", textDecoration: "none" }}
+                >
+                  <ExternalLink size={14} /> Xem Trang Tra Cứu
+                </a>
+              </div>
+
               <button
                 type="button"
                 onClick={() => { setSuccessCert(null); navigate("/admin/certificates"); }}
                 className="btn btn-primary"
-                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                style={{ width: "100%", padding: "11px 16px", fontSize: "13.5px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
               >
-                <CheckCircle2 size={16} /> Về Danh Sách Chứng Chỉ
+                <CheckCircle2 size={16} /> Hoàn Tất &amp; Về Danh Sách Chứng Chỉ
               </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await certificateApi.openCertificatePdf(successCert.certificate_code);
-                  } catch (err) {
-                    toast.error(err.message || "Không thể tải file PDF chứng chỉ từ IPFS.");
-                  }
-                }}
-                className="btn btn-gold"
-                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
-              >
-                <Download size={15} /> Tải PDF Thật
-              </button>
-              <a
-                href={`/verify?code=${successCert.certificate_code}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-outline"
-                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
-              >
-                <ExternalLink size={14} /> Mở Trang Tra Cứu (Tab Mới)
-              </a>
             </div>
           </div>
         </div>

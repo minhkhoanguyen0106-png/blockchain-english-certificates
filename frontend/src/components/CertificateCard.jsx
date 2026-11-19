@@ -216,18 +216,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
   };
 
   return (
-    <div style={{
-      position: "relative",
-      background: "linear-gradient(155deg, #fffdf8 0%, #ffffff 48%, #fbf6ea 100%)",
-      border: "3px solid #0e2a47",
-      borderRadius: "14px",
-      padding: "32px 36px 26px",
-      boxShadow: "0 22px 54px -18px rgba(14, 42, 71, 0.28), 0 4px 16px rgba(14, 42, 71, 0.08)",
-      color: "#0e2a47",
-      overflow: "hidden",
-      maxWidth: "760px",
-      margin: "0 auto"
-    }}>
+    <div className="cert-card-container">
       {/* Inner Ceremonial Gold Double Frame */}
       <div style={{
         position: "absolute",
@@ -352,11 +341,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
         </div>
 
         {/* Crisp White Component Skill Cells (2 cols for TOEIC, 4 cols for 4-skill exams) */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${skillItems.length}, minmax(0, 1fr))`,
-          gap: "8px"
-        }}>
+        <div className="cert-card-scores-grid" style={{ "--skill-cols": skillItems.length }}>
           {skillItems.map((sk) => (
             <div key={sk.label} style={{
               background: "#ffffff",
@@ -376,15 +361,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
       </div>
 
       {/* Ceremonial Footer: Status/Dates | Digital Director Seal | Real QR Code */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "1.2fr 0.9fr auto",
-        alignItems: "center",
-        gap: "16px",
-        paddingTop: "16px",
-        borderTop: "1px solid rgba(197, 147, 52, 0.3)",
-        position: "relative"
-      }}>
+      <div className="cert-card-footer-grid">
         {/* Left: Status Badge & Certificate Dates */}
         <div>
           <div style={{ fontSize: "10px", color: "#64748b", fontWeight: 700, marginBottom: "6px", letterSpacing: "0.8px" }}>
@@ -462,20 +439,7 @@ export default function CertificateCard({ cert, isPreview = false }) {
       </div>
 
       {/* Bottom On-Chain Proof Strip */}
-      <div style={{
-        marginTop: "16px",
-        padding: "9px 14px",
-        background: "#f3eee1",
-        border: "1px solid rgba(197, 147, 52, 0.25)",
-        borderRadius: "8px",
-        fontSize: "11px",
-        display: "flex",
-        justifyContent: "space-between",
-        flexWrap: "wrap",
-        gap: "8px 16px",
-        color: "#475569",
-        position: "relative"
-      }}>
+      <div className="cert-card-proof-strip">
         <span>
           Mã số bằng:{" "}
           <strong style={{ color: isIssued && hasToken ? "#0369a1" : "#64748b" }}>

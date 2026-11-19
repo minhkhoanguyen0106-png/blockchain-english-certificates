@@ -190,8 +190,14 @@ export default function DashboardPage({ user }) {
         anyBackendOk = true;
       }
 
-      if (!anyBackendOk) {
-        setApiError("Không thể kết nối máy chủ dữ liệu. Vui lòng kiểm tra Backend API và tải lại.");
+      const isUnauthorized = [statsRes, certsRes, logsRes].some(
+        (r) => r.status === "rejected" && (r.reason?.status === 401 || String(r.reason?.message).includes("401"))
+      );
+
+      if (isUnauthorized) {
+        setApiError("Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại tài khoản Admin/Staff.");
+      } else if (!anyBackendOk) {
+        setApiError("Không thể kết nối máy chủ dữ liệu. Vui lòng kiểm tra Backend API và thử lại.");
       }
     } catch {
       setApiError("Không thể kết nối máy chủ dữ liệu. Vui lòng kiểm tra Backend API và tải lại.");
